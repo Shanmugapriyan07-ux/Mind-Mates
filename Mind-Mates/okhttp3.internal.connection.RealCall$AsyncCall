@@ -1,0 +1,2 @@
+npx expo start --tunnel --timeout 120000
+npx expo start --tunnel 2>&1

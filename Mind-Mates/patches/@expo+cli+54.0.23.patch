@@ -1,0 +1,15 @@
+diff --git a/node_modules/@expo/cli/build/src/start/server/AsyncNgrok.js b/node_modules/@expo/cli/build/src/start/server/AsyncNgrok.js
+index 4c42029..a549ed2 100644
+--- a/node_modules/@expo/cli/build/src/start/server/AsyncNgrok.js
++++ b/node_modules/@expo/cli/build/src/start/server/AsyncNgrok.js
+@@ -93,8 +93,8 @@ function _interop_require_wildcard(obj, nodeInterop) {
+ }
+ const debug = require('debug')('expo:start:server:ngrok');
+ const NGROK_CONFIG = {
+-    authToken: '5W1bR67GNbWcXqmxZzBG1_56GezNeaX6sSRvn8npeQ8',
+-    domain: 'exp.direct'
++    authToken: 'YOUR_NGROK_AUTH_TOKEN_HERE',
++    domain: 'ngrok.app'
+ };
+ const TUNNEL_TIMEOUT = 10 * 1000;
+ class AsyncNgrok {

@@ -1,0 +1,18 @@
+{
+  "plugins": [
+    "expo-web-browser"
+  ],
+  "expo": {
+    "name": "Mind-Mates",
+    "splash": {
+      "image": "./assets/images/splash-logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFFFF"
+    },
+    "plugins": [
+      "expo-font",
+      "expo-web-browser",
+      "expo-router"
+    ]
+  }
+}
