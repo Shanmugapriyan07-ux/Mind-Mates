@@ -16,17 +16,18 @@ import Toast from 'react-native-toast-message';
 import { router } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { spacing } from '@/constants/theme';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 
 
-const BasicInfo = ({ onNext }: { onNext: () => void }) => {
+const BasicInfo = (props: { onNext: () => void; onBack: () => void }) => {
   const { profile, updateProfile } = useProfile();
   
   const [formData, setFormData] = useState({
-    fullName: profile.fullName || '',
-    title: profile.title || '',
-    location: profile.location || '',
-    bio: profile.bio || '',
+    fullName: profile?.fullName || '',
+    title: profile?.title || '',
+    location: profile?.location || '',
+    bio: profile?.bio || '',
   });
 
   const [focused, setFocused] = useState<string | null>(null);
@@ -89,11 +90,11 @@ const BasicInfo = ({ onNext }: { onNext: () => void }) => {
             s.inputWrapper,
             focused === 'fullName' && s.inputFocused
           ]}>
-            <Text style={s.icon}>👤</Text>
+            <Ionicons name="person" size={20} color="#1c1c1d" style={s.icon} />
             <TextInput
               style={s.input}
               placeholder="Sakthi"
-              placeholderTextColor="#9CA3AF"
+           placeholderTextColor="#9CA3AF"
               value={formData.fullName}
               onChangeText={(text) => handleChange('fullName', text)}
               onFocus={() => setFocused('fullName')}
@@ -110,11 +111,11 @@ const BasicInfo = ({ onNext }: { onNext: () => void }) => {
             s.inputWrapper,
             focused === 'title' && s.inputFocused
           ]}>
-            <Text style={s.icon}>💼</Text>
+           <Ionicons name="happy" style={s.icon}></Ionicons>
             <TextInput
               style={s.input}
               placeholder="Arts & Sports"
-              placeholderTextColor="#9CA3AF"
+             placeholderTextColor="#9CA3AF"
               value={formData.title}
               onChangeText={(text) => handleChange('title', text)}
               onFocus={() => setFocused('title')}
@@ -132,11 +133,11 @@ const BasicInfo = ({ onNext }: { onNext: () => void }) => {
             s.inputWrapper,
             focused === 'location' && s.inputFocused
           ]}>
-            <Text style={s.icon}>📍</Text>
+           <Ionicons name="location" style={s.icon}></Ionicons>
             <TextInput
               style={s.input}
               placeholder="Cuddlore (DT)"
-              placeholderTextColor="#9CA3AF"
+             placeholderTextColor="#9CA3AF"
               value={formData.location}
               onChangeText={(text) => handleChange('location', text)}
               onFocus={() => setFocused('location')}
@@ -207,62 +208,64 @@ const s = StyleSheet.create({
     height: 20,
     justifyContent:'center',
     alignItems:'center',                            
-     padding: 45,
-    
+     padding: 37,
      marginTop: 0, 
      flexDirection:'row',
   },
   sptext:{
-  fontSize: 23,
-    fontWeight: '600',
+  fontSize: 24,
+    fontWeight: '700',
     color: '#111827',
     position:'relative',
     alignSelf:'center',
     justifyContent:'center',
-    // marginRight:100
+    letterSpacing:0.15,
+  
   },
   scroll: {
     paddingHorizontal: 24,
-    paddingBottom: 100,
+    paddingBottom: 400,
   },
   subtitle: {
-    fontSize: 15,
-    color: '#6B7280',
+    fontSize: 16,
+    color: '#1F2937',
     lineHeight: 22,
     marginBottom: 15,
+    marginTop:-5
     
   }, 
    inputGroup: {
     marginBottom: 20,
   },
   label: {
-    fontSize: 14,
+   fontSize: 14,
     fontWeight: '600',
     color: '#374151',
     marginBottom: 8,
+    
   },
   inputWrapper: {
-    flexDirection: 'row',
+     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+  backgroundColor: '#F9FAFB',
     borderRadius: 12,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: '#E5E7EB',
-    paddingHorizontal: 14,
-    height: 52,
+    height: 48,
   },
   inputFocused: {
-    borderColor: '#7C3AED',
-    backgroundColor: '#FFFFFF',
+    borderColor: '#c8c6c6',
   },
   icon: {
     fontSize: 20,
-    marginRight: 10,
+    marginRight: 8,
+    marginLeft: 10,
   },
   input: {
-    flex: 1,
-    fontSize: 16,
+     flex: 1,
+    fontSize: 15,
     color: '#1F2937',
+    paddingVertical: 0,
   },
   textAreaWrapper: {
     backgroundColor: '#F9FAFB',

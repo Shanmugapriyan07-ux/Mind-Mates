@@ -18,11 +18,12 @@ import { router } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import BasicInfo from '@/(profileSetUp)/BasicInfo';
 import { string } from 'zod';
-
+import { } from '@/Contexts/profileContext';
+import { Ionicons } from '@expo/vector-icons';
 
 const Edit = ({}: { onNext: () => void }) => {
-    const { profile, updateProfile, loading: contextLoading } = useProfile();
-
+  const { profile, updateProfile, isLoading: contextLoading } = useProfile();
+ 
   // ──────────────────────────────────────────────────────────────────────
   // STEP 2: Local state for form data
   // ──────────────────────────────────────────────────────────────────────
@@ -205,7 +206,7 @@ const Edit = ({}: { onNext: () => void }) => {
             s.inputWrapper,
             focused === 'fullName' && s.inputFocused
           ]}>
-            <Text style={s.icon}>👤</Text>
+                      <Ionicons name="person" size={20} color="#1c1c1d" style={s.icon} />
             <TextInput
               style={s.input}
               placeholder="Sakthi"
@@ -226,11 +227,12 @@ const Edit = ({}: { onNext: () => void }) => {
             s.inputWrapper,
             focused === 'title' && s.inputFocused
           ]}>
-            <Text style={s.icon}>💼</Text>
+           <Ionicons name="happy" style={s.icon}></Ionicons>
+                     
             <TextInput
               style={s.input}
               placeholder="Arts & Sports"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor="#111c2f"
               value={formData.title}
               onChangeText={(text) => handleChange('title', text)}
               onFocus={() => setFocused('title')}
@@ -248,7 +250,7 @@ const Edit = ({}: { onNext: () => void }) => {
             s.inputWrapper,
             focused === 'location' && s.inputFocused
           ]}>
-            <Text style={s.icon}>📍</Text>
+<Ionicons name="location" style={s.icon}></Ionicons>
             <TextInput
               style={s.input}
               placeholder="Cuddlore (DT)"
@@ -297,7 +299,7 @@ const Edit = ({}: { onNext: () => void }) => {
           style={s.btnOuter}
         >
           <LinearGradient
-            colors={['#7C3AED', '#A855F7', '#F59E0B']}
+            colors={['#6b29de', '#7C3AED','#6b29de']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={s.btn}

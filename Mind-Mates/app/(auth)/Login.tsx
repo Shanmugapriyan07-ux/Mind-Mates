@@ -552,8 +552,8 @@ const styles = StyleSheet.create({
     marginRight: SPACING.sm,
   },
   input: {
-    flex: 1,
-    fontSize: 16,
+ flex: 1,
+    fontSize: 15,
     color: '#1F2937',
     paddingVertical: 0,
   },

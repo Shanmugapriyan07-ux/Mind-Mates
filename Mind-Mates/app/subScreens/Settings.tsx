@@ -7,22 +7,23 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
-  Alert,
+  Switch,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Button, Dialog, Portal, TextInput, Provider } from 'react-native-paper';
 import { account } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/GlobalProvider';
 import Toast from 'react-native-toast-message';
-import { success } from 'zod';
 import AntDesign from '@expo/vector-icons/AntDesign';
+import { useSettings } from '@/Contexts/settingsContext';
 
 export default function Matchscreen() {
   const { user, refetch } = useGlobalContext();
   const [logoutLoading, setLogoutLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const { settings, updateSetting } = useSettings(); 
   
   // Dialog states
   const [logoutDialogVisible, setLogoutDialogVisible] = useState(false);
@@ -48,56 +49,54 @@ export default function Matchscreen() {
     setDeleteDialogVisible(false);
     setConfirmText('');
   }, []);
+  
+  <Switch
+  value={settings.theme === 'dark'}
+  onValueChange={(val) => updateSetting('theme', val ? 'dark' : 'light')}
+/>
 
   // ─── STANDARD LOGOUT ────────────────────────────────────────────────────
 
-  const handleLogout = useCallback(async () => {
-    setLogoutLoading(true);
-    hideLogoutDialog();
+const handleLogout = useCallback(async () => {
+  setLogoutLoading(true);
+  hideLogoutDialog();
 
+  try {
+    console.log('🔵 Starting logout...');
+    const currentUserId = user?.$id;
+
+    // Step 1: Delete Appwrite session
     try {
-      console.log('🔵 Starting logout...');
-
-      // Step 1: Delete Appwrite session
-      try {
-        await account.deleteSession('current');
-        console.log('✅ Appwrite session deleted');
-      } catch (error) {
-        console.warn('⚠️ Session deletion failed:', error);
-      }
-
-      // Step 2: Clear AsyncStorage
-      await AsyncStorage.multiRemove([
-        'userToken',
-        'userId',
-        'userName',
-        'userEmail',
-        'sessionId',
-        'isLoggedIn',
-        'loginProvider',
-      ]);
-      console.log('✅ AsyncStorage cleared');
-
-      // Step 3: Update global state
-      refetch();
-      console.log('✅ Global state updated');
-
-      // Step 4: Navigate to welcome
-      router.replace('/(auth)/Welcome');
-      console.log('✅ Navigated to Welcome');
-
+      await account.deleteSession('current');
+      console.log('✅ Appwrite session deleted');
     } catch (error) {
-      console.error('❌ Logout error:', error);
-      Toast.show({
-        type: 'error',
-        text1: 'Error',
-        text2: 'Failed to logout. Please try again.',
-      });
-    } finally {
-      setLogoutLoading(false);
+      console.warn('⚠️ Session already expired:', error);
     }
-  }, [refetch, hideLogoutDialog]);
 
+    // Step 2: Clear ONLY session keys — NOT profile/theme/settings
+    await clearSession();
+    console.log('✅ Session cleared (user data preserved ✅)');
+
+    // Step 3: Clear in-memory state only
+    setUser(null);
+    setIsLogged(false);
+    refetch();
+
+    // Step 4: Navigate
+    router.replace('/(auth)/Welcome');
+
+  } catch (error) {
+    console.error('❌ Logout error:', error);
+    router.replace('/(auth)/Welcome');
+    Toast.show({
+      type: 'error',
+      text1: 'Logout issue',
+      text2: 'Signed out locally. Please re-login.',
+    });
+  } finally {
+    setLogoutLoading(false);
+  }
+}, [user, refetch, hideLogoutDialog]);
   // ─── DELETE ACCOUNT ─────────────────────────────────────────────────────
 
   const handleDeleteAccount = useCallback(async () => {
@@ -192,17 +191,17 @@ export default function Matchscreen() {
 
   return (
     <Provider>
-      <SafeAreaView style={s.safe}>
+      <SafeAreaProvider style={s.safe}>
         <ScrollView contentContainerStyle={s.scroll}>
           
           {/* Header */}
-          <View style={s.header}>
-           <TouchableOpacity onPress={() => router.push('/(tabs)/profile')}>
-            <AntDesign name="arrow-left" size={24} color="black" />
-           </TouchableOpacity> 
-            <Text style={s.welcomeText}>Welcome,</Text>
-            <Text style={s.userName}>{user?.name || 'User'}!</Text>
-          </View>
+           <View style={s.header}>
+        <TouchableOpacity onPress={()=> router.push('/(tabs)/profile')}>
+         <AntDesign name="arrow-left" size={20} style={s.arrow} color='#232529' />
+         </TouchableOpacity>
+        <Text style={s.headerTitle}>Settings</Text>
+        <Text></Text>
+         </View>
 
           {/* Account Section */}
           <View style={s.section}>
@@ -255,12 +254,7 @@ export default function Matchscreen() {
           </View>
 
           {/* User Info (Debug) */}
-          <View style={s.debugSection}>
-            <Text style={s.debugTitle}>Debug Info</Text>
-            <Text style={s.debugText}>User ID: {user?.$id || 'N/A'}</Text>
-            <Text style={s.debugText}>Email: {user?.email || 'N/A'}</Text>
-            <Text style={s.debugText}>Name: {user?.name || 'N/A'}</Text>
-          </View>
+         
 
         </ScrollView>
 
@@ -380,23 +374,46 @@ export default function Matchscreen() {
           </Dialog>
         </Portal>
 
-      </SafeAreaView>
+      </SafeAreaProvider>
     </Provider>
   );
 }
 
 const s = StyleSheet.create({
   safe: {
+    top:0,
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#ffffff',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 100,
+    paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
+    width:500,
+      alignSelf:'center',
+      marginTop:-15,
+  },
+  headerIcon: {
+    fontSize: 22,
+    marginRight: 20,
+    marginLeft:-20
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#17191b',
+    padding:8,
+    letterSpacing:0.15,
   },
   scroll: {
     padding: 20,
     paddingBottom: 40,
   },
-  header: {
-    marginBottom: 32,
-    alignItems: 'center',
+  arrow:{
+    marginRight: -20,
   },
   welcomeText: {
     fontSize: 18,
@@ -539,3 +556,11 @@ const s = StyleSheet.create({
     marginLeft: 8,
   },
 });
+
+function setUser(arg0: null) {
+  throw new Error('Function not implemented.');
+}
+function setIsLogged(arg0: boolean) {
+  throw new Error('Function not implemented.');
+}
+

@@ -1,86 +1,79 @@
-
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Stack, SplashScreen, useRouter, useSegments } from 'expo-router';
 import GlobalProvider, { useGlobalContext } from '@/lib/GlobalProvider';
 import { PaperProvider } from 'react-native-paper';
 import { AuthProvider } from '@/Contexts/authContext';
 import { ProfileProvider, useProfile } from '@/Contexts/profileContext';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SettingsProvider } from '@/Contexts/settingsContext';
 
-// Prevent splash from hiding automatically
 SplashScreen.preventAutoHideAsync();
 
-
-
-export  function RootLayoutNav() {
+export function RootLayoutNav() {
   const { isLogged, loading } = useGlobalContext();
-  const { profile } = useProfile();
+  const { profile, isLoading: profileLoading } = useProfile();
   const segments = useSegments();
   const router = useRouter();
+  const navigationHandled = useRef(false); // ← prevents double navigation
 
-useEffect(() => {
-  console.log("📍 Current Location:", segments.join('/'));
-}, [segments]);
-  // ✅ SMART NAVIGATION LOGIC
-  // This runs whenever auth state changes
+  // Hide splash only when BOTH auth AND profile are loaded
   useEffect(() => {
-    if (loading) return; // Wait for auth check
-
-    const inAuthGroup = segments[0] === '(auth)';
-    const inTabsGroup = segments[0] === '(tabs)';
-    const inProfileSetup = segments[0] === '(profileSetUp)';
-    const inSubScreens = segments[0] === 'subScreens';
-
-    console.log('🔍 Navigation check:', { isLogged, segments });
-
-    if (isLogged) {
-      // ✅ User is logged in
-
-      // Use profile context to determine completion
-      const profileComplete = Boolean(profile && profile.isProfileComplete);
-
-      if (!profileComplete) {
-        // If we are already in setup, don't redirect (prevents loops)
-        if (!inProfileSetup) {
-          router.replace('/(profileSetUp)/BasicInfo');
-        }
-      } else if (!inTabsGroup && !inSubScreens) {
-        router.replace('/(tabs)/home');
-      }
-    } else {
-      // ❌ User is logged out
-      if (!inAuthGroup) {
-        // Redirect to welcome
-        router.replace('/(auth)/Welcome');
-      }
-    }}, [isLogged, loading, segments]);
-
-  // Hide splash when auth is loaded
-  useEffect(() => {
-    if (!loading) {
+    if (!loading && !profileLoading) {
       SplashScreen.hideAsync();
     }
-  }, [loading]);
+  }, [loading, profileLoading]);
 
-  // Show nothing while loading (splash screen is visible)
-  if (loading) {
-    return null;
+  // ✅ SINGLE navigation effect — no conflicts
+  useEffect(() => {
+    // Wait for both auth AND profile to finish loading
+    if (loading || profileLoading) return;
+
+    const inAuthGroup     = segments[0] === '(auth)';
+    const inTabsGroup     = segments[0] === '(tabs)';
+    const inProfileSetup  = segments[0] === '(profileSetUp)';
+    const inSubScreens    = segments[0] === 'subScreens';
+
+    console.log('🔍 Nav check:', { isLogged, segments, profileComplete: profile?.isProfileComplete });
+
+    if (!isLogged) {
+      // Not logged in → go to auth (only if not already there)
+      if (!inAuthGroup) {
+        router.replace('/(auth)/Welcome');
+      }
+      return;
+    }
+
+    // Logged in — check profile completion
+    const profileComplete = Boolean(profile?.isProfileComplete);
+
+    if (!profileComplete) {
+      // Profile incomplete → go to setup (only if not already there)
+      if (!inProfileSetup) {
+        router.replace('/(profileSetUp)/BasicInfo');
+      }
+      return;
+    }
+
+    // Profile complete → go to tabs (only if in wrong place)
+    if (!inTabsGroup && !inSubScreens && !inProfileSetup) {
+      router.replace('/(tabs)/home');
+    }
+
+  // ✅ segments intentionally LEFT OUT of deps — prevents infinite loop
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLogged, loading, profileLoading, profile?.isProfileComplete]);
+
+  if (loading || profileLoading) {
+    return null; // Splash is visible
   }
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      {/* Auth Stack */}
       <Stack.Screen name="(auth)" />
-      
-      {/* Main App Tabs */}
       <Stack.Screen name="(tabs)" />
-      
-      {/* Profile Setup Flow */}
       <Stack.Screen name="(profileSetUp)" />
-
-      <Stack.Screen name="subScreens" />      
-      {/* Global Modals */}
-      <Stack.Screen 
+      <Stack.Screen name="subScreens" />
+      <Stack.Screen
         name="modal"
         options={{
           presentation: 'modal',
@@ -97,19 +90,17 @@ export default function RootLayout() {
       <GlobalProvider>
         <AuthProvider>
           <ProfileProvider>
+              <SettingsProvider>
             <PaperProvider>
               <RootLayoutNav />
             </PaperProvider>
+            </SettingsProvider>
           </ProfileProvider>
         </AuthProvider>
       </GlobalProvider>
     </SafeAreaProvider>
   );
 }
-
-
-
-
 
 
 

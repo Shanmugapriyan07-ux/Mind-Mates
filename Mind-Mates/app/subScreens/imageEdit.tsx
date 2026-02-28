@@ -11,10 +11,12 @@ import { useProfile } from '@/Contexts/profileContext';
 import Toast from 'react-native-toast-message';
 import { router } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+
 
 const ProfileImage = ({ onNext, onBack }: { onNext: () => void; onBack: () => void }) => {
   const { profile, updateProfile } = useProfile();
-  const [image, setImage] = useState(profile.profileImage);
+  const [image, setImage] = useState(profile?.profileImage);
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -53,7 +55,7 @@ const ProfileImage = ({ onNext, onBack }: { onNext: () => void; onBack: () => vo
     <View style={s.container}>
       <View style={s.headerImage}>
                 <View>
-            <Text style={s.sptext}>Add your photo 📸</Text>
+            <Text style={s.sptext}> Add your picture<Ionicons name="camera-outline" size={25} style={{marginLeft:10}}></Ionicons></Text>
             </View>
             </View>
          <ScrollView
@@ -61,32 +63,34 @@ const ProfileImage = ({ onNext, onBack }: { onNext: () => void; onBack: () => vo
              keyboardShouldPersistTaps="handled"
              showsVerticalScrollIndicator={true}
            >
-      <Text style={s.subtitle}>Help others recognize you</Text>
 
       <TouchableOpacity style={s.imageContainer} onPress={pickImage}>
         {image ? (
           <Image source={{ uri: image }} style={s.image} />
         ) : (
           <View style={s.placeholder}>
-            <Text style={s.placeholderIcon}>📷</Text>
+           
+           <View></View>
             <Text style={s.placeholderText}>Tap to upload</Text>
           </View>
         )}
       </TouchableOpacity>
-      <View>
-        <Text style={{alignSelf:'center',justifyContent:'center', color:'#68676a'}}>(Optional)*</Text>
-      </View>
-
+    
       {image && (
         <TouchableOpacity onPress={pickImage} style={s.changeBtn}>
-          <Text style={s.changeText}>Change Photo</Text>
+         <LinearGradient colors={['#7335df', '#783aeb']} start={{x:0,y:0}} end={{x:1,y:0}} style={s.nextt}>
+            <Text style={s.nextText}>ChangePhoto</Text>
+          </LinearGradient>
         </TouchableOpacity>
       )}
+      <View>
+        <Text style={{alignSelf:'center',justifyContent:'center', color:'#68676a', marginTop:-10}}>(Optional)</Text>
+      </View>
       </ScrollView>
 
       <View style={s.buttons}>
         <TouchableOpacity onPress={handleNext} style={s.nextOuter}>
-          <LinearGradient colors={['#7C3AED', '#F59E0B']} start={{x:0,y:0}} end={{x:1,y:0}} style={s.next}>
+          <LinearGradient colors={['#7329f3', '#6836c5']} start={{x:0,y:0}} end={{x:1,y:0}} style={s.next}>
             <Text style={s.nextText}>Continue</Text>
           </LinearGradient>
         </TouchableOpacity>
@@ -117,10 +121,9 @@ const s = StyleSheet.create({
     fontWeight: '600',
     color: '#0f0f0f',
     position:'relative',
-    alignItems:'center',
+    alignSelf:'center',
     justifyContent:'center',
     marginTop:10,
-    marginRight:110,
     marginBottom:10,
   },
    scroll: {
@@ -129,17 +132,18 @@ const s = StyleSheet.create({
     flexGrow:1,
     marginBottom:500,
   },
-  subtitle: { fontSize: 15, color: '#494a4c', marginBottom: 40, marginTop: -1, },
-  imageContainer: { alignSelf: 'center', marginBottom: 20 , borderColor:'#111' },
+  subtitle: { fontSize: 15, color: '#535355', marginBottom: 40, marginTop: -4, },
+  imageContainer: { alignSelf: 'center', marginBottom: 10 , borderColor:'#111' },
   image: { width: 150, height: 150, borderRadius: 75 },
   placeholder: { width: 150, height: 150, borderRadius: 75, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#E5E7EB', borderStyle: 'dashed' },
   placeholderIcon: { fontSize: 40, marginBottom: 8 },
-  placeholderText: { fontSize: 14, color: '#9CA3AF', fontWeight: '600' },
-  changeBtn: { alignSelf: 'center', padding: 12 },
-  changeText: { fontSize: 15, color: '#7C3AED', fontWeight: '600' },
+  placeholderText: { fontSize: 14, color: '#000000', fontWeight: '600' },
+  changeBtn: { alignSelf: 'center', padding: 12,paddingHorizontal:20 },
+  changeText: { fontSize: 20, color: '#6511f7', fontWeight: '700' },
   buttons: { position: 'absolute', bottom: 20, left: 24, right: 24, flexDirection: 'row', gap: 12,},
   nextOuter: { flex: 2, borderRadius: 19, overflow: 'hidden', width: '100%',justifyContent:'center',alignItems:'center' },
-  next: { paddingVertical: 16, borderRadius: 14, alignItems: 'center',paddingHorizontal:90, justifyContent: 'center'},
+  next: { paddingVertical: 16, borderRadius: 14, alignItems: 'center',paddingHorizontal:100, justifyContent: 'center'},
+   nextt: { paddingVertical: 15, borderRadius: 14, alignItems: 'center',paddingHorizontal:35, justifyContent: 'center'},
   nextText: { fontSize: 17, fontWeight: '700', color: '#FFF' },
 });
 

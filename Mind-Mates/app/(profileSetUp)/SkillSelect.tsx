@@ -17,13 +17,16 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import SkillCardSkeleton from '@/components/features/SkillCardSkeleton';
 import { useProfile } from '@/Contexts/profileContext';
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import BasicInfo from './BasicInfo';
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
 type Category = 'Tech' | 'Design' | 'Marketing' | 'Business';
 
 interface Skill {
-  id: number;
+  id: any;
   name: string;
   category: Category;
   emoji: string;
@@ -69,7 +72,7 @@ const CardContent: React.FC<CardContentProps> = ({ skill, isSelected }) => (
   <>
     {isSelected ? (
       <LinearGradient
-        colors={['#7b4ce5', '#a06ae0']}
+        colors={['#703de7','#7b4ce5', '#7b4ce5']}
         style={styles.checkCircle}
       >
         <Text style={styles.checkMark}>✓</Text>
@@ -128,7 +131,7 @@ const SkillCard: React.FC<SkillCardProps> = React.memo(({ skill, isSelected, isD
       <Animated.View style={{ transform: [{ scale: scaleAnim }], opacity: isDisabled ? 0.4 : 1 }}>
         {isSelected ? (
           <LinearGradient
-            colors={['#7b4ce5', '#f5a623']}
+            colors={['#703de7','#7b4ce5', '#7b4ce5']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.gradientBorder}
@@ -225,11 +228,10 @@ const Matchscreen: React.FC<{ onNext: () => void; onBack: () => void }> = ({ onN
   const handleContinue = useCallback(async (): Promise<void> => {
     if (selectedCount === 0) return;
     const chosen: Skill[] = SKILLS
-      .filter((s: Skill) => selectedIds.has(s.id));
+      .filter((s: Skill) => selectedIds.has(s.id)); 
 
     // Save to profile
-    await updateProfile({ skills: chosen, isProfileComplete: true });
-
+    await updateProfile({ skills: chosen, profileImage: profile?.profileImage,isProfileComplete: true });
       await new Promise(resolve => setTimeout(resolve, 200));
 
      router.replace('/(tabs)/home')
@@ -269,7 +271,7 @@ const Matchscreen: React.FC<{ onNext: () => void; onBack: () => void }> = ({ onN
 
         {/* Search */}
         <View style={styles.searchWrap}>
-          <Text style={styles.searchIcon}>🔍</Text>
+          <Ionicons name="search" size={20} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search skills..."
@@ -388,7 +390,7 @@ export default Matchscreen;
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f4f4f8',
+    backgroundColor: '#ffffff',
   },
 
   // Header
@@ -427,6 +429,8 @@ const styles = StyleSheet.create({
   searchIcon: {
     fontSize: 16,
     marginRight: 8,
+    color: '#838383',
+  
   },
   searchInput: {
     flex: 1,
@@ -492,7 +496,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 20,
     padding: 14,
-    paddingTop: 16,
+    paddingTop: 18,
     minHeight: 130,
   },
   card: {
@@ -501,12 +505,13 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     minHeight: 130,
     position:'relative'
+    
   },
   cardUnselected: {
     backgroundColor: '#fff',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
+    shadowOffset: { width: 2, height: 3 },
+    shadowOpacity: 0.11,
     shadowRadius: 8,
     elevation: 3,
   },
@@ -525,7 +530,7 @@ const styles = StyleSheet.create({
   checkUnchecked: {
     backgroundColor: '#f0f0f5',
     borderWidth: 2,
-    borderColor: '#e0e0e8',
+    borderColor: '#e5e5eb',
   },
   checkMark: {
     color: '#fff',
@@ -563,7 +568,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 10,
     paddingBottom: 28,
-    backgroundColor: '#f4f4f8',
+    backgroundColor: '#ffffff',
   },
   limitWarning: {
     backgroundColor: '#fff3cd',

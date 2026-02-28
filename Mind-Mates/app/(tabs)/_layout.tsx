@@ -1,101 +1,124 @@
-// app/(tabs)/_layout.js
-// TABS LAYOUT - Main App Navigation
-// ✅ Bottom tab bar like Instagram/Twitter
-// ✅ Optimized performance
-// ✅ Beautiful icons
-
 import { Tabs } from 'expo-router';
-import { Platform, Text } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { size } from 'zod';
+import { Platform, StyleSheet, View } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
+import React from 'react';
 
+// 🔑 The floating blur tab bar rendered as a custom tabBar prop
+function FloatingBlurTabBar({ state, descriptors, navigation }: any) {
+  return (
+    <View style={styles.outerWrapper} pointerEvents="box-none">
+      <BlurView intensity={70} tint="light" style={styles.blurContainer}>
+        <View style={styles.tabRow}>
+          {state.routes.map((route: any, index: number) => {
+            const { options } = descriptors[route.key];
+            const isFocused = state.index === index;
+
+            const iconMap: Record<string, { active: string; inactive: string }> = {
+              home:    { active: 'home-sharp',          inactive: 'home-outline' },
+              search:  { active: 'search-sharp',       inactive: 'search-outline' },
+              chat:    { active: 'people-sharp',       inactive: 'people-outline' },
+              profile: { active: 'person-sharp',       inactive: 'person-outline' },
+            };
+
+            const icons = iconMap[route.name] ?? { active: 'ellipse', inactive: 'ellipse-outline' };
+            const label = options.title ?? route.name;
+            const color = isFocused ? '#7C3AED' : '#9CA3AF';
+
+            const onPress = () => {
+              const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+              if (!isFocused && !event.defaultPrevented) {
+                navigation.navigate(route.name);
+              }
+            };
+
+            return (
+              <View key={route.key} style={styles.tabItem}>
+                {/* Active pill highlight */}
+                {isFocused && <View style={styles.activePill} />}
+
+                <Ionicons
+                  name={(isFocused ? icons.active : icons.inactive) as any}
+                  size={24}
+                  color={color}
+                  onPress={onPress}
+                  style={styles.icon}
+                />
+              </View>
+            );
+          })}
+        </View>
+      </BlurView>
+    </View>
+  );
+}
 
 export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#7C3AED',
-        tabBarInactiveTintColor: '#9CA3AF',
-        tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          borderTopWidth: 1,
-          borderTopColor: '#F3F4F6',
-          height: Platform.OS === 'ios' ? 88 : 60,
-          paddingBottom: Platform.OS === 'ios' ? 28 : 10,
-          paddingTop: 8,
-          
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
-        },
+        // Hide the default tab bar — we use our custom one
+        tabBarStyle: { display: 'none' },
       }}
+      tabBar={(props:any) => <FloatingBlurTabBar {...props} />}
     >
-      <Tabs.Screen
-        name="home"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color, size, focused }: { color: string; size: number; focused:Boolean }) => (
-            <Ionicons name={focused ? 'home-sharp' : 'home-outline'} color={color} size={size} />
-          ),
-        }}
-      />
-      
-      <Tabs.Screen
-        name="search"
-        options={{
-          title: 'Search',
-          tabBarIcon: ({ color, size, focused}: {color:string; size: number; focused:boolean})=> (
-            <Ionicons name={focused ? 'search-circle' : 'search-outline'} color={color} size={size} />
-          ),
-        }}
-      />
-      
-      <Tabs.Screen
-        name="chat"
-        options={{
-          title: 'chat',
-          tabBarIcon: ({ color, size, focused}: {color:string; size: number; focused:boolean}) => (
-            <Ionicons name={focused ? 'people-circle' : 'people-outline'} color={color} size={size} />
-          ),
-        }}
-      />
-      
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-         tabBarIcon: ({ color, size, focused}: {color:string; size: number; focused:boolean})=> (
-            <Ionicons name={focused ? 'person-circle' : 'person-outline'} color={color} size={size} />
-          ),
-        }}
-      />
-      
+      <Tabs.Screen name="home"    options={{ title: 'Home' }} />
+      <Tabs.Screen name="search"  options={{ title: 'Search' }} />
+      <Tabs.Screen name="chat"    options={{ title: 'Chat' }} />
+      <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
     </Tabs>
   );
 }
 
-// Simple icon component (you can replace with react-native-vector-icons)
-interface TabIconProps {
-  name: 'home' | 'search' | 'chat' | 'profile';
-  color: string;
-  size?: number;
-}
-function TabIcon({ name, color, size = 24 }: TabIconProps) {
-  const icons = {
-    home: <Ionicons name="home-sharp" color={color} size={size} />,
-    search: <Ionicons name="search-sharp" color={color} size={size} />,
-    chat: <Ionicons name="chatbubble-ellipses-sharp" color={color} size={size} />,
-    profile: <Ionicons name="person-circle-sharp" color={color} size={size} />,
-  };
-  
-  return (
-    <SafeAreaProvider>
-    <Text style={{ fontSize: size, color }}>
-      {icons[name]}
-    </Text>
-    </SafeAreaProvider>
-  );
-}
+const BAR_HEIGHT = 64;
+const BOTTOM_OFFSET = Platform.OS === 'ios' ? 28 : 16;
+
+const styles = StyleSheet.create({
+  outerWrapper: {
+    position: 'absolute',
+    bottom: BOTTOM_OFFSET,
+    left: 24,
+    right: 24,
+    // Floating shadow
+    shadowColor: '#7C3AED',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    elevation: 20,
+    borderRadius: 32,
+  },
+  blurContainer: {
+    borderRadius: 32,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.6)',
+    backgroundColor: 'rgba(255,255,255,0.25)', // fallback for Android
+  },
+  tabRow: {
+    flexDirection: 'row',
+    height: BAR_HEIGHT,
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingHorizontal: 8,
+  },
+  tabItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: BAR_HEIGHT,
+    position: 'relative',
+  },
+  activePill: {
+    position: 'absolute',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(124, 58, 237, 0.12)',
+  },
+  icon: {
+    zIndex: 1,
+  },
+});
+
+

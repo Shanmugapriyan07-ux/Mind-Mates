@@ -447,7 +447,7 @@ const SignupScreen = () => {
                       onPress={() => setShowPassword(!showPassword)}
                     >
                       <Text style={styles.eyeIcon}>
-                        {showPassword ? <Ionicons name="eye" size={18} color="#323134" /> : <Ionicons name="eye-off" size={18} color="#323134" />}}
+                       {showPassword ? <Ionicons name="eye" size={18} color="#323134" /> : <Ionicons name="eye-off" size={18} color="#323134" />}} 
                       </Text>
                     </TouchableOpacity>
                   </View>
