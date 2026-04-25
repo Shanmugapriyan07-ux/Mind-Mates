@@ -1,83 +1,87 @@
-import { useEffect } from 'react';
-import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
-import { account } from '@/lib/appwrite';
-import { useAuth } from '@/Contexts/authContext';
+// app/auth.tsx — OAuth callback handler (Supabase version)
+// TEACHING: When Google redirects back to your app via deep link
+// this screen handles the code exchange automatically
+//
+// Deep link: mindmates://auth?code=xxx
+// Supabase: exchanges code → JWT session automatically ✅
+
+import { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Animated, Image } from 'react-native';
+import { useLocalSearchParams, router } from 'expo-router';
+import { supabase } from '@/lib/supabase';
+import { useAuth }  from '@/Contexts/authContext';
+import images       from '@/constants/images';
 
 export default function AuthCallback() {
-  const params = useLocalSearchParams();
-  const { login: contextLogin } = useAuth();
+  const params        = useLocalSearchParams();
+  const { loginWithOAuth } = useAuth();
+  const pulseAnim     = useRef(new Animated.Value(0.4)).current;
+  const hasProcessed  = useRef(false);
 
+  // Pulse animation
   useEffect(() => {
+    Animated.loop(Animated.sequence([
+      Animated.timing(pulseAnim, { toValue: 1,   duration: 700, useNativeDriver: true }),
+      Animated.timing(pulseAnim, { toValue: 0.4, duration: 700, useNativeDriver: true }),
+    ])).start();
+  }, []);
+
+  // Handle OAuth callback
+  useEffect(() => {
+    if (hasProcessed.current) return;
+    hasProcessed.current = true;
     handleCallback();
   }, []);
 
   const handleCallback = async () => {
     try {
-      console.log('🔐 OAuth callback starting...');
-      
-      // Get OAuth credentials from URL
-      const { userId, secret } = params;
+      // TEACHING: Supabase OAuth on mobile works differently from Appwrite:
+      //
+      // Appwrite flow: deep link had userId + secret → createSession(userId, secret)
+      // Supabase flow: deep link has code → exchangeCodeForSession(code)
+      //
+      // The 'code' is a one-time PKCE code from Google
+      // Supabase exchanges it for an access_token + refresh_token
+      // Session is stored in AsyncStorage automatically ✅
 
-      if (!userId || !secret) {
-        throw new Error('Missing OAuth parameters');
+      const code = params.code as string | undefined;
+
+      if (code) {
+        // Exchange PKCE code for session
+        console.log('🔑 Exchanging OAuth code for session...');
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+        if (error) throw new Error(error.message);
+        console.log('✅ OAuth session created:', data.user?.email);
+      } else {
+        // No code — maybe user already has a session (tab reopened etc.)
+        console.log('ℹ️ No code param — checking existing session');
+        await loginWithOAuth();
       }
 
-      console.log('✅ OAuth credentials found');
+      // _layout.tsx will detect authStatus = 'authenticated'
+      // and redirect to (tabs)/home automatically ✅
+      // No need to router.replace() here
 
-      // Create session
-      const session = await account.createSession(
-        userId as string,
-        secret as string
-      );
-      console.log('✅ Session created');
-
-      // Get user data
-      const [jwtObj, user] = await Promise.all([
-        account.createJWT(),
-        account.get(),
-      ]);
-      console.log('✅ User data fetched:', user.name);
-
-      // Update context
-      await contextLogin(
-        { id: user.$id, name: user.name, email: user.email },
-        jwtObj.jwt,
-        session.$id
-      );
-      console.log('✅ Context updated');
-
-      // Wait for state
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      router.replace('/(profileSetUp)/BasicInfo');
-
-    } catch (error: any) {
-      console.error('❌ OAuth callback error:', error);
-      // Redirect to welcome on error
-      router.replace('/(auth)/Welcome');
+    } catch (err: any) {
+      console.error('❌ Auth callback error:', err?.message);
+      // If callback fails, redirect to login
+    
     }
   };
 
   return (
-    <View style={styles.container}>
-      <ActivityIndicator size="large" color="#7C3AED" />
-      <Text style={styles.text}>Completing sign in...</Text>
+    <View style={s.container}>
+      <Animated.View style={[s.logoWrap, { opacity: pulseAnim }]}>
+        <Image source={images.splash} style={s.logo} resizeMode="contain" />
+      </Animated.View>
+      <Text style={s.text}>Signing you in...</Text>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-  },
-  text: {
-    marginTop: 20,
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1a1a2e',
-  },
+const s = StyleSheet.create({
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' },
+  logoWrap:  { width: 80, height: 80, borderRadius: 40, backgroundColor: '#EDE9FE', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
+  logo:      { width: 48, height: 48 },
+  text:      { fontSize: 15, color: '#6B7280' },
 });

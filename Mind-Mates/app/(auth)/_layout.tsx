@@ -1,22 +1,37 @@
 
 import { Stack } from 'expo-router';
+import { lazy } from 'react';
 
 export default function AuthLayout() {
   return (
     <Stack
-      screenOptions={{
-        headerShown: false,
-        animation: 'slide_from_right',
-        contentStyle: { backgroundColor: '#FFFFFF' },
-      }}
     >
-      <Stack.Screen name="Welcome" />
-      <Stack.Screen name="Login" />
-      <Stack.Screen name="Signup" />
+      <Stack.Screen name="onBoarding" options={{
+        headerShown: false,
+        lazy: false,
+        freezeOnBlur: true,
+        contentStyle: { backgroundColor: '#FFFFFF' },
+      }}/>
+      <Stack.Screen name="Login" options={{
+        headerShown: false,
+         lazy: false,
+        freezeOnBlur: true,
+         contentStyle: { backgroundColor: '#FFFFFF' },
+      }}/>
+      <Stack.Screen name="Signup" options={{
+        headerShown: false,
+        lazy: false,
+        freezeOnBlur: true,
+        animation:'slide_from_right',
+         contentStyle: { backgroundColor: '#FFFFFF' },
+      }}/>
+         <Stack.Screen name="Google" options={{
+      headerShown: false,
+      lazy: false,
+      freezeOnBlur: true, 
+      animation:'none',
+       contentStyle: { backgroundColor: '#FFFFFF' },
+    }}/>
     </Stack>
   );
 }
-
-
-
-

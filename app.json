@@ -4,10 +4,11 @@
   ],
   "expo": {
     "name": "Mind-Mates",
+    "scheme": "mindmates",
     "splash": {
-      "image": "./assets/images/splash-logo.png",
+      "image": "./Mind-Mates/assets/images/splash-logo.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FFFFFF"
+      "backgroundColor": "#6D4AFF"
     },
     "plugins": [
       "expo-font",

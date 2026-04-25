@@ -1,13 +1,13 @@
 import React, { createContext, useContext, ReactNode, useState, useEffect } from "react";
-import { account, getUser } from "./appwrite";
-import { useAppwrite } from "./useAppwrite";
+import { supabase } from "./supabase";
+ 
 
 // 1. Define the User Type clearly
 interface User {
   $id: string;
   name: string;
   email: string;
-  avatar: string;
+  Avatar: String;
 }
 
 // 2. Define the Context Shape
@@ -32,17 +32,56 @@ export const useGlobalContext = (): GlobalContextType => {
 };
 
 export const GlobalProvider = ({ children }: GlobalProviderProps) => {
-  // Use your custom hook to fetch the user. 
-  // It handles the loading state and the initial fetch automatically.
-  const {
-    data: user,
-    loading,
-    refetch,
-  } = useAppwrite({
-    fn: getUser,
-  });
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Calculate isLogged based on whether user data exists
+  useEffect(() => {
+    // Wait for session to be restored from AsyncStorage first
+    let unsubscribe: (() => void) | null = null;
+    
+    const setupAuth = async () => {
+      // First, try to get the session that was restored from storage
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        const u = session.user;
+        setUser({
+          $id: u.id,
+          name: u.user_metadata?.full_name ?? u.user_metadata?.name ?? u.email ?? '',
+          email: u.email ?? '',
+          Avatar: '',
+        });
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+
+      // Listen for future auth changes
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        (_event, session) => {
+          if (session?.user) {
+            const u = session.user;
+            setUser({
+              $id: u.id,
+              name: u.user_metadata?.full_name ?? u.user_metadata?.name ?? u.email ?? '',
+              email: u.email ?? '',
+              Avatar: '',
+            });
+          } else {
+            setUser(null);
+          }
+        }
+      );
+      unsubscribe = () => subscription.unsubscribe();
+    };
+
+    setupAuth();
+    
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
+
   const isLogged = !!user;
 
   return (
@@ -51,7 +90,17 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
         isLogged,
         user: user as User | null,
         loading,
-        refetch: (newParams?: Record<string, string | number>) => refetch(newParams || {}),
+        refetch: async () => {
+          const { data: { user: u } } = await supabase.auth.getUser();
+          if (u) {
+            setUser({
+              $id: u.id,
+              name: u.user_metadata?.full_name ?? u.user_metadata?.name ?? u.email ?? '',
+              email: u.email ?? '',
+              Avatar: '',
+            });
+          }
+        },
       }}
     >
       {children}

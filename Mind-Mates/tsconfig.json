@@ -10,6 +10,7 @@
     "module": "NodeNext",
     "allowImportingTsExtensions": true,
     "allowSyntheticDefaultImports": true,
+    "ignoreDeprecations": "6.0",
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {

@@ -1,238 +1,239 @@
-import React, { createContext, useState, useContext, useEffect, ReactNode, useRef } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { account } from '@/lib/appwrite';
-import { AppState, AppStateStatus } from 'react-native';
-import Toast from 'react-native-toast-message';
-import { router, Router } from 'expo-router';
-// ═══════════════════════════════════════════════════════════════════════════
-// TYPES
-// ═══════════════════════════════════════════════════════════════════════════
+// Contexts/authContext.tsx
+// deleteType ref tells _layout WHERE to redirect after auth change:
+//   'logout'  → login screen (session removed, account exists)
+//   'deleted' → onboarding (account destroyed, fresh start)
+//   null      → onboarding (first time visitor)
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-}
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { Platform } from 'react-native';
+import { supabase, signIn, signUp } from '@/lib/supabase';
+import type { Session, User } from '@supabase/supabase-js';
+
+// Key used to persist auth navigation intent across app restarts.
+// Without this: after logout + app kill + restart, deleteType is null
+// → layout routes to onBoarding (wrong). With persistence:
+//   'logout'  stored → on restart → routes to login ✅
+//   'deleted' stored → on restart → routes to onboarding ✅
+//   key cleared on successful login → fresh start ✅
+const NAV_INTENT_KEY = 'auth_nav_intent';
+
+const storage = {
+  clear: async () => {
+    try {
+      if (Platform.OS === 'web') localStorage.clear();
+      else {
+        const A = require('@react-native-async-storage/async-storage').default;
+        await A.clear();
+      }
+    } catch {}
+  },
+  removeKeys: async (keys: string[]) => {
+    try {
+      if (Platform.OS === 'web') keys.forEach(k => localStorage.removeItem(k));
+      else {
+        const A = require('@react-native-async-storage/async-storage').default;
+        await A.multiRemove(keys);
+      }
+    } catch {}
+  },
+  setItem: async (key: string, value: string) => {
+    try {
+      if (Platform.OS === 'web') localStorage.setItem(key, value);
+      else {
+        const A = require('@react-native-async-storage/async-storage').default;
+        await A.setItem(key, value);
+      }
+    } catch {}
+  },
+  getItem: async (key: string): Promise<string | null> => {
+    try {
+      if (Platform.OS === 'web') return localStorage.getItem(key);
+      const A = require('@react-native-async-storage/async-storage').default;
+      return await A.getItem(key);
+    } catch { return null; }
+  },
+  removeItem: async (key: string) => {
+    try {
+      if (Platform.OS === 'web') localStorage.removeItem(key);
+      else {
+        const A = require('@react-native-async-storage/async-storage').default;
+        await A.removeItem(key);
+      }
+    } catch {}
+  },
+};
+
+export interface AuthUser { id: string; email: string; name: string; }
 
 interface AuthContextType {
-  // State
-  user: User | null;
-  isLoggedIn: boolean;
-  isLoading: boolean;
-
-  // Actions
-  setUser: (user: User | null) => void;
-  setIsLoggedIn: (value: boolean) => void;
-  login: (userData: User, token: string, sessionId?: string) => Promise<void>;
-  logout: () => Promise<void>;
-  checkAuth: () => Promise<void>;
+  user:           AuthUser | null;
+  session:        Session  | null;
+  isLoggedIn:     boolean;
+  authStatus:     'loading' | 'authenticated' | 'unauthenticated';
+  loading:        boolean;
+  // deleteType tells _layout which screen to go to after sign-out
+  deleteType:     'logout' | 'deleted' | null;
+  login:          (email: string, password: string) => Promise<void>;
+  register:       (email: string, password: string, name: string) => Promise<void>;
+  logout:         () => Promise<void>;
+  deleteAccount:  () => Promise<void>;
+  loginWithOAuth: () => Promise<AuthUser | null>;
+  googleLogin:    () => Promise<void>;
 }
-
-// ═══════════════════════════════════════════════════════════════════════════
-// CONTEXT
-// ═══════════════════════════════════════════════════════════════════════════
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// ═══════════════════════════════════════════════════════════════════════════
-// PROVIDER
-// ═══════════════════════════════════════════════════════════════════════════
-
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
- // Inside your AuthProvider
-const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-const [isLoading, setIsLoading] = useState<boolean>(true);
-
-const checkAuth = async () => {
-  try {
-    // 1. Check local storage FIRST (This takes ~10ms)
-    const savedUser = await AsyncStorage.getItem('userToken');
-    
-    if (savedUser) {
-      // 2. Trust it and show the dashboard immediately
-      setIsLoggedIn(true);
-      setIsLoading(false); 
-      
-      // 3. Verify in the background (Silent Check)
-      account.get().catch(() => {
-        // If the session actually expired, log them out quietly
-        logout();
-      });
-    } else {
-      setIsLoggedIn(false);
-      setIsLoading(false);
-    }
-  } catch (e) {
-    setIsLoading(false);
-  }
+const toAuthUser = (u: User | null): AuthUser | null => {
+  if (!u) return null;
+  return {
+    id:    u.id,
+    email: u.email ?? '',
+    name:  u.user_metadata?.full_name ?? u.user_metadata?.name ?? u.email ?? '',
+  };
 };
 
-useEffect(() => {
-  checkAuth();
-}, []);
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [user,       setUser]       = useState<AuthUser | null>(null);
+  const [session,    setSession]    = useState<Session | null>(null);
+  const [authStatus, setAuthStatus] = useState<'loading'|'authenticated'|'unauthenticated'>('loading');
+  const [loading,    setLoading]    = useState(false);
 
-  // Login - saves data and updates state
-  const login = async (
-    userData: User,
-    token: string,
-    sessionId?: string
-  ): Promise<void> => {
-    try {
-      console.log('🔑 AuthContext: Logging in user:', userData.name);
+  // TEACHING: Use a ref not state for deleteType.
+  // We need _layout to read this DURING the onAuthStateChange callback.
+  // If we used setState, there'd be a render cycle gap where the old value
+  // is still visible. A ref is synchronous — set it, then sign out. ✅
+  const deleteTypeRef = useRef<'logout'|'deleted'|null>(null);
+  const [deleteType, setDeleteType] = useState<'logout'|'deleted'|null>(null);
 
-      const dataToSave: [string, string][] = [
-        ['userId', userData.id],
-        ['userName', userData.name],
-        ['userEmail', userData.email],
-        ['userToken', token],
-        ['isLoggedIn', 'true'],
-      ];
+  const setDeleteTypeSync = (t: 'logout'|'deleted'|null) => {
+    deleteTypeRef.current = t;
+    setDeleteType(t);
+  };
 
-      if (sessionId) {
-        dataToSave.push(['sessionId', sessionId]);
+  useEffect(() => {
+    // On startup: restore persisted nav intent so _layout can route correctly
+    // after app restart following a logout or account delete ✅
+    storage.getItem(NAV_INTENT_KEY).then(intent => {
+      if (intent === 'logout' || intent === 'deleted') {
+        setDeleteTypeSync(intent as 'logout' | 'deleted');
       }
+    });
 
-       AsyncStorage.multiSet(dataToSave);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(toAuthUser(session?.user ?? null));
+      setAuthStatus(session ? 'authenticated' : 'unauthenticated');
+    });
 
-      // Update state IMMEDIATELY (this is the key!)
-      setUser(userData);
-      setIsLoggedIn(true);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setUser(toAuthUser(session?.user ?? null));
+      setAuthStatus(session ? 'authenticated' : 'unauthenticated');
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
-      console.log('✅ AuthContext: Login successful');
-    } catch (error) {
-      console.error('❌ AuthContext: Login error:', error);
-      throw error;
-    }
-  };
-  const appState = useRef(AppState.currentState);
-
-//   useEffect(() => {
-//   const subscription = AppState.addEventListener('change', nextAppState => {
-//     // Check if the app is coming from background to the foreground
-//     if (
-//       appState.current.match(/inactive|background/) &&
-//       nextAppState === 'active'
-//     ) {
-//       console.log('📱 App has come to the foreground. Refreshing session...');
-//       handleSilentRefresh();
-//     }
-
-//     appState.current = nextAppState;
-//   });
-
-//   return () => {
-//     subscription.remove();
-//   };
-// }, []);
-
-// const handleSilentRefresh = async () => {
-//   try {
-//     // 1. Quick "Heartbeat" check to see if session is still valid
-//     const user = await account.get();
-    
-//     // 2. If valid, silently generate a new JWT to keep the "pipe" fresh
-//     const jwt = await account.createJWT();
-    
-//     // 3. Update your context/storage with the new JWT
-//     // This prevents "Unauthorized" errors on your next API call
-//     console.log('✅ Session verified and JWT refreshed');
-    
-//   } catch (error) {
-//     console.error('❌ Session expired during background sleep:', error);
-    
-//     // 4. Clean Logout: If the session is dead, don't let them stay on the dashboard
-//     logout(); // Call your existing logout function
-//     router.replace('/Screens/Welcome');
-    
-//     Toast.show({
-//       type: 'info',
-//       text1: 'Session Expired',
-//       text2: 'Please login again to continue.',
-//     });
-//   }
-// };
-
-  // Logout - clears everything
-  const logout = async (): Promise<void> => {
-  try {
-    console.log('🚪 Logging out...');
-
-    // 1. Delete Appwrite session
+  const login = useCallback(async (email: string, password: string) => {
+    setLoading(true);
     try {
-      await account.deleteSession('current');
-    } catch (e) {
-      console.log('⚠️  No Appwrite session');
-    }
+      // Reset deleteType + clear persisted intent on fresh login ✅
+      setDeleteTypeSync(null);
+      await storage.removeItem(NAV_INTENT_KEY);
+      await signIn(email, password);
+    } finally { setLoading(false); }
+  }, []);
 
-    // 2. Clear AsyncStorage
-    await AsyncStorage.multiRemove([
-      'userId',
-      'userName',
-      'userEmail',
-      'userToken',
-      'sessionId',
-      'isLoggedIn',
-    ]);
+  const register = useCallback(async (email: string, password: string, name: string) => {
+    setLoading(true);
+    try { await signUp(email, password, name); }
+    finally { setLoading(false); }
+  }, []);
 
-    // 3. Clear context state (THIS IS KEY!)
-    setUser(null);
-    setIsLoggedIn(false);  // ← MUST set to false!
+  // ── LOGOUT — session only, → login screen ─────────────────────
+  // TEACHING:
+  //   1. Set deleteType='logout' BEFORE signing out
+  //   2. supabase.auth.signOut() triggers onAuthStateChange
+  //   3. onAuthStateChange sets authStatus='unauthenticated'
+  //   4. _layout useEffect fires: sees deleteType='logout' → router.replace('/(auth)/login')
+  //   No race condition because deleteType is set synchronously before sign-out ✅
+  const logout = useCallback(async () => {
+    setLoading(true);
+    try {
+      const uid = user?.id;
+      // Step 1: Mark intent BEFORE sign-out fires onAuthStateChange
+      // Also persist to storage so _layout routes correctly after app restart ✅
+      setDeleteTypeSync('logout');
+      await storage.setItem(NAV_INTENT_KEY, 'logout');
+      // Step 2: Clear user-specific cache (not full storage)
+      if (uid) await storage.removeKeys([
+        `friends_v5_${uid}`, `friends_v6_${uid}`, `profile_${uid}`,
+        `profile_cache_${uid}`, `matches_v1_${uid}`,
+      ]);
+      // Step 3: Sign out → triggers onAuthStateChange → _layout routes to login ✅
+      await supabase.auth.signOut();
+      setUser(null);
+      setSession(null);
+    } finally { setLoading(false); }
+  }, [user?.id]);
 
-    console.log('✅ Logout complete');
-  } catch (error) {
-    console.error('❌ Logout error:', error);
-    // Even if error, clear state
-    setUser(null);
-    setIsLoggedIn(false);
-  }
+  // ── DELETE ACCOUNT — destroys everything, → onboarding ────────
+  // TEACHING:
+  //   1. Set deleteType='deleted' BEFORE anything
+  //   2. Edge function deletes ALL data + auth record
+  //   3. supabase.auth.signOut() fires onAuthStateChange
+  //   4. _layout sees deleteType='deleted' → router.replace('/(auth)/onBoarding')
+  //   5. AsyncStorage.clear() wipes local cache (fresh install feel) ✅
+  const deleteAccount = useCallback(async () => {
+    if (!user?.id) throw new Error('No user session');
+    setLoading(true);
+    try {
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+
+      // Step 1: Mark intent + persist so it survives app restart ✅
+      setDeleteTypeSync('deleted');
+      await storage.setItem(NAV_INTENT_KEY, 'deleted');
+
+      // Step 2: Edge function deletes all data + Supabase Auth record
+      const { data, error } = await supabase.functions.invoke('mindmates', {
+        body: { action: 'delete_account', userId: user.id },
+        headers: currentSession?.access_token
+          ? { Authorization: `Bearer ${currentSession.access_token}` }
+          : {},
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+
+      // Step 3: Sign out (token invalid anyway after admin delete)
+      await supabase.auth.signOut().catch(() => {});
+
+      // Step 4: Full local storage wipe — fresh install
+      await storage.clear();
+
+      // Step 5: Clear React state
+      setUser(null);
+      setSession(null);
+      setAuthStatus('unauthenticated');
+      // _layout.tsx reads deleteType='deleted' → routes to onBoarding ✅
+    } finally { setLoading(false); }
+  }, [user?.id]);
+
+  const loginWithOAuth = useCallback(async () => null, []);
+  const googleLogin    = useCallback(async () => {}, []);
+
+  return (
+    <AuthContext.Provider value={{
+      user, session, isLoggedIn: !!user,
+      authStatus, loading, deleteType,
+      login, register, logout, deleteAccount,
+      loginWithOAuth, googleLogin,
+    }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
-  const value: AuthContextType = {
-    user,
-    isLoggedIn,
-    isLoading,
-    setUser,
-    setIsLoggedIn,
-    login,
-    logout,
-    checkAuth,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export const apiRequest = async (requestFn: Function) => {
-  try {
-    return await requestFn();
-  } catch (error: any) {
-    if (error.code === 401) {
-      // Logic for unauthorized:
-      // You can export a 'globalLogout' function to call here
-      console.log("Global Interceptor: Token expired, redirecting...");
-      triggerGlobalLogout(); 
-    }
-    throw error;
-  }
+export const useAuth = () => {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used inside AuthProvider');
+  return ctx;
 };
-// ═══════════════════════════════════════════════════════════════════════════
-// HOOK
-// ═══════════════════════════════════════════════════════════════════════════
-
-export function useAuth(): AuthContextType {
-  const context = useContext(AuthContext);
-  
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  
-  return context;
-}
-
-export { AuthContext };
-export type { User, AuthContextType };
-
-  function triggerGlobalLogout() {
-    throw new Error('Function not implemented.');
-  }
-

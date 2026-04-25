@@ -1,28 +1,45 @@
-import { useEffect } from 'react';
-import { router } from 'expo-router';
-import { useGlobalContext } from '@/lib/GlobalProvider';
-import { View, ActivityIndicator } from 'react-native';
+// app/index.tsx
+// This file is just a placeholder.
+// Real routing logic is handled in app/_layout.tsx
+import React, { useEffect, useRef } from 'react';
+import { View, Animated, StyleSheet, Image } from 'react-native';
+import { SplashScreen } from 'expo-router';
+import images from '@/constants/images';
+ 
 
+SplashScreen.preventAutoHideAsync();
 
-export default function Index() {
-  const { isLogged, loading } = useGlobalContext();
+// ─── Custom loading screen shown during login → home transition ───
+// This replaces the "flash of login screen" with a smooth loading UI
+ export default function AuthLoadingScreen(): React.JSX.Element {
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    if (loading) return; // Wait for auth check
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 0.4, duration: 800, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1,   duration: 800, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
 
-    if (isLogged) {
-      router.replace('/(profileSetUp)/BasicInfo'); // Already logged in
-    } else {
-      router.replace('/(auth)/Welcome');             // First time / logged out
-    }
-  }, [isLogged, loading]);
-
-  // Show nothing while deciding
   return (
-    <View style={{ flex: 1, backgroundColor: '#F5F5F7' }}>
-      <ActivityIndicator />
+    <View style={ls.container}>
+      <Animated.View style={{ opacity: pulseAnim }}>
+        <Image source={images.splash} style={ls.logo} resizeMode="contain" />
+      </Animated.View>
     </View>
   );
-}
+};
 
-
+const ls = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 20,
+  },
+  logo: { width: 120, height: 120 },
+  text: { color: '#fff', fontSize: 16, fontWeight: '600', opacity: 0.85 },
+});

@@ -1,7 +1,8 @@
+// auth/login.tsx
+
 import { useAuth } from '@/Contexts/authContext';
-import React, { useState,useCallback, useMemo } from 'react';
+import React, { useState,useCallback, useMemo, useEffect } from 'react';
 import icons from '@/constants/icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View,
   Text,
@@ -14,24 +15,21 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
-  Alert,
   Animated,
   Dimensions,
+  Pressable,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { account, login } from '@/lib/appwrite';
-import { useGlobalContext } from '@/lib/GlobalProvider';
+import { googleLogin, prewarmGoogleOAuth } from '@/lib/supabase';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import images from '@/constants/images';
-import MaskedView from '@react-native-masked-view/masked-view';
-import { API_BASE_URL } from '@/config';
 import Toast from 'react-native-toast-message';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { loginValidationRules } from '@/utils/validationRules';
-import z from 'zod';
 import { Ionicons } from '@expo/vector-icons';
-
+import { colors } from '@/constants/theme';
+import { GoogleAuthSheet } from '@/components/googleAuthSheet';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -46,20 +44,19 @@ const SPACING = {
 };
 
 const LoginScreen = () => {
-  const { refetch, loading: globalLoading, isLogged } = useGlobalContext();
-
+   const { login, loginWithOAuth } = useAuth();
+   
 
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
+  const [sheetVisible, setSheetVisible] = useState(false);
 
 
   const [validationErrors, setValidationErrors] = useState<{ email?: string; password?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-
-  const { login: contextLogin } = useAuth();
 
    const {
     values,
@@ -111,156 +108,105 @@ const LoginScreen = () => {
     handleBlur('password');
   }, [handleBlur]);
 
+  useEffect(() => {
+    prewarmGoogleOAuth();
+  }, []);
 
-
-
-  const handleLogin = useCallback(async () => {
-    // Validate all fields
-    const isValid = validateAll();
-    
-    if (!isValid) {
-      return;
-    }
-    setLoading(true);
-
-    try {
-      
-      const email = values.email.trim().toLowerCase();
-      const password = values.password.trim();
-    
-      const session = await account.createEmailPasswordSession(email, password);
-      const [jwtObj, user] = await Promise.all([
-        account.createJWT(),
-        account.get(),
-      ]);
-
-      // Save auth data
-      await AsyncStorage.multiSet([
-        ['userToken', jwtObj.jwt],
-        ['userId', user.$id],
-        ['userName', user.name],
-        ['userEmail', user.email],
-        ['sessionId', session.$id],
-        ['isLoggedIn', 'true'],
-      ]);
  
-       const isNewUser = user.registration === user.accessedAt;
-      // Background sync
-      fetch(`${API_BASE_URL}/auth/sync`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${jwtObj.jwt}`,
-        },
-        body: JSON.stringify({
-          appwriteId: user.$id,
-          name: user.name,
-          email: user.email,
-          emailVerified: user.emailVerification,
-          action: 'LOGIN',
-        }),
-      }).catch(e => console.warn('Background sync failed'));
 
-       refetch();
-      router.replace(isNewUser 
-              ? "/(profileSetUp)/BasicInfo" 
-              : "/(tabs)/home"
-            );
-    } catch (error: any) {
   
-      if (error instanceof z.ZodError){ 
-     const fieldErrors: any = {};
-        error.issues.forEach((e) => {
-          fieldErrors[e.path[0]] = e.message;
-        });
-        setValidationErrors(fieldErrors);
-      } else {
-        // Handle Appwrite errors
-        Toast.show({ type: 'error', text1: 'Error', text2: 'Invalid credentials' });
+  // ── Email Login ────────────────────────────────────────────────────────
+  const handleLogin = useCallback(async () => {
+    if (!validateAll() || isSubmitting) return;
+    setIsSubmitting(true);
+    
+    router.prefetch('/(tabs)/home');
+    router.prefetch('/(profileSetUp)/BasicInfo');
+    router.prefetch('/(auth)/Signup');
+    try {
+      await login(
+        values.email.trim().toLowerCase(),
+        values.password.trim(),
+      );
+      // _layout.tsx detects authStatus = 'authenticated' and routes to home ✅
+      // No need to router.replace() here
+
+    } catch (error: any) {
+      const msg = error?.message ?? '';
+
+      // CHECK_EMAIL = signup with email confirm ON
+      if (msg === 'CHECK_EMAIL') {
+        Toast.show({ type: 'info', text1: 'Check your email', text2: 'Click the confirmation link we sent you.' });
+        return;
       }
+
+      Toast.show({
+        type: 'error',
+        text1: 'Login Failed',
+        text2: msg || 'Something went wrong.',
+      });
     } finally {
       setIsSubmitting(false);
     }
-  }, [validateAll, values, refetch]);
+  }, [validateAll, isSubmitting, login, values.email, values.password]);
 
 
 
-const handleGoogleSignIn = async () => {
-     if (googleLoading) return;
- 
-     setGoogleLoading(true);
- 
-     try {
-       const session = await login();
-       if (!session) {
-         Toast.show({
-           type: 'error',
-           text1: 'Login Failed',
-           text2: 'Unable to create session',
-         });
-         return;
-       }
-       const [user, jwtObj] = await Promise.all([
-        account.get(),
-         account.createJWT(),
-       ]);
- 
-       const isNewUser = user.registration === user.accessedAt;
- 
-       // Save to AsyncStorage
-       await AsyncStorage.multiSet([
-         ['userToken', jwtObj.jwt],
-         ['userId', user.$id],
-         ['userName', user.name],
-         ['userEmail', user.email],
-         ['sessionId', session.$id],
-         ['isLoggedIn', 'true'],
-       ]);
+// ── Paste this inside your Login/Signup screen component ─────────────────────
+ const handleGoogleSignIn = useCallback(async () => {
+    if (googleLoading) return; // Strategy 8: tap guard
+
+      router.prefetch('/(tabs)/home');
+      router.prefetch('/(profileSetUp)/BasicInfo');
 
 
-    //     fetch('http://10.0.2.2:8080/api/auth/google-sync', {
-    //   method: 'POST',
-    //   headers: {
-    //     'Content-Type': 'application/json',
-    //     Authorization: `Bearer ${jwtObj.jwt}`,
-    //   },
-    //   body: JSON.stringify({
-    //     appwriteId: user.$id,
-    //     email: user.email,
-    //     name: user.name,
-    //     provider: 'google',
-    //   }),
-    // }).catch(e => console.warn('Sync failed'));
- 
-       // Update global state
-       await refetch();
-       await new Promise(resolve => setTimeout(resolve, 200));
-       // Show success toast
-       Toast.show({
-         type: 'success',
-         text1: isNewUser ? 'Account Created! 🎉' : 'Welcome Back! 👋',
-         text2: user.name || user.email,
-       });
- 
-       // Navigate
-       router.replace(isNewUser 
-         ? "/(profileSetUp)/BasicInfo" 
-         : "/(tabs)/home"
-       );
- 
-     } catch (error:any) {
-       console.error('Google sign-in error:', error);
-       if (!error.message?.includes('cancel')) {
-         Toast.show({
-           type: 'error',
-           text1: 'Login Failed',
-           text2: error.message || 'An unexpected error occurred',
-         });
-       }
-     } finally {
-       setGoogleLoading(false);
-     }
+    setGoogleLoading(true);
+    try {
+
+      // Step 1: open OAuth browser
+      // googleLogin() handles Pattern A (WebBrowser intercepts redirect)
+      // AuthCallback handles Pattern B (deep link on Android/web)
+      const result = await googleLogin();
+
+      if (!result) {
+        // null = user cancelled OR Pattern B deep link will handle it
+        // Either way: silent, no error
+        return;
+      }
+
+      // Step 2: Strategy 1 — verify identity via account.get()
+      // result only tells us OAuth succeeded — loginWithOAuth gets real Appwrite $id
+      const verifiedUser = await loginWithOAuth();
+
+      if (!verifiedUser) {
+        Toast.show({
+          type: 'error', text1: 'Sign In Failed',
+          text2: 'Could not verify your account. Please try again.',
+        });
+        return;
+      }
+
+      console.log('✅ Google login complete. userId:', verifiedUser.id);
+      // Strategy 7: _layout routes automatically based on profileStatus
+
+    } catch (err: any) {
+      const msg = err?.message ?? '';
+      // Silent cancel — not an error worth showing
+      if (
+        msg.toLowerCase().includes('cancel') ||
+        msg.includes('user_canceled') ||
+        msg.includes('dismissed')
+      ) return;
+
+      Toast.show({
+        type: 'error', text1: 'Sign In Failed',
+        text2: msg || 'Something went wrong. Please try again.',
+      });
+    } finally {
+      setGoogleLoading(false);
+      prewarmGoogleOAuth(); // Strategy 5: re-warm for next attempt
     }
+  }, [googleLoading, loginWithOAuth]);
 
 
   return (
@@ -295,7 +241,7 @@ const handleGoogleSignIn = async () => {
 
                 <View style={styles.logoCircle}>
                   <Image 
-                    source={images.Welcome} 
+                    source={images.splash} 
                     style={styles.logoImage}
                     resizeMode="contain"
                   />
@@ -314,7 +260,7 @@ const handleGoogleSignIn = async () => {
                     styles.inputWrapper,
                     focused === "email" && styles.inputWrapperFocused
                   ]}>
-                    <Ionicons name="mail" size={18} color="#7134da" style={{ marginRight: 8,marginTop: 5 }} />
+                    <Ionicons name="mail" size={18} color="#6D4AFF" style={{ marginRight: 8,marginTop: 5 }} />
                     <TextInput
                       style={styles.input}
                       placeholder="your@email.com"
@@ -343,7 +289,7 @@ const handleGoogleSignIn = async () => {
                     styles.inputWrapper,
                     focused === "password" && styles.inputWrapperFocused
                   ]}>
-                   <Ionicons name="key" size={18} color="#7134da" style={{ marginRight: 8,marginTop: 5 }} />
+                   <Ionicons name="key" size={18} color="#6D4AFF" style={{ marginRight: 8,marginTop: 5 }} />
                     <TextInput
                       style={styles.input}
                       placeholder="••••••••"
@@ -384,25 +330,30 @@ const handleGoogleSignIn = async () => {
                
                 {/* Login Button */}
                 <View>
+
                 <TouchableOpacity
                   style={[styles.loginButtonContainer, (loading || googleLoading) && styles.buttonDisabled]}
                   onPress={handleLogin}
+                  
                   disabled={loading || googleLoading}
                   activeOpacity={0.8}
+                 
                 >
                   <LinearGradient
-                    colors={['#7C3AED', '#A855F7']}
+                    colors={['#6D4AFF', '#6844f9']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={styles.loginButtonGradient}
                   >
-                    {loading ? (
-                      <ActivityIndicator color="#FFFFFF" size="small" />
+                    {isSubmitting ? (
+                      <ActivityIndicator color="#ffffff" size="small" style={{alignSelf:'center'}} />
                     ) : (
                       <Text style={styles.loginButtonText}>Login</Text>
                     )}
                   </LinearGradient>
+
                 </TouchableOpacity>
+                            
                 </View>
 
                 {/* Divider */}
@@ -415,12 +366,13 @@ const handleGoogleSignIn = async () => {
                 {/* Google Sign-In */}
                 <TouchableOpacity
                   style={styles.googleButton}
-                  onPress={handleGoogleSignIn}
+                  //  onContinue={handleGoogleSignIn()}
+                   onPress={() => setSheetVisible(true)}
                   disabled={loading || googleLoading}
                   activeOpacity={0.8}
                 >
                   {googleLoading ? (
-                    <ActivityIndicator color="#1F2937" size="small" />
+                    <ActivityIndicator color="#6D4AFF" size="small" />
                   ) : (
                     <>
                       <View style={styles.googleIconContainer}>
@@ -434,14 +386,20 @@ const handleGoogleSignIn = async () => {
                     </>
                   )}
                 </TouchableOpacity>
+                      <GoogleAuthSheet
+                   visible={sheetVisible}
+               onClose={() => setSheetVisible(false)}
+                   onContinue={googleLogin}
+                 savedAccount={null}   // pass saved name/email for returning users
+                     />
               </View>
 
               {/* Sign Up Link */}
               <View style={styles.footer}>
                 <Text style={styles.footerText}>Don't have an account? </Text>
-                <TouchableOpacity onPress={() => router.replace('/(auth)/Signup')}>
+                <Pressable onPress={() => router.push('/(auth)/Signup')}>
                   <Text style={styles.footerLink}>Sign Up</Text>
-                </TouchableOpacity>
+                </Pressable>
               </View>
             </Animated.View>
           </ScrollView>
@@ -460,6 +418,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+    justifyContent:'center'
   },
   background: {
     position: 'absolute',
@@ -485,7 +444,8 @@ const styles = StyleSheet.create({
   // Logo Section
   logoSection: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 1,
+    top:-7
   },
   logoCircle: {
     width: 110,
@@ -496,7 +456,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 1,
-    shadowColor: '#9d2de8',
+    shadowColor: '#6D4AFF',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
     shadowRadius: 8,
@@ -512,13 +472,13 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: SPACING.md,
-    padding: SPACING.lg,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
+    padding: 18,
+    shadowOpacity: 0.5,
     shadowRadius: 12,
-    elevation: 6,
+    elevation: 0,
     marginTop: 0,
+    
+    
   },
 
 
@@ -545,7 +505,7 @@ const styles = StyleSheet.create({
   },
   inputWrapperFocused: {
     backgroundColor: '#FFFFFF',
-    borderColor: '#8138ff', // ✅ Added border color on focus
+    borderColor: '#6D4AFF', // ✅ Added border color on focus
   },
   inputIcon: {
     fontSize: 18,
@@ -651,7 +611,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: SPACING.lg,
+    marginTop: SPACING.sm,
   },
   footerText: {
     fontSize: 14,
@@ -666,59 +626,3 @@ const styles = StyleSheet.create({
 });
 
 export default LoginScreen;
-
-
-
-
-// FIXED VERSION:
-// ────────────────────────────────────────────────────────────────────────────
-// const handleGoogleSignIn = async () => {
-//   if (googleLoading) return;
-//   setGoogleLoading(true);
-//   console.log('🚀 Starting Google Sign In');      // ✅ Added logs
-
-//   try {
-//     console.log('📍 Step 1...');                   // ✅ Added logs
-//     const session = await login();
-//     if (!session) throw new Error('Failed to create session');
-//     console.log('✅ Step 1 complete');              // ✅ Added logs
-
-//     console.log('📍 Step 2...');                   // ✅ Added logs
-//     const [jwtObj, user] = await Promise.all([
-//       account.createJWT(),
-//       account.get(),
-//     ]);
-//     console.log('✅ Step 2 complete');              // ✅ Added logs
-
-//     console.log('📍 Step 3...');                   // ✅ Added logs
-//     await contextLogin(
-//       { id: user.$id, name: user.name, email: user.email },
-//       jwtObj.jwt,
-//       session.$id
-//     );
-//     console.log('✅ Step 3 complete');              // ✅ Added logs
-
-//     console.log('📍 Step 4...');                   // ✅ Added logs
-//     await refetch();
-//     console.log('✅ Step 4 complete');              // ✅ Added logs
-
-//     console.log('📍 Step 5...');                   // ✅ Added logs
-//     await new Promise(resolve => setTimeout(resolve, 200));  // ✅ Fixed: Now awaited
-//     console.log('✅ Step 5 complete');              // ✅ Added logs
-
-//     console.log('📍 Step 6...');                   // ✅ Added logs
-//     router.replace('/Screens/Matchscreen');
-//     console.log('✅ Step 6 complete');              // ✅ Added logs
-//     console.log('🎉 Complete!');                    // ✅ Added logs
-
-//   } catch (error: any) {
-//     console.error('❌ ERROR:', error);              // ✅ Added logs
-//     if (!error.message?.includes('dismissed') && !error.message?.includes('cancel')) {
-//       Alert.alert('Login Failed', error.message || 'Google sign-in failed.');
-//     }
-//   } finally {
-//     setGoogleLoading(false);                       // ✅ Now runs at correct time
-//     console.log('🔄 Loading reset');                // ✅ Added logs
-//   }
-// };
-// */

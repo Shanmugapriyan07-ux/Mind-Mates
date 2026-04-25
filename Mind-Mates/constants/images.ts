@@ -1,12 +1,13 @@
 import splash from "@/assets/images/splash-logo.png";
-import Welcome from "@/assets/images/Welcome.png";
-import Profile from "@/assets/images/Profile.png";
+import firstImage from "@/assets/images/firstImage.png";
+import secondImage from "@/assets/images/secondImage.png";
+import thirdImage from "@/assets/images/thirdImage.png";
+
 
 
 export default {
-
   splash,
-  Welcome,
-Profile
-
+  firstImage,
+  secondImage,
+  thirdImage,
 };

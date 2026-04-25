@@ -15,13 +15,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useProfile } from '@/Contexts/profileContext';
 import Toast from 'react-native-toast-message';
 import { router } from 'expo-router';
-import { SafeAreaProvider } from 'react-native-safe-area-context'
-import BasicInfo from '@/(profileSetUp)/BasicInfo';
-import { string } from 'zod';
-import { } from '@/Contexts/profileContext';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import LocationPicker from '@/components/LocationPicker';
 
-const Edit = ({}: { onNext: () => void }) => {
+const Edit = () => {
   const { profile, updateProfile, isLoading: contextLoading } = useProfile();
  
   // ──────────────────────────────────────────────────────────────────────
@@ -29,7 +27,7 @@ const Edit = ({}: { onNext: () => void }) => {
   // ──────────────────────────────────────────────────────────────────────
   const [formData, setFormData] = useState({
     fullName: '',
-    title: '',
+    InterestedSkills: '',
     location: '',
     bio: '',
   });
@@ -42,15 +40,23 @@ const Edit = ({}: { onNext: () => void }) => {
   // ──────────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (profile) {
-      console.log('📥 Loading profile data:', profile);
-      
-      // ✅ CORRECT: Set entire object at once
-      setFormData({
+      // console.log('📥 Loading profile data'); // Remove noisy log
+      const newData = {
         fullName: profile.fullName || '',
-        title: profile.title || '',
+        InterestedSkills: profile.InterestedSkills || '',
         location: profile.location || '',
         bio: profile.bio || '',
-      });
+      };
+
+      // Only update if data actually changed to prevent loop
+      if (
+        newData.fullName !== formData.fullName ||
+        newData.InterestedSkills !== formData.InterestedSkills ||
+        newData.location !== formData.location ||
+        newData.bio !== formData.bio
+      ) {
+        setFormData(newData);
+      }
     }
   }, [profile]); // Re-run if profile changes
 
@@ -60,6 +66,14 @@ const Edit = ({}: { onNext: () => void }) => {
  const handleChange = useCallback((field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   }, []);
+
+  const handleLocationSelect = (district:any) => {
+    setFormData(prev =>({
+      ...prev,
+      location:district,
+    })
+  );
+    };
 
 
   // ──────────────────────────────────────────────────────────────────────
@@ -85,7 +99,7 @@ const Edit = ({}: { onNext: () => void }) => {
       return false;
     }
 
-    if (!formData.title.trim()) {
+    if (!formData.InterestedSkills.trim()) {
       Toast.show({
         type: 'error',
         text1: 'Title Required',
@@ -114,7 +128,7 @@ const Edit = ({}: { onNext: () => void }) => {
       // ✅ CORRECT: Call updateProfile with form data
       await updateProfile({
         fullName: formData.fullName.trim(),
-        title: formData.title.trim(),
+        InterestedSkills: formData.InterestedSkills.trim(),
         location: formData.location.trim(),
         bio: formData.bio.trim(),
       });
@@ -131,7 +145,7 @@ const Edit = ({}: { onNext: () => void }) => {
       // Navigate back to profile
       setTimeout(() => {
         router.replace('/(tabs)/profile');
-      }, 100);
+      });
 
     } catch (error:any) {
       console.error('❌ Save failed:', error);
@@ -152,7 +166,7 @@ const Edit = ({}: { onNext: () => void }) => {
   const hasChanges = useCallback(() => {
     return (
       formData.fullName !== (profile?.fullName || '') ||
-      formData.title !== (profile?.title || '') ||
+      formData.InterestedSkills !== (profile?.InterestedSkills || '') ||
       formData.location !== (profile?.location || '') ||
       formData.bio !== (profile?.bio || '')
     );
@@ -161,39 +175,29 @@ const Edit = ({}: { onNext: () => void }) => {
   // ──────────────────────────────────────────────────────────────────────
   // STEP 8: Handle cancel
   // ──────────────────────────────────────────────────────────────────────
-  const handleCancel = useCallback(() => {
-    if (hasChanges()) {
-      // Warn user about unsaved changes
-      Toast.show({
-        type: 'info',
-        text1: 'Changes Discarded',
-        text2: 'Your edits were not saved',
-      });
-    }
-    router.back();
-  }, [hasChanges]);
+
   
     if (contextLoading) {
     return (
       <View style={s.loadingContainer}>
-        <ActivityIndicator size="large" color="#7C3AED" />
+        <ActivityIndicator size="large" color="#6D4AFF" />
         <Text style={s.loadingText}>Loading profile...</Text>
       </View>
     );
   }
 
   return (
-    <SafeAreaProvider style={{flex: 1}}>
+    <SafeAreaView style={{flex: 1, backgroundColor: '#FFFFFF'}} edges={['top', 'bottom']}>
        <KeyboardAvoidingView
         style={s.container}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={s.headerImage}>
+                <Text style={s.sptext}>Edit profile</Text>
           
-                <Text style={s.sptext}>Editprofile</Text>
       </View>
-        
-
+          
+         
           <ScrollView
         contentContainerStyle={s.scroll}
         keyboardShouldPersistTaps="handled"
@@ -222,20 +226,20 @@ const Edit = ({}: { onNext: () => void }) => {
 
         {/* Professional Title */}
         <View style={s.inputGroup}>
-          <Text style={s.label}>Intrested Skill*</Text>
+          <Text style={s.label}>Interested Skills *</Text>
           <View style={[
             s.inputWrapper,
-            focused === 'title' && s.inputFocused
+            focused === 'InterestedSkills' && s.inputFocused
           ]}>
            <Ionicons name="happy" style={s.icon}></Ionicons>
                      
             <TextInput
               style={s.input}
-              placeholder="Arts & Sports"
-              placeholderTextColor="#111c2f"
-              value={formData.title}
-              onChangeText={(text) => handleChange('title', text)}
-              onFocus={() => setFocused('title')}
+              placeholder="Art & Sports"
+                placeholderTextColor="#9CA3AF"
+              value={formData.InterestedSkills}
+              onChangeText={(text) => handleChange('InterestedSkills', text)}
+              onFocus={() => setFocused('InterestedSkills')}
               onBlur={() => setFocused(null)}
               autoCapitalize="words"
               
@@ -251,16 +255,15 @@ const Edit = ({}: { onNext: () => void }) => {
             focused === 'location' && s.inputFocused
           ]}>
 <Ionicons name="location" style={s.icon}></Ionicons>
-            <TextInput
-              style={s.input}
-              placeholder="Cuddlore (DT)"
-              placeholderTextColor="#9CA3AF"
-              value={formData.location}
-              onChangeText={(text) => handleChange('location', text)}
-              onFocus={() => setFocused('location')}
-              onBlur={() => setFocused(null)}
-              autoCapitalize="words"
-            />
+            <View style={{flex:1}} >
+                        <LocationPicker 
+                          placeholder="search District"
+                          value={formData.location}
+                          onSelect={handleLocationSelect}
+                          onFocus={() => setFocused('location')}
+                          onBlur={() => setFocused(null)}
+                        />
+          </View>
           </View>
         </View>
 
@@ -299,7 +302,7 @@ const Edit = ({}: { onNext: () => void }) => {
           style={s.btnOuter}
         >
           <LinearGradient
-            colors={['#6b29de', '#7C3AED','#6b29de']}
+            colors={['#6D4AFF', '#6845f3','#6D4AFF']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={s.btn}
@@ -310,7 +313,7 @@ const Edit = ({}: { onNext: () => void }) => {
       
       </View>
       </KeyboardAvoidingView>
-    </SafeAreaProvider>
+    </SafeAreaView>
   );
 };
 
@@ -320,16 +323,10 @@ const s = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   headerImage: {
-       zIndex:10,  
+       zIndex:1,  
     width: '100%',
-    height: 15,
-    justifyContent:'center',
-    alignItems:'center',                            
-     padding: 36,
-     shadowColor: '#bdbdbd',
-    elevation: 6,
-     marginTop: 0, 
-     flexDirection:'row',
+     padding: 18,
+
   },
   loadingContainer: {
     flex: 1,
@@ -345,12 +342,11 @@ const s = StyleSheet.create({
   sptext:{
   fontSize: 23,
     fontWeight: '600',
-    color: '#0f0f0f',
+    color: '#000000',
     position:'relative',
     alignItems:'center',
     justifyContent:'center',
-    marginRight:207,
-    marginTop:10,
+
   },
       scroll: {
     paddingHorizontal: 24,
@@ -363,89 +359,41 @@ const s = StyleSheet.create({
     color: '#6B7280',
     lineHeight: 22,
     marginBottom: 15,
-    marginTop: 15,
+    marginTop: 10,
   }, 
    inputGroup: {
     marginBottom: 20,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-    marginTop: 15,
+   fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8
   },
   inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
-    paddingHorizontal: 14,
-    height: 52,
-  },
+   flexDirection: 'row', alignItems: 'center', backgroundColor: '#F9FAFB', borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB', height: 48 },
   inputFocused: {
-    borderColor: '#7C3AED',
+    borderColor: '#6D4AFF',
     backgroundColor: '#FFFFFF',
   },
-  icon: {
-    fontSize: 20,
-    marginRight: 10,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    color: '#1F2937',
-  },
-  textAreaWrapper: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
-    padding: 14,
-  },
-  textArea: {
-    fontSize: 15,
-    color: '#1F2937',
-    minHeight: 100,
-  },
-  charCount: {
+  icon:            { fontSize:18, marginRight: 8, marginLeft: 10 },
+  input:           { flex: 1, fontSize: 15, color: '#1F2937', paddingVertical: 0 },
+  textAreaWrapper: { backgroundColor: '#F9FAFB', borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB', padding: 14 },
+  textArea:        { fontSize: 15, color: '#1F2937', minHeight: 100 },
+  charCount:       { fontSize: 12, color: '#9CA3AF', textAlign: 'right', marginTop: 4 },
+  buttonContainer: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#FFFFFF', paddingHorizontal: 24, paddingVertical: 16, borderTopWidth: 1, borderTopColor: '#F3F4F6' },
+  btnOuter:        { borderRadius: 14, overflow: 'hidden', shadowColor: '#6D4AFF', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 12, elevation: 6, marginBottom: 12 },
+  btn:             { paddingVertical: 16, alignItems: 'center', justifyContent: 'center' },
+  btnText:         { fontSize: 17, fontWeight: '700', color: '#FFFFFF' },
+    stepLabel: {
     fontSize: 12,
-    color: '#9CA3AF',
-    textAlign: 'right',
-    marginTop: 4,
-  },
-  buttonContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-  },
-  btnOuter: {
-    borderRadius: 14,
-    overflow: 'hidden',
-    shadowColor: '#7C3AED',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  btn: {
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  btnText: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontWeight: '600',
+    color: '#A0A0A0',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    textAlign:'left',
+    marginRight:255,
+    marginTop:10,
+   
   },
 });
+
 
 export default Edit;

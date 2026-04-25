@@ -1,451 +1,750 @@
-import React from 'react';
+
+
+// import React, { useEffect } from 'react';
+// import {
+//   View, Text, Image, StyleSheet, TouchableOpacity,
+//   ScrollView, StatusBar, Animated, Pressable,
+// } from 'react-native';
+// import { SafeAreaView } from 'react-native-safe-area-context';
+// import { router }       from 'expo-router';
+// import { useProfile }   from '@/Contexts/profileContext';
+// import { useAuth }      from '@/Contexts/authContext';
+// import Ionicons         from '@expo/vector-icons/Ionicons';
+// import { AntDesign }    from '@expo/vector-icons';
+// import { useConnectionCount } from '@/hooks/useConnectionCount';
+
+// // ── URL helper ────────────────────────────────────────────────────────────────
+// const toPublicImageUrl = (url: string | null): string | null => {
+//   if (!url) return null;
+//   if (url.includes('/preview')) {
+//     const base    = url.split('/preview')[0];
+//     const project = url.split('project=')[1]?.split('&')[0];
+//     return `${base}/view?project=${project}`;
+//   }
+//   return url;
+// };
+
+// // ── Skill → Ionicon name map ──────────────────────────────────────────────────
+// // ✅ FIX: values are Ionicons icon name strings, not emoji characters
+// const SKILL_ICONS: Record<string, string> = {
+//   'Art':             'color-palette-outline',
+//   'Painting':        'brush-outline',
+//   'Photography':     'camera-outline',
+//   'Videography':     'videocam-outline',
+//   'Acting':          'theater-outline',
+//   'Singing':         'mic-outline',
+//   'Freefire':        'game-controller-outline',
+//   'BGMI':            'game-controller-outline',
+//   'Freelancing':     'laptop-outline',
+//   'Gym':             'barbell-outline',
+//   'Yoga':            'body-outline',
+//   'Running':         'walk-outline',
+//   'Cycling':         'bicycle-outline',
+//   'Swimming':        'water-outline',
+//   'Boxing':          'fitness-outline',
+//   'Bulking':         'fitness-outline',
+//   'Weight Loss':     'scale-outline',
+//   'PowerLifter':     'barbell-outline',
+//   'Bodybuilding':    'body-outline',
+//   'Programming':     'code-slash-outline',
+//   'App Development': 'phone-portrait-outline',
+//   'Web Development': 'globe-outline',
+//   'AI / ML':         'hardware-chip-outline',
+//   'Cybersecurity':   'shield-checkmark-outline',
+//   'UI/UX Design':    'color-wand-outline',
+//   'Python':          'code-slash-outline',
+//   'Java':            'code-slash-outline',
+//   'Govt Prep':       'book-outline',
+//   'Business':        'briefcase-outline',
+//   'Short Films':     'film-outline',
+//   'Football':        'football-outline',
+//   'Cricket':         'baseball-outline',
+//   'Basketball':      'basketball-outline',
+//   'Tennis':          'tennisball-outline',
+//   'Kabaddi':         'people-outline',
+//   'Athletics':       'timer-outline',
+//   'Startups':        'rocket-outline',
+//   'Content Creator': 'create-outline',
+// };
+
+// // Fallback icon when skill isn't in the map
+// const DEFAULT_ICON = 'flash-outline';
+
+// // ── Skeleton ──────────────────────────────────────────────────────────────────
+// const SkeletonBox = ({ width, height, borderRadius = 8, style }: any) => {
+//   const opacity = React.useRef(new Animated.Value(0.3)).current;
+//   useEffect(() => {
+//     Animated.loop(
+//       Animated.sequence([
+//         Animated.timing(opacity, { toValue: 1,   duration: 800, useNativeDriver: true }),
+//         Animated.timing(opacity, { toValue: 0.3, duration: 800, useNativeDriver: true }),
+//       ])
+//     ).start();
+//   }, []);
+//   return (
+//     <Animated.View style={[{ width, height, borderRadius, backgroundColor: '#E5E7EB', opacity }, style]} />
+//   );
+// };
+
+// const ProfileSkeleton = () => (
+//   <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+//     <View style={{ alignItems: 'center', paddingTop: 32 }}>
+//       <SkeletonBox width={110} height={110} borderRadius={55} style={{ marginBottom: 14 }} />
+//       <SkeletonBox width={160} height={22} style={{ marginBottom: 10 }} />
+//       <SkeletonBox width={120} height={16} style={{ marginBottom: 8 }} />
+//       <SkeletonBox width={100} height={14} style={{ marginBottom: 24 }} />
+//       <View style={{ flexDirection: 'row', gap: 28, marginBottom: 24 }}>
+//         <SkeletonBox width={55} height={44} borderRadius={8} />
+//         <SkeletonBox width={55} height={44} borderRadius={8} />
+//         <SkeletonBox width={55} height={44} borderRadius={8} />
+//         <SkeletonBox width={55} height={44} borderRadius={8} />
+//       </View>
+//     </View>
+//     <View style={{ paddingHorizontal: 20 }}>
+//       <SkeletonBox width={180} height={16} style={{ marginBottom: 16 }} />
+//       <View style={{ flexDirection: 'row', gap: 10, marginBottom: 24 }}>
+//         <SkeletonBox width={90} height={100} borderRadius={14} />
+//         <SkeletonBox width={90} height={100} borderRadius={14} />
+//         <SkeletonBox width={90} height={100} borderRadius={14} />
+//       </View>
+//       <SkeletonBox width="100%" height={14} style={{ marginBottom: 8 }} />
+//       <SkeletonBox width="75%"  height={14} />
+//     </View>
+//   </ScrollView>
+// );
+
+// // ── Skill pill ────────────────────────────────────────────────────────────────
+// const SkillPill = React.memo(({ skill, active }: { skill: string; active?: boolean }) => (
+//   <View style={[s.pill, active && s.pillActive]}>
+//     <Ionicons
+//       name={(SKILL_ICONS[skill] ?? DEFAULT_ICON) as any}
+//       size={13}
+//       color={active ? '#fff' : '#6D4AFF'}
+//       style={{ marginRight: 5 }}
+//     />
+//     <Text style={[s.pillText, active && s.pillTextActive]}>{skill}</Text>
+//   </View>
+// ));
+
+// // ── Skill card ────────────────────────────────────────────────────────────────
+// const SkillCard = React.memo(({ skill }: { skill: string }) => {
+//   const iconName = (SKILL_ICONS[skill] ?? DEFAULT_ICON) as any;
+
+//   return (
+//     <View style={s.skillCard}>
+//       <View style={s.skillIconWrap}>
+//         <Ionicons name={iconName} size={32} color="#6D4AFF" />
+//       </View>
+//       <Text style={s.skillName}>{skill}</Text>
+//     </View>
+//   );
+// });
+
+// // ── Stars ─────────────────────────────────────────────────────────────────────
+// const Stars = ({ rating = 4.8 }: { rating?: number }) => {
+//   const full    = Math.floor(rating);
+//   const partial = rating - full;
+//   return (
+//     <View style={{ flexDirection: 'row', gap: 1 }}>
+//       {[0, 1, 2, 3, 4].map(i => (
+//         <Ionicons
+//           key={i}
+//           name={i < full ? 'star' : i === full && partial >= 0.5 ? 'star-half' : 'star-outline'}
+//           size={11}
+//           color="#F5A623"
+//         />
+//       ))}
+//     </View>
+//   );
+// };
+
+// // ── Main screen ───────────────────────────────────────────────────────────────
+// const ProfileScreen = () => {
+//   const { profile, isLoading, reloadProfile } = useProfile();
+//   const { user }  = useAuth();
+//   const { count } = useConnectionCount(profile?.userId);
+
+//   useEffect(() => {
+//     if (!isLoading && !profile && user?.id) reloadProfile();
+//   }, [isLoading, profile, user?.id]);
+
+//   useEffect(() => {
+//     router.prefetch('/subScreens/editProfile');
+//     router.prefetch('/subScreens/Settings');
+//     router.prefetch('/subScreens/imageEdit');
+//     router.prefetch('/subScreens/imagePreview');
+//     router.prefetch('/subScreens/friendsList');
+//   }, []);
+
+//   if (isLoading) {
+//     return (
+//       <SafeAreaView style={s.safe} edges={['top']}>
+//         <StatusBar barStyle="dark-content" />
+//         <View style={s.header}>
+//           <View style={{ width: 32 }} />
+//           <Text style={s.headerTitle}>Profile</Text>
+//           <View style={{ width: 32 }} />
+//         </View>
+//         <ProfileSkeleton />
+//       </SafeAreaView>
+//     );
+//   }
+
+//   if (!profile) {
+//     return (
+//       <SafeAreaView style={s.safe} edges={['top']}>
+//         <StatusBar barStyle="dark-content" />
+//         <View style={s.header}>
+//           <TouchableOpacity onPress={() => router.back()}>
+//             <AntDesign name="arrow-left" size={20} color="#232529" />
+//           </TouchableOpacity>
+//           <Text style={s.headerTitle}>Profile</Text>
+//           <View style={{ width: 32 }} />
+//         </View>
+//         <View style={s.errorState}>
+//           <Text style={s.errorText}>Profile not found</Text>
+//           <TouchableOpacity style={s.retryBtn} onPress={reloadProfile}>
+//             <Text style={s.retryText}>Try Again</Text>
+//           </TouchableOpacity>
+//         </View>
+//       </SafeAreaView>
+//     );
+//   }
+
+//   const imageUrl = toPublicImageUrl(profile.profileImage);
+//   const skills   = profile.skillsArray ?? [];
+
+//   return (
+//     <SafeAreaView style={s.safe} edges={['top']}>
+//       <StatusBar barStyle="dark-content" />
+
+//       {/* Header */}
+//       <View style={s.header}>
+//         <TouchableOpacity onPress={() => router.back()}>
+//           <Ionicons name="chevron-back" size={20} color="#17191B" style={{top:3}} />
+//         </TouchableOpacity>
+//         <TouchableOpacity onPress={() => router.push('/subScreens/Settings')}>
+//           <Ionicons name="settings" size={17} color="#17191B" />
+//         </TouchableOpacity>
+//       </View>
+
+//       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+
+//         {/* Avatar */}
+//         <View style={s.avatarBlock}>
+//           <View style={s.avatarWrap}>
+//             <Pressable onPress={() => router.push('/subScreens/imagePreview')}>
+//               {imageUrl ? (
+//                 <Image source={{ uri: imageUrl }} style={s.avatar} />
+//               ) : (
+//                 <View style={s.avatarPlaceholder}>
+//                   <Text style={s.avatarPlaceholderText}>
+//                     {profile.fullName?.charAt(0)?.toUpperCase() ?? '?'}
+//                   </Text>
+//                 </View>
+//               )}
+//             </Pressable>
+//             <Pressable
+//               style={s.addBadge}
+//               onPress={() => router.push({
+//                 pathname: '/subScreens/imageEdit',
+//                 params:   { userId: profile.userId },
+//               })}
+//             >
+//               <AntDesign name="plus" size={14} color="#fff" />
+//             </Pressable>
+//           </View>
+
+//           <Text style={s.name}>{profile.fullName || 'Your Name'}</Text>
+//           {profile.InterestedSkills ? <Text style={s.headline}>{profile.InterestedSkills}</Text> : null}
+//           {profile.location ? (
+//             <View style={s.locationRow}>
+//               <Ionicons name="location" size={14} color="#6D4AFF" />
+//               <Text style={s.locationText}>{profile.location}</Text>
+//             </View>
+//           ) : null}
+//         </View>
+
+//         {/* Stats */}
+//         <View style={s.statsRow}>
+//           <Pressable
+//             style={s.statItem}
+//             onPress={() => router.push({
+//               pathname: '/subScreens/friendsList',
+//               params:   { userId: profile.userId, name: profile.fullName },
+//             })}
+//           >
+//             <View style={s.friend}>
+//               <Ionicons name="people" size={15} color="#6D4AFF" style={{ right: 7, marginLeft: 2 }} />
+//               <Text style={s.statNumber}>{count}</Text>
+//               <Text style={s.statLabel}>Mindmates</Text>
+//             </View>
+//           </Pressable>
+//         </View>
+
+//         {/* Skill pills — now with icons */}
+//         {skills.length > 0 ? (
+//           <ScrollView
+//             horizontal
+//             showsHorizontalScrollIndicator={false}
+//             contentContainerStyle={s.pillRow}
+//           >
+//             {skills.map((skill, i) => (
+//               <SkillPill key={i} skill={skill} active={i === 0} />
+//             ))}
+//           </ScrollView>
+//         ) : null}
+
+//         {/* Skills card — now with icons */}
+//         {skills.length > 0 ? (
+//           <View style={s.skillsCard}>
+//             <View style={s.skillGrid}>
+//               {skills.slice(0, 3).map((skill, i) => (
+//                 <SkillCard key={i} skill={skill} />
+//               ))}
+//             </View>
+//             {profile.bio ? (
+//               <Text style={s.bioText} numberOfLines={2}>{profile.bio}</Text>
+//             ) : null}
+//           </View>
+//         ) : null}
+
+//       </ScrollView>
+//     </SafeAreaView>
+//   );
+// };
+
+// // ── Styles ────────────────────────────────────────────────────────────────────
+// const s = StyleSheet.create({
+//   safe:        { flex: 1, backgroundColor: '#FFFFFF' },
+//   header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 25, paddingVertical: 10, backgroundColor: '#FFFFFF', top: 10 },
+//   headerTitle: { fontSize: 18, fontWeight: '700', color: '#17191B' },
+//   scroll:      { paddingBottom: 40, paddingTop: 8 },
+//   friend:      { flexDirection: 'row', alignItems: 'center', top: 2 },
+
+//   avatarBlock:           { alignItems: 'center', paddingBottom: 8 },
+//   avatarWrap:            { position: 'relative', marginBottom: 3 },
+//   avatar:                { width: 110, height: 110, borderRadius: 55, borderWidth: 3, borderColor: '#fff' },
+//   avatarPlaceholder:     { width: 110, height: 110, borderRadius: 55, backgroundColor: '#EDE9FE', alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#fff' },
+//   avatarPlaceholderText: { fontSize: 38, fontWeight: '700', color: '#6D4AFF' },
+//   addBadge:              { position: 'absolute', bottom: 4, right: 2, width: 26, height: 26, borderRadius: 13, backgroundColor: '#6D4AFF', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#F4F4F8' },
+
+//   name:         { fontSize: 18, fontWeight: '700', color: '#17191B', marginBottom: 2 },
+//   headline:     { fontSize: 15, fontWeight: '500', color: '#6B7280', marginBottom: 4 },
+//   locationRow:  { flexDirection: 'row', alignItems: 'center', gap: 4, right: 7 },
+//   locationText: { fontSize: 13, color: '#6B7280', fontWeight: '500' },
+
+//   statsRow:   { flexDirection: 'row', backgroundColor: '#fff', marginHorizontal: 2, borderRadius: 16, right: 110 },
+//   statItem:   { alignItems: 'center', flex: 1 },
+//   statNumber: { fontSize: 14, fontWeight: '700', color: '#6D4AFF', right: 3 },
+//   statLabel:  { fontSize: 14, fontWeight: '500', color: '#6D4AFF' },
+
+//   pillRow:        { flexDirection: 'row', justifyContent: 'space-around', alignSelf: 'center', paddingHorizontal: 20, paddingTop: 18, paddingBottom: 4, width: '100%' },
+//   pill:           { paddingHorizontal: 14, alignSelf: 'center', paddingVertical: 8, borderRadius: 20, borderWidth: 1.5, borderColor: '#D1D5DB', backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center',marginRight:5 },
+//   pillActive:     { backgroundColor: '#6D4AFF', borderColor: '#6D4AFF' },
+//   pillText:       { fontSize: 13, fontWeight: '600', color: '#374151' },
+//   pillTextActive: { color: '#fff' },
+
+//   skillsCard:   { backgroundColor: '#fff', marginHorizontal: 20, borderRadius: 20, padding: 18, left: 6 },
+//   skillGrid:    { flexDirection: 'row', gap: 12, marginBottom: 16 },
+//   skillCard:    { alignItems: 'center', flex: 1 },
+//   // ✅ replaces skillEmoji text style
+//   skillIconWrap: { width: 56, height: 56, borderRadius: 16, backgroundColor: '#EDE9FE', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+//   skillName:    { fontSize: 12, fontWeight: '600', color: '#1F2937', textAlign: 'center', top: 2 },
+//   bioText:      { fontSize: 14, color: '#6B7280', lineHeight: 20, top: 7 },
+
+//   errorState: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
+//   errorText:  { fontSize: 16, color: '#6B7280' },
+//   retryBtn:   { backgroundColor: '#6D4AFF', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
+//   retryText:  { color: '#fff', fontWeight: '600' },
+// });
+
+// export default ProfileScreen;
+ 
+
+// app/subScreens/profile.tsx
+// FEATURE: skill pills left/right scroll arrows — mobile responsive
+// NO LOGIC CHANGES
+
+import React, { useEffect, useRef } from 'react';
 import {
-  View,
-  Text,
-  Image,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  StatusBar,
-  FlatList,
+  View, Text, Image, StyleSheet, TouchableOpacity,
+  ScrollView, StatusBar, Animated, Pressable,
 } from 'react-native';
-import { SafeAreaProvider} from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import { useProfile } from '@/Contexts/profileContext';
-import Entypo from '@expo/vector-icons/Entypo';
-import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { AntDesign } from '@expo/vector-icons';
-import profileContext from '@/Contexts/profileContext';
-import { Item } from 'react-native-paper/lib/typescript/components/Drawer/Drawer';
+import { SafeAreaView }  from 'react-native-safe-area-context';
+import { router }        from 'expo-router';
+import { useProfile }    from '@/Contexts/profileContext';
+import { useAuth }       from '@/Contexts/authContext';
+import Ionicons          from '@expo/vector-icons/Ionicons';
+import { AntDesign }     from '@expo/vector-icons';
+import { useConnectionCount } from '@/hooks/useConnectionCount';
 
-
-
-const ProfileScreen = () => {
-  const { profile } = useProfile();
-
-  if (!profile) {
-    return (
-      <SafeAreaProvider style={s.safe}>
-        <View style={[s.safe, { justifyContent: 'center', alignItems: 'center' }]}>
-          <Text>Loading profile...</Text>
-        </View>
-      </SafeAreaProvider>
-    );
+// ── URL helper ────────────────────────────────────────────────────
+const toPublicImageUrl = (url: string | null): string | null => {
+  if (!url) return null;
+  if (url.includes('/preview')) {
+    const base    = url.split('/preview')[0];
+    const project = url.split('project=')[1]?.split('&')[0];
+    return `${base}/view?project=${project}`;
   }
+  return url;
+};
+
+// ── Skill → Ionicon name map ──────────────────────────────────────
+const SKILL_ICONS: Record<string, string> = {
+  'Art':             'color-palette-outline',
+  'Painting':        'brush-outline',
+  'Photography':     'camera-outline',
+  'Videography':     'videocam-outline',
+  'Acting':          'theater-outline',
+  'Singing':         'mic-outline',
+  'Freefire':        'game-controller-outline',
+  'BGMI':            'game-controller-outline',
+  'Freelancing':     'laptop-outline',
+  'Gym':             'barbell-outline',
+  'Yoga':            'body-outline',
+  'Running':         'walk-outline',
+  'Cycling':         'bicycle-outline',
+  'Swimming':        'water-outline',
+  'Boxing':          'fitness-outline',
+  'Bulking':         'fitness-outline',
+  'Weight Loss':     'scale-outline',
+  'PowerLifter':     'barbell-outline',
+  'Bodybuilding':    'body-outline',
+  'Programming':     'code-slash-outline',
+  'App Development': 'phone-portrait-outline',
+  'Web Development': 'globe-outline',
+  'AI / ML':         'hardware-chip-outline',
+  'Cybersecurity':   'shield-checkmark-outline',
+  'UI/UX Design':    'color-wand-outline',
+  'Python':          'code-slash-outline',
+  'Java':            'code-slash-outline',
+  'Govt Prep':       'book-outline',
+  'Business':        'briefcase-outline',
+  'Short Films':     'film-outline',
+  'Football':        'football-outline',
+  'Cricket':         'baseball-outline',
+  'Basketball':      'basketball-outline',
+  'Tennis':          'tennisball-outline',
+  'Kabaddi':         'people-outline',
+  'Athletics':       'timer-outline',
+  'Startups':        'rocket-outline',
+  'Content Creator': 'create-outline',
+};
+const DEFAULT_ICON = 'flash-outline';
+
+// ── Skeleton ──────────────────────────────────────────────────────
+const SkeletonBox = ({ width, height, borderRadius = 8, style }: any) => {
+  const opacity = React.useRef(new Animated.Value(0.3)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, { toValue: 1,   duration: 800, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0.3, duration: 800, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+  return <Animated.View style={[{ width, height, borderRadius, backgroundColor: '#E5E7EB', opacity }, style]} />;
+};
+
+const ProfileSkeleton = () => (
+  <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+    <View style={{ alignItems: 'center', paddingTop: 32 }}>
+      <SkeletonBox width={110} height={110} borderRadius={55} style={{ marginBottom: 14 }} />
+      <SkeletonBox width={160} height={22} style={{ marginBottom: 10 }} />
+      <SkeletonBox width={120} height={16} style={{ marginBottom: 8 }} />
+      <SkeletonBox width={100} height={14} style={{ marginBottom: 24 }} />
+      <View style={{ flexDirection: 'row', gap: 10, marginBottom: 24, paddingHorizontal: 20 }}>
+        <SkeletonBox width={90} height={36} borderRadius={20} />
+        <SkeletonBox width={90} height={36} borderRadius={20} />
+        <SkeletonBox width={90} height={36} borderRadius={20} />
+      </View>
+    </View>
+    <View style={{ paddingHorizontal: 20 }}>
+      <View style={{ flexDirection: 'row', gap: 10, marginBottom: 24 }}>
+        <SkeletonBox width={90} height={100} borderRadius={14} />
+        <SkeletonBox width={90} height={100} borderRadius={14} />
+        <SkeletonBox width={90} height={100} borderRadius={14} />
+      </View>
+      <SkeletonBox width="100%" height={14} style={{ marginBottom: 8 }} />
+      <SkeletonBox width="75%"  height={14} />
+    </View>
+  </ScrollView>
+);
+
+// ── Skill pill ────────────────────────────────────────────────────
+const SkillPill = React.memo(({ skill, active }: { skill: string; active?: boolean }) => (
+  <View style={[s.pill, active && s.pillActive]}>
+    <Ionicons
+      name={(SKILL_ICONS[skill] ?? DEFAULT_ICON) as any}
+      size={13}
+      color={active ? '#fff' : '#6D4AFF'}
+      style={{ marginRight: 5 }}
+    />
+    <Text style={[s.pillText, active && s.pillTextActive]}>{skill}</Text>
+  </View>
+));
+
+// ── Skill card ────────────────────────────────────────────────────
+const SkillCard = React.memo(({ skill }: { skill: string }) => (
+  <View style={s.skillCard}>
+    <View style={s.skillIconWrap}>
+      <Ionicons name={(SKILL_ICONS[skill] ?? DEFAULT_ICON) as any} size={32} color="#6D4AFF" />
+    </View>
+    <Text style={s.skillName}>{skill}</Text>
+  </View>
+));
+
+// ── Scrollable pills with ‹ › arrow buttons ───────────────────────
+const ScrollablePills = ({ skills }: { skills: string[] }) => {
+  const scrollRef  = useRef<ScrollView>(null);
+  const scrollX    = useRef(0);
+  const SCROLL_AMT = 140;
+
+  const scrollLeft = () =>
+    scrollRef.current?.scrollTo({ x: Math.max(0, scrollX.current - SCROLL_AMT), animated: true });
+
+  const scrollRight = () =>
+    scrollRef.current?.scrollTo({ x: scrollX.current + SCROLL_AMT, animated: true });
 
   return (
-    <SafeAreaProvider style={s.safe}>
+    <View style={s.pillsWrapper}>
+      {/* ‹ left */}
+     
+
+      {/* pills */}
+      <ScrollView
+        ref={scrollRef}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        nestedScrollEnabled={true}
+        onScroll={e => { scrollX.current = e.nativeEvent.contentOffset.x; }}
+        scrollEventThrottle={16}
+        contentContainerStyle={s.pillRow}
+        style={s.pillsScroll}
+      >
+        {skills.map((skill, i) => (
+          <SkillPill key={i} skill={skill} active={i === 0} />
+        ))}
+      </ScrollView>
+
+      {/* › right */}
+     
+    </View>
+  );
+};
+
+// ── Stars ─────────────────────────────────────────────────────────
+const Stars = ({ rating = 4.8 }: { rating?: number }) => {
+  const full    = Math.floor(rating);
+  const partial = rating - full;
+  return (
+    <View style={{ flexDirection: 'row', gap: 1 }}>
+      {[0, 1, 2, 3, 4].map(i => (
+        <Ionicons
+          key={i}
+          name={i < full ? 'star' : i === full && partial >= 0.5 ? 'star-half' : 'star-outline'}
+          size={11}
+          color="#F5A623"
+        />
+      ))}
+    </View>
+  );
+};
+
+// ── Main screen ───────────────────────────────────────────────────
+const ProfileScreen = () => {
+  const { profile, isLoading, reloadProfile } = useProfile();
+  const { user }  = useAuth();
+  const { count } = useConnectionCount(profile?.userId);
+
+  useEffect(() => {
+    if (!isLoading && !profile && user?.id) reloadProfile();
+  }, [isLoading, profile, user?.id]);
+
+  useEffect(() => {
+    router.prefetch('/subScreens/editProfile');
+    router.prefetch('/subScreens/Settings');
+    router.prefetch('/subScreens/imageEdit');
+    router.prefetch('/subScreens/imagePreview');
+    router.prefetch('/subScreens/friendsList');
+  }, []);
+
+  if (isLoading) return (
+    <SafeAreaView style={s.safe} edges={['top']}>
+      <StatusBar barStyle="dark-content" />
+      <View style={s.header}>
+        <View style={{ width: 32 }} />
+        <Text style={s.headerTitle}>Profile</Text>
+        <View style={{ width: 32 }} />
+      </View>
+      <ProfileSkeleton />
+    </SafeAreaView>
+  );
+
+  if (!profile) return (
+    <SafeAreaView style={s.safe} edges={['top']}>
+      <StatusBar barStyle="dark-content" />
+      <View style={s.header}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <AntDesign name="arrow-left" size={20} color="#232529" />
+        </TouchableOpacity>
+        <Text style={s.headerTitle}>Profile</Text>
+        <View style={{ width: 32 }} />
+      </View>
+      <View style={s.errorState}>
+        <Text style={s.errorText}>Profile not found</Text>
+        <TouchableOpacity style={s.retryBtn} onPress={reloadProfile}>
+          <Text style={s.retryText}>Try Again</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+
+  const imageUrl = toPublicImageUrl(profile.profileImage);
+  const skills   = profile.skillsArray ?? [];
+
+  return (
+    <SafeAreaView style={s.safe} edges={['top']}>
       <StatusBar barStyle="dark-content" />
 
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity onPress={()=> router.push('/(tabs)/chat')}>
-         <AntDesign name="arrow-left" size={20} color='#232529' />
-         </TouchableOpacity>
-        <Text style={s.headerTitle}>Profile</Text>
+        <TouchableOpacity onPress={() => router.back()}>
+          <Ionicons name="chevron-back" size={20} color="#17191B" style={{ top: 3 }} />
+        </TouchableOpacity>
         <TouchableOpacity onPress={() => router.push('/subScreens/Settings')}>
-          <Entypo name="dots-three-vertical" size={18} style={{color:'#232529'}} />
-
+          <Ionicons name="settings" size={17} color="#17191B" />
         </TouchableOpacity>
       </View>
-       <ScrollView
+
+      <ScrollView
         contentContainerStyle={s.scroll}
         showsVerticalScrollIndicator={false}
+        nestedScrollEnabled={true}
       >
-        
-        {/* Profile Card */}
-        <View style={s.profileCard}>
-          
-          {/* Profile Image with edit badge */}
-          <View style={s.imageContainer}>
-            {profile.profileImage ? (
-              <Image source={{ uri: profile.profileImage }} style={s.image} />
-            ) : (
-              <View style={s.imagePlaceholder}>
-                <Text style={s.imagePlaceholderText}>
-                  {profile.fullName?.charAt(0) || '?'}
-                </Text>
-              </View>
-            )}
-            <View style={s.editBadge}>
-            <TouchableOpacity  onPress={()=> router.replace('/subScreens/imageEdit')}>
-                       <FontAwesome5 name="user-edit" size={16} style={s.icon}/>
-          </TouchableOpacity>
-          </View>
+        {/* ── Avatar ─────────────────────────────────────────────── */}
+        <View style={s.avatarBlock}>
+          <View style={s.avatarWrap}>
+            <Pressable onPress={() => router.push('/subScreens/imagePreview')}>
+              {imageUrl ? (
+                <Image source={{ uri: imageUrl }} style={s.avatar} />
+              ) : (
+                <View style={s.avatarPlaceholder}>
+                  <Text style={s.avatarPlaceholderText}>
+                    {profile.fullName?.charAt(0)?.toUpperCase() ?? '?'}
+                  </Text>
+                </View>
+              )}
+            </Pressable>
+            <Pressable
+              style={s.addBadge}
+              onPress={() => router.push({
+                pathname: '/subScreens/imageEdit',
+                params:   { userId: profile.userId },
+              })}
+            >
+              <AntDesign name="plus" size={14} color="#fff" />
+            </Pressable>
           </View>
 
-          {/* Name & Title */}
           <Text style={s.name}>{profile.fullName || 'Your Name'}</Text>
-          <Text style={s.title}>{profile.title || 'Your Title'}</Text>
-
-          {/* Location */}
-          {profile.location && (
+          {profile.InterestedSkills
+            ? <Text style={s.headline}>{profile.InterestedSkills}</Text>
+            : null}
+          {profile.location ? (
             <View style={s.locationRow}>
-              <Ionicons name="location" size={18} color="#000000" style={s.locationIcon} />
+              <Ionicons name="location" size={14} color="#6D4AFF" />
               <Text style={s.locationText}>{profile.location}</Text>
             </View>
-          )}
+          ) : null}
+        </View>
 
-          {/* Stats Row */}
-          <View style={s.statsRow}>
-            <View style={s.statItem}>
-              <Text style={s.statValue}>{profile.connections}</Text>
-              <Text style={s.statLabel}>Connections</Text>
+        {/* ── Stats ──────────────────────────────────────────────── */}
+        <View style={s.statsRow}>
+          <Pressable
+            style={s.statItem}
+            onPress={() => router.push({
+              pathname: '/subScreens/friendsList',
+              params:   { userId: profile.userId, name: profile.fullName },
+            })}
+          >
+            <View style={s.friend}>
+              <Ionicons name="people" size={15} color="#6D4AFF" style={{ right: 7, marginLeft: 2 }} />
+              <Text style={s.statNumber}>{count}</Text>
+              <Text style={s.statLabel}>Mindmates</Text>
             </View>
+          </Pressable>
+        </View>
 
-            <View style={s.statItem}>
-              <Text style={s.statValue}>{profile.matchins}</Text>
-              <Text style={s.statLabel}>Matchings</Text>
+        {/* ── Skill pills with ‹ › arrows ────────────────────────── */}
+        {skills.length > 0 && <ScrollablePills skills={skills} />}
+
+        {/* ── Skills card ─────────────────────────────────────────── */}
+        {skills.length > 0 && (
+          <View style={s.skillsCard}>
+            <View style={s.skillGrid}>
+              {skills.slice(0, 3).map((skill, i) => (
+                <SkillCard key={i} skill={skill} />
+              ))}
             </View>
-
-            <View style={s.statItem}>
-              <Text style={s.statValue}>{profile.likes}</Text>
-              <Text style={s.statLabel}>Likes</Text>
-            </View>
-          </View>
-
-        </View> {/* end profileCard */}
-
-        {/* Skills Section */}
-        {profile.skills && profile.skills.length > 0 && (
-          <View style={s.section}>
-            <Text style={s.sectionTitle}>Skills</Text>
-            <FlatList 
-            data={profile.skills}
-            keyExtractor={(item)=>item.id}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal:4}}
-            renderItem={({item})=>(
-            // <View style={s.skillsGrid}>
-            //   {profile.skills.map((skill) => (
-            //     <View key={skill.id} >
-                
-                    <View style={[s.card,s.checkUnchecked,{marginRight:12}]} >
-                    <Text style={s.skillEmoji}>{item.emoji}</Text>
-                    <Text style={s.skillName}>{item.name}</Text>
-                  </View>
-                // </View>
-              )}
-              />
-            </View>
-          // </View>
-        )}
-
-        {/* Bio Section */}
-        {profile.bio && (
-          <View style={s.section}>
-            <Text style={s.sectionTitle}>About</Text>
-            <Text style={s.bioText}>{profile.bio}</Text>
+            {profile.bio
+              ? <Text style={s.bioText} numberOfLines={2}>{profile.bio}</Text>
+              : null}
           </View>
         )}
-
-        {/* Edit Profile Button */}
-        <TouchableOpacity style={s.editButton} onPress={()=> router.replace('/subScreens/editProfile')}>
-          
-          <Text style={s.editButtonText}>Edit Profile</Text>
-          
-        </TouchableOpacity>
-
       </ScrollView>
-
-      {/* Bottom Navigation */}
-    
-    </SafeAreaProvider>
+    </SafeAreaView>
   );
 };
 
+// ── Styles ────────────────────────────────────────────────────────
 const s = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: '#fffefe',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomColor: '#f3f5f6',
-    borderBottomWidth: 1,
-  
-  },
-  headerIcon: {
-    fontSize: 22,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#17191b',
-    padding:8,
-  
-    letterSpacing:0.15
+  safe:        { flex: 1, backgroundColor: '#FFFFFF' },
+  header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 25, paddingVertical: 10, backgroundColor: '#FFFFFF', top: 10 },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: '#17191B' },
+  scroll:      { paddingBottom: 40, paddingTop: 8 },
+  friend:      { flexDirection: 'row', alignItems: 'center', top: 2 },
 
-  },
-  scroll: {
-    paddingBottom: 100,
-    flexGrow:1,
-    marginBottom:200,
-  },
-  profileCard: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginTop: 15,
-    borderRadius: 20,
-    padding: 24,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-   card: {
-    borderRadius: 20,
-    padding: 2,
-    paddingTop: 4,
-    minHeight: 100,
-    position:'relative',
-    justifyContent:'space-between',
-    alignItems:'center',
-  },
-  icon:{
-    color:'#111827', 
-    marginLeft:5,
-    marginTop:-3,
-  },
-  imageContainer: {
-    position: 'relative',
-    marginBottom: 5,
-    marginTop:1
-  },
-  image: {
-    width: 115,
-    height: 115,
-    borderRadius: 65,
-  },
-  imagePlaceholder: {
-    width: 100,
-    height: 60,
-    borderRadius: 50,
-    backgroundColor: '#E5E7EB',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  imagePlaceholderText: {
-    fontSize: 18,
-    fontWeight: '500',
-    color: '#111827',
-  
-  },
-  editBadge: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#ffffff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  editIcon: {
-    fontSize: 17,
-  },
-  name: {
-    fontSize: 17,
-     fontWeight: '500',
-    color: '#17191b',
-    marginBottom: 4,
-    fontFamily:'system'
-  },
-  title: {
-    fontSize: 16,
-       fontWeight: '500',
-    color: '#17191b',
-    marginBottom: 8,
-      fontFamily:'system'
-   
-  },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-    marginRight:10
-  },
-  locationIcon: {
-    fontSize: 16,
-    marginRight: 4,
-  },
-  locationText: {
-    fontSize: 14,
-       fontWeight: '500',
-    color: '#6B7285',
-  },
-  statsRow: {
-    flexDirection: 'row',
-    width: '100%',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 16,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#F3F4F6',
-    marginBottom: 16,
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 18,
-      fontWeight: '700',
-    color: '#17191b',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-        fontWeight: '500',
-    color: '#6B7285',
-  },
- 
-  section: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  sectionTitle: {
-    fontSize: 17,
-         fontWeight: '500',
-    color: '#17191b',
-    marginBottom: 16,
-    
-  },
-  skillsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 1,
-  },
-  skillCard: {
-    alignItems: 'center',
-    width: '30%',
-    gap: 19,
-    flexDirection:'row',
-  },
-  skillIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  checkUnchecked: {
-    backgroundColor: '#fff',
-    justifyContent:'space-between',
-    alignItems:'center',
-     shadowColor: '#000',
-    shadowOffset: { width: 5, height: 9 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 4,
-    borderRadius:10,
-    borderColor:'#f4f1f1',
-    borderWidth:2,
-    borderBottomWidth:8,
-    borderTopColor:'#f5f3f3'
-  },
- 
+  avatarBlock:           { alignItems: 'center', paddingBottom: 8 },
+  avatarWrap:            { position: 'relative', marginBottom: 3 },
+  avatar:                { width: 110, height: 110, borderRadius: 55, borderWidth: 3, borderColor: '#fff' },
+  avatarPlaceholder:     { width: 110, height: 110, borderRadius: 55, backgroundColor: '#EDE9FE', alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#fff' },
+  avatarPlaceholderText: { fontSize: 38, fontWeight: '700', color: '#6D4AFF' },
+  addBadge:              { position: 'absolute', bottom: 4, right: 2, width: 26, height: 26, borderRadius: 13, backgroundColor: '#6D4AFF', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#F4F4F8' },
 
-  // Skill content
-  skillEmoji: {
-    fontSize: 38,
-    marginBottom: 6,
-    padding:15
-  },
-  skillName: {
-    letterSpacing: -0.2,
-  marginTop:-14,
-    justifyContent: 'center',
-    alignSelf: 'center',
-    marginBottom: 10,
-   fontSize: 14,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginLeft:6,
-    marginRight:6
-  },
+  name:         { fontSize: 18, fontWeight: '700', color: '#17191B', marginBottom: 2 },
+  headline:     { fontSize: 15, fontWeight: '500', color: '#6B7280', marginBottom: 4 },
+  locationRow:  { flexDirection: 'row', alignItems: 'center', gap: 4, right: 7 },
+  locationText: { fontSize: 13, color: '#6B7280', fontWeight: '500' },
 
-  bioText: {
-    lineHeight: 22,
-      fontSize: 14,
-    fontWeight: '400',
-   color: '#1F2937',
-    
-  },
-  editButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 24,
-    paddingVertical: 16,
-    borderRadius: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  editIcon2: {
-    fontSize: 18,
-    marginRight: 8,
-  },
-  editButtonText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#1F2937',
+  statsRow:   { flexDirection: 'row', backgroundColor: '#fff', marginHorizontal: 2, borderRadius: 16, right: 110 },
+  statItem:   { alignItems: 'center', flex: 1 },
+  statNumber: { fontSize: 14, fontWeight: '700', color: '#6D4AFF', right: 3 },
+  statLabel:  { fontSize: 14, fontWeight: '500', color: '#6D4AFF' },
+
+  // ── Pills with arrows ─────────────────────────────────────────
+  pillsWrapper: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingTop: 18, paddingBottom: 6 },
   
-  },
-  bottomNav: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-  },
-  navItem: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  navItemActive: {
-    // Active state styling
-  },
-  navIcon: {
-    fontSize: 24,
-    marginBottom: 4,
-  },
-  navLabel: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    fontWeight: '500',
-  },
-  navLabelActive: {
-    color: '#7C3AED',
-    fontWeight: '700',
-  },
+  pillsScroll:  { flex: 1, marginHorizontal: 6 },
+  pillRow:      { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 2 },
+  pill:         { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5, borderColor: '#D1D5DB', backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center' },
+  pillActive:   { backgroundColor: '#6D4AFF', borderColor: '#6D4AFF' },
+  pillText:     { fontSize: 13, fontWeight: '600', color: '#374151' },
+  pillTextActive: { color: '#fff' },
+
+  // ── Skills card ───────────────────────────────────────────────
+  skillsCard:    { backgroundColor: '#fff', marginHorizontal: 20, borderRadius: 20, padding: 18, left: 6 },
+  skillGrid:     { flexDirection: 'row', gap: 12, marginBottom: 16 },
+  skillCard:     { alignItems: 'center', flex: 1 },
+  skillIconWrap: { width: 56, height: 56, borderRadius: 16, backgroundColor: '#EDE9FE', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  skillName:     { fontSize: 12, fontWeight: '600', color: '#1F2937', textAlign: 'center', top: 2 },
+  bioText:       { fontSize: 14, color: '#6B7280', lineHeight: 20, top: 7 },
+
+  errorState: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
+  errorText:  { fontSize: 16, color: '#6B7280' },
+  retryBtn:   { backgroundColor: '#6D4AFF', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
+  retryText:  { color: '#fff', fontWeight: '600' },
 });
 
 export default ProfileScreen;

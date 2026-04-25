@@ -20,11 +20,28 @@
       "supportsTablet": true
     },
     "android": {
-      "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/splash-logo.png",
-        "backgroundImage": "./assets/images/splash-logo.png",
-        "monochromeImage": "./assets/images/splash-logo.png"
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "mindmates"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ],
+      "splash": {
+        "adaptiveIcon": {
+          "backgroundColor": "#E6F4FE",
+          "foregroundImage": "./assets/images/splash-logo.png",
+          "backgroundImage": "./assets/images/splash-logo.png",
+          "monochromeImage": "./assets/images/splash-logo.png"
+        }
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -49,9 +66,17 @@
             "./assets/fonts/Rubik-Light.ttf"
           ]
         }
-      ]
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#6D4AFF",
+          "sounds": []
+        }
+      ],
+      "expo-web-browser"
     ],
-
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
@@ -60,20 +85,9 @@
       "router": {},
       "eas": {
         "projectId": "d6f6bc93-db51-4bf0-a7e3-e7282540303e"
-      }
-    },
-    
-  "expo": {
-    "name": "Mind-Mates",
-    "slug": "mindmates",
-    "scheme": "mindmates", 
-    "extra": {
-      "router": {
-        "origin": false
-      }
+      },
+      "EXPO_PUBLIC_SUPABASE_URL": "...",
+      "EXPO_PUBLIC_SUPABASE_ANON_KEY": "..."
     }
   }
 }
-  
-  }
-
