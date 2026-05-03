@@ -1,35 +1,4 @@
 
-// components/MediaViewer.tsx
-//
-// ══════════════════════════════════════════════════════════════════
-// INSTAGRAM-LEVEL MEDIA VIEWER — Production Architecture
-// ══════════════════════════════════════════════════════════════════
-//
-// VIDEO STREAMING STRATEGY:
-//   Cloudinary delivers HLS-compatible progressive MP4 via:
-//     /video/upload/q_auto,f_auto,vc_auto/{public_id}.mp4
-//   expo-av streams this URL natively — playback starts after ~1-2s
-//   of buffering WITHOUT downloading the full file. This is identical
-//   to how WhatsApp/Instagram deliver video (progressive HTTP range requests).
-//
-//   KEY: cdnVideoUrl() in cloudinaryUpload.ts must output:
-//     https://res.cloudinary.com/{cloud}/video/upload/q_auto,f_auto,vc_auto/{id}.mp4
-//   NOT /image/upload/ — that endpoint does not support video streaming.
-//
-// UI DESIGN: Instagram minimal
-//   • Black fullscreen backdrop
-//   • Single close button (top-left)
-//   • Tap anywhere = toggle controls
-//   • Controls: progress bar + play/pause + time
-//   • Controls auto-hide after 3s
-//   • No download button, no mute button, no extra chrome
-//
-// PERFORMANCE:
-//   • Video only mounts when visible=true (Modal logic)
-//   • Unmounts on close → auto-pauses, frees memory
-//   • resizeMode="contain" — never crops
-//   • shouldPlay={false} — user-initiated only
-
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, TouchableWithoutFeedback,

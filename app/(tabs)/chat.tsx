@@ -452,10 +452,10 @@ export default function NotificationsScreen() {
 
   // ── Swipe tracking ─────────────────────────────────────────────────────────
   const handleSwipeOpen  = useCallback((id: string) =>
-    setSwipedIds((prev: any) => new Set([...prev, id])), []);
+    setSwipedIds((prev: Set<string>) => new Set([...prev, id])), []);
 
   const handleSwipeClose = useCallback((id: string) =>
-    setSwipedIds((prev: any) => { const n = new Set(prev); n.delete(id); return n; }), []);
+    setSwipedIds((prev: Set<string>) => { const n = new Set(prev); n.delete(id); return n; }), []);
 
   // ── Single delete (swipe button OR action sheet) ──────────────────────────
    const handleDelete = useCallback(async (item: NotifItem) => {

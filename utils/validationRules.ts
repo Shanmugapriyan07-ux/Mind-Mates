@@ -1,6 +1,6 @@
 
 // Email validation
-export const validateEmail = (email) => {
+export const validateEmail = (email : any) => {
   if (!email || !email.trim()) {
     return 'Email is required';
   }
@@ -14,7 +14,7 @@ export const validateEmail = (email) => {
 };
 
 // Password validation
-export const validatePassword = (password) => {
+export const validatePassword = (password : any) => {
   if (!password) {
     return 'Password is required';
   }
@@ -35,7 +35,7 @@ export const validatePassword = (password) => {
   return null;
 };
 
-export const validateConfirmPassword = (confirmPassword, allValues) => {
+export const validateConfirmPassword = (confirmPassword : any, allValues : any) => {
   if (!confirmPassword) {
     return 'Please confirm your password';
   }
@@ -50,7 +50,7 @@ export const validateConfirmPassword = (confirmPassword, allValues) => {
 
 
 // Name validation
-export const validateName = (name) => {
+export const validateName = (name : any) => {
   if (!name || !name.trim()) {
     return 'Name is required';
   }

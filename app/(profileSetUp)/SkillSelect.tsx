@@ -133,8 +133,8 @@ export default function SkillSelection() {
   useEffect(() => { router.prefetch('/(tabs)/home'); }, []);
 
   const toggleSkill = useCallback((id: number) => {
-    setSelectedIds((prev: any) => {
-      const next = new Set(prev);
+    setSelectedIds((prev: Set<number>) => {
+      const next = new Set<number>(prev);
       if (next.has(id)) { next.delete(id); setShowLimit(false); }
       else if (next.size < 3) { next.add(id); setShowLimit(false); }
       else { setShowLimit(true); setTimeout(() => setShowLimit(false), 2500); }

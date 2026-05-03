@@ -138,8 +138,8 @@ export default function ChatListScreen() {
       supabase.from(TABLES.connections).select('id,sender_id').eq('receiver_id',uid).eq('status','accepted').limit(200),
     ]);
     const conns = [
-      ...(sent.data??[]).map(d => ({ connId:d.id, otherId:d.receiver_id })),
-      ...(recv.data??[]).map(d => ({ connId:d.id, otherId:d.sender_id })),
+      ...(sent.data??[]).map((d: any) => ({ connId:d.id, otherId:d.receiver_id })),
+      ...(recv.data??[]).map((d: any) => ({ connId:d.id, otherId:d.sender_id })),
     ].filter(c => c.otherId);
     if (!conns.length) return [];
     const otherIds = conns.map(c => c.otherId);
@@ -153,9 +153,9 @@ export default function ChatListScreen() {
         .order('last_message_at', { ascending: false }).limit(200),
     ]);
     const pm: Record<string,any> = {};
-    (profilesRes.data??[]).forEach(p => { pm[p.user_id] = p; });
+    (profilesRes.data??[]).forEach((p: { user_id: string | number; }) => { pm[p.user_id] = p; });
     const cm: Record<string,any> = {};
-    (chatsRes.data??[]).forEach(c => {
+    (chatsRes.data??[]).forEach((c: any) => {
       const other = (c.participants as string[])?.find(p => p !== uid);
       if (other) cm[other] = c;
     });
@@ -228,11 +228,11 @@ export default function ChatListScreen() {
     const topic = `cl-${uid}-${Date.now()}`;
     const ch = supabase
       .channel(topic)
-      .on('postgres_changes', { event:'UPDATE', schema:'public', table:'chats' }, payload => {
+      .on('postgres_changes', { event:'UPDATE', schema:'public', table:'chats' }, (payload: { new: { participants: string[]; }; }) => {
         const doc = payload.new as any;
         const parts: string[] = doc.participants ?? [];
         if (!parts.includes(uid)) return;
-        const otherId = parts.find(p => p !== uid);
+        const otherId = parts.find((p: string) => p !== uid);
         if (!otherId) return;
         const isNowHidden = (doc.hidden_for ?? []).includes(uid);
         if (isNowHidden) {
@@ -259,15 +259,15 @@ export default function ChatListScreen() {
           return next;
         });
       })
-      .on('postgres_changes', { event:'INSERT', schema:'public', table:'chats' }, payload => {
+      .on('postgres_changes', { event:'INSERT', schema:'public', table:'chats' }, (payload: { new: { participants: string[]; }; }) => {
         if ((payload.new?.participants as string[])?.includes(uid)) loadFriends();
       })
-      .on('postgres_changes', { event:'UPDATE', schema:'public', table:'users' }, payload => {
-        const doc = payload.new as any;
+      .on('postgres_changes', { event:'UPDATE', schema:'public', table:'users' }, (payload: { new: { user_id: string; last_seen: string; }; }) => {
+        const doc = payload.new as { user_id: string; last_seen: string; };
         setFriends(prev => {
-          const idx = prev.findIndex(f => f.user_id === doc.user_id);
+          const idx = prev.findIndex((f: Friend) => f.user_id === doc.user_id);
           if (idx === -1) return prev;
-          const next = [...prev]; next[idx] = { ...next[idx], last_seen:doc.last_seen }; return next;
+          const next = [...prev]; next[idx] = { ...next[idx], last_seen: doc.last_seen }; return next;
         });
       })
       .subscribe();

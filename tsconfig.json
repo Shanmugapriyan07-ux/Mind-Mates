@@ -9,6 +9,7 @@
     "moduleResolution": "nodenext",
     "module": "NodeNext",
     "allowImportingTsExtensions": true,
+    "noEmit": true,
     "allowSyntheticDefaultImports": true,
     "ignoreDeprecations": "6.0",
     "forceConsistentCasingInFileNames": true,
