@@ -20,7 +20,7 @@ import { Ionicons }      from '@expo/vector-icons';
 import { router }        from 'expo-router';
 import { supabase }      from '@/lib/supabase';
 import { ProfileAvatar } from '@/components/Profileavatar';
-import { useAuth }       from '@/Contexts/authContext';
+import { useAuthh }       from '@/Contexts/authContext';
 import { useConnection } from '@/hooks/useConnection';
 import Animated, {
   useSharedValue, useAnimatedStyle,
@@ -196,7 +196,7 @@ const EmptyState = React.memo(({ query, filter, error }: {
 // MAIN SCREEN
 // ═══════════════════════════════════════════════════════════════════
 export default function SearchScreen() {
-  const { user }                    = useAuth();
+  const { user }                    = useAuthh();
   const { loadStatuses }            = useConnection();
 
   const [query,   setQuery]   = useState('');
@@ -272,9 +272,9 @@ export default function SearchScreen() {
       const results = (data ?? []).map(rowToUser);
 
       if (pageOffset === 0) setUsers(results);
-      else setUsers(prev => {
-        const ids = new Set(prev.map(u => u.user_id));
-        return [...prev, ...results.filter(u => !ids.has(u.user_id))];
+      else setUsers((prev:any) => {
+        const ids = new Set(prev.map((u:any) => u.user_id));
+        return [...prev, ...results.filter((u:any) => !ids.has(u.user_id))];
       });
 
       setOffset(pageOffset + LIMIT);
@@ -284,7 +284,7 @@ export default function SearchScreen() {
       // PERFORMANCE: loadStatuses called AFTER setUsers (not in critical path)
       // So list renders instantly, connection badges load async ✅
       if (results.length > 0) {
-        loadStatuses(results.map(u => u.user_id)).catch(() => {});
+        loadStatuses(results.map((u:any) => u.user_id)).catch(() => {});
       }
     } catch (e: any) {
       setError('Could not load users. Try again.');

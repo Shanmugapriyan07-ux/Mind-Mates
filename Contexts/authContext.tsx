@@ -1,22 +1,9 @@
-// Contexts/authContext.tsx
-// deleteType ref tells _layout WHERE to redirect after auth change:
-//   'logout'  → login screen (session removed, account exists)
-//   'deleted' → onboarding (account destroyed, fresh start)
-//   null      → onboarding (first time visitor)
-
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { Platform } from 'react-native';
 import { supabase, signIn, signUp } from '@/lib/supabase';
 import type { Session, User } from '@supabase/supabase-js';
 import { StoredSession } from '@/utils/Preloadassets';
 
-
-// Key used to persist auth navigation intent across app restarts.
-// Without this: after logout + app kill + restart, deleteType is null
-// → layout routes to onBoarding (wrong). With persistence:
-//   'logout'  stored → on restart → routes to login ✅
-//   'deleted' stored → on restart → routes to onboarding ✅
-//   key cleared on successful login → fresh start ✅
 const NAV_INTENT_KEY = 'auth_nav_intent';
 
 const storage = {
@@ -121,13 +108,13 @@ export const AuthProvider = ({ children,initialSession}: { children: React.React
       }
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }: { data: { session: Session | null } }) => {
       setSession(session);
       setUser(toAuthUser(session?.user ?? null));
       setAuthStatus(session ? 'authenticated' : 'unauthenticated');
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: Session | null) => {
       setSession(session);
       setUser(toAuthUser(session?.user ?? null));
       setAuthStatus(session ? 'authenticated' : 'unauthenticated');
@@ -137,7 +124,7 @@ export const AuthProvider = ({ children,initialSession}: { children: React.React
 
   // Validate cached session silently in background (moved outside nested useEffect)
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(({ data }: { data: { session: Session | null } }) => {
       setUserr(data.session?.user ?? null);
       // Cache the fresh session for next launch
       if (data.session) {
@@ -252,52 +239,10 @@ export const AuthProvider = ({ children,initialSession}: { children: React.React
 };
 
 // Hook to use the auth context
-export const useAuth = () => {
+export const useAuthh = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };
-
-
-// ══════════════════════════════════════════════════════════════════
-// HOW TO WIRE AuthProvider WITH PRELOADED SESSION
-// ══════════════════════════════════════════════════════════════════
-//
-// Your AuthProvider should accept `initialSession` as a prop.
-// This lets it hydrate immediately from the cached session without
-// an async Supabase call, eliminating the "loading" flash on login state.
-//
-// Example AuthContext modification:
-//
-//   export const AuthProvider = ({
-//     children,
-//     initialSession,
-//   }: {
-//     children: React.ReactNode;
-//     initialSession: StoredSession | null;
-//   }) => {
-//     const [user, setUser] = useState(
-//       initialSession ? { id: initialSession.userId } : null
-//     );
-//
-//     useEffect(() => {
-//       // Validate cached session silently in background
-//       supabase.auth.getSession().then(({ data }) => {
-//         setUser(data.session?.user ?? null);
-//         // Cache the fresh session for next launch
-//         if (data.session) {
-//           AsyncStorage.setItem('supabase_session_cache', JSON.stringify({
-//             accessToken:  data.session.access_token,
-//             refreshToken: data.session.refresh_token,
-//             userId:       data.session.user.id,
-//             expiresAt:    data.session.expires_at,
-//           }));
-//         }
-//       });
-//     }, []);
-//
-//     // ...rest of auth logic
-//   };
-

@@ -13,7 +13,7 @@ import {
 import { SafeAreaView }             from 'react-native-safe-area-context';
 import { router }                   from 'expo-router';
 import { Button, Dialog, Portal, TextInput } from 'react-native-paper';
-import { useAuth }                  from '@/Contexts/authContext';
+import { useAuthh }                  from '@/Contexts/authContext';
 import { useProfile }               from '@/Contexts/profileContext';
 import { supabase, TABLES }         from '@/lib/supabase';
 import Toast                        from 'react-native-toast-message';
@@ -117,7 +117,7 @@ const h = StyleSheet.create({
 
 // ═══════════════════════════════════════════════════════════════════
 export default function SettingsScreen() {
-  const { user, logout, deleteAccount } = useAuth();
+  const { user, logout, deleteAccount } = useAuthh();
   const { profile, clearProfile }       = useProfile();
 
   const [logoutLoading, setLogoutLoading] = useState(false);

@@ -64,11 +64,11 @@ const Edit = () => {
   // STEP 4: Handle field changes
   // ──────────────────────────────────────────────────────────────────────
  const handleChange = useCallback((field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev: any) => ({ ...prev, [field]: value }));
   }, []);
 
   const handleLocationSelect = (district:any) => {
-    setFormData(prev =>({
+    setFormData((prev: any) =>({
       ...prev,
       location:district,
     })

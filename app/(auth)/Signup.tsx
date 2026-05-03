@@ -1,24 +1,25 @@
-
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import icons from '@/constants/icons';
 import {
   View, Text, Image, StyleSheet, TextInput, TouchableOpacity,
   StatusBar, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator,
 } from 'react-native';
-import { LinearGradient }    from 'expo-linear-gradient';
+
 import { prewarmGoogleOAuth, googleLogin as supabaseGoogleLogin } from '@/lib/supabase';
 import { router }            from 'expo-router';
 import { SafeAreaView }      from 'react-native-safe-area-context';
+import { LinearGradient }    from 'expo-linear-gradient';
 import Toast                 from 'react-native-toast-message';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { signupValidationRules } from '@/utils/validationRules';
-import { Ionicons }          from '@expo/vector-icons';
-import { useAuth }           from '@/Contexts/authContext';
+import Ionicons              from '@expo/vector-icons/Ionicons';
+import { useAuthh }           from '@/Contexts/authContext';
+import React from 'react';
 
 const SPACING = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 };
 
 export default function SignupScreen() {
-  const { register } = useAuth();
+  const { register } = useAuthh();
 
   const [showPassword,        setShowPassword]        = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);

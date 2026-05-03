@@ -12,7 +12,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import supabase, { TABLES }           from '@/lib/supabase';
 import { Ionicons }                   from '@expo/vector-icons';
 import { ProfileAvatar }              from '@/components/Profileavatar';
-import { useAuth }                    from '@/Contexts/authContext';
+import { useAuthh }                    from '@/Contexts/authContext';
 import { Swipeable }                  from 'react-native-gesture-handler';
 
 interface ConnectedUser {
@@ -95,7 +95,7 @@ const ConnectionCard = React.memo(({ item, isMyProfile, onRemove }: {
 // ═══════════════════════════════════════════════════════════════════
 export default function ConnectionsListScreen() {
   const params       = useLocalSearchParams<{ userId: string; name: string }>();
-  const { user: me } = useAuth();
+  const { user: me } = useAuthh();
   const paramUserId  = params.userId?.trim();
   const targetUserId = paramUserId || me?.id || '';
   const ownerName    = params.name ?? 'Connections';
@@ -126,8 +126,8 @@ export default function ConnectionsListScreen() {
       ]);
 
       const pairs: { otherId:string; connId:string }[] = [
-        ...(sentRes.data ?? []).map(d => ({ otherId:d.receiver_id, connId:d.id })),
-        ...(recvRes.data  ?? []).map(d => ({ otherId:d.sender_id,  connId:d.id })),
+        ...(sentRes.data ?? []).map((d:any) => ({ otherId:d.receiver_id, connId:d.id })),
+        ...(recvRes.data  ?? []).map((d:any) => ({ otherId:d.sender_id,  connId:d.id })),
       ].filter(p => p.otherId);
 
       if (!pairs.length) { setConnections([]); return; }
@@ -140,7 +140,7 @@ export default function ConnectionsListScreen() {
         .limit(200);
 
       const pm: Record<string,any> = {};
-      (profiles ?? []).forEach(p => { pm[p.user_id] = p; });
+      (profiles ?? []).forEach((p:any) => { pm[p.user_id] = p; });
 
       const enriched: ConnectedUser[] = pairs
         .map(({ otherId, connId }) => {
@@ -168,7 +168,7 @@ export default function ConnectionsListScreen() {
   useEffect(() => { fetchConnections(); }, [fetchConnections]);
 
   const handleRemove = useCallback((item: ConnectedUser) => {
-    setConnections(prev => prev.filter(c => c.connection_id !== item.connection_id));
+    setConnections((prev: any) => prev.filter(c => c.connection_id !== item.connection_id));
     supabase.from(TABLES.connections).delete().eq('id', item.connection_id)
       .then(() => fetchConnections()).catch(() => fetchConnections());
   }, [fetchConnections]);

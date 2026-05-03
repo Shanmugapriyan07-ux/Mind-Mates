@@ -9,7 +9,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import supabase, { TABLES }            from '@/lib/supabase';
 import { Ionicons }                    from '@expo/vector-icons';
 import { useConnection }               from '@/hooks/useConnection';
-import { useAuth }                     from '@/Contexts/authContext';
+import { useAuthh }                     from '@/Contexts/authContext';
 import { useConnectionCount }          from '@/hooks/useConnectionCount';
 
 interface UserProfile {
@@ -204,7 +204,7 @@ const ConnectBtn = ({ targetUserId, fullName, profileImage, skills }: {
 // ═══════════════════════════════════════════════════════════════════
 export default function UserProfileScreen() {
   const params           = useLocalSearchParams<{ userId: string }>();
-  const { user: me }     = useAuth();
+  const { user: me }     = useAuthh();
   const { loadStatuses } = useConnection();
 
   const targetUserId = params.userId?.trim() ?? '';

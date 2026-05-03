@@ -12,7 +12,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, TABLES } from '@/lib/supabase';
 import { callFn }           from '@/lib/callFn';
-import { useAuth }          from '@/Contexts/authContext';
+import { useAuthh }          from '@/Contexts/authContext';
 
 // ── Types ──────────────────────────────────────────────────────────
 export interface ChatMessage {
@@ -103,7 +103,7 @@ const withRetry = async <T>(fn: () => Promise<T>, tries = 3): Promise<T> => {
 
 // ── useMessages ─────────────────────────────────────────────────────
 export const useMessages = (chatId: string) => {
-  const { user }                     = useAuth();
+  const { user }                     = useAuthh();
   const [messages,    setMessages]   = useState<ChatMessage[]>([]);
   const [loading,     setLoading]    = useState(true);
   const [loadingOld,  setLoadingOld] = useState(false);

@@ -9,7 +9,7 @@ import { SafeAreaView }           from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { supabase, TABLES }       from '@/lib/supabase';
 import { callFn }                from '@/lib/callFn';
-import { useAuth }                from '@/Contexts/authContext';
+import { useAuthh }                from '@/Contexts/authContext';
 import { Ionicons }               from '@expo/vector-icons';
 import { ChatMenuSheet }          from '@/components/blockSheet';
 import { FriendsSearchModal }     from '@/components/FriendSearchModel';
@@ -85,7 +85,7 @@ const bk = StyleSheet.create({
 
 // ═══════════════════════════════════════════════════════════════
 export default function ChatListScreen() {
-  const { user } = useAuth();
+  const { user } = useAuthh();
 
   const [friends,     setFriends]     = useState<Friend[]>([]);
   const [loading,     setLoading]     = useState(true);

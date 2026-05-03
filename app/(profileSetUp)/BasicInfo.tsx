@@ -14,12 +14,12 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context'; // ✅ NOT SafeAreaProvider
 import Ionicons from '@expo/vector-icons/Ionicons';
 import LocationPicker from '@/components/LocationPicker';
-import { useAuth } from '@/Contexts/authContext';
+import { useAuthh } from '@/Contexts/authContext';
 import { readDraft, saveDraft } from '@/lib/profileDraft';
 
 const BasicInfo = () => {
   const { profile, updateProfile } = useProfile();
-  const { user } = useAuth();
+  const { user } = useAuthh();
 
   const [formData, setFormData] = useState({
     fullName:         profile?.fullName         ?? '',
@@ -33,11 +33,11 @@ const BasicInfo = () => {
 
   // ── STRATEGY #8: memoized handlers — never recreated on re-render ─────
   const handleChange = useCallback((field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev:any) => ({ ...prev, [field]: value }));
   }, []);
 
   const handleLocationSelect = useCallback((district: string) => {
-    setFormData(prev => ({ ...prev, location: district }));
+    setFormData((prev:any) => ({ ...prev, location: district }));
   }, []); // ✅ FIXED: was setting "district" key instead of "location"
 
   // ── OPTIMIZATION: Stable handlers to prevent "focusin" violations ─────

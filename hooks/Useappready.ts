@@ -105,7 +105,7 @@ let splashHidePromise: Promise<void> | null = null;
 
 const hideSplashSafely = (): Promise<void> => {
   if (splashHidePromise) return splashHidePromise;
-  splashHidePromise = SplashScreen.hideAsync().catch(e => {
+  splashHidePromise = SplashScreen.hideAsync().catch((e: any) => {
     console.warn('[SplashScreen] hideAsync failed:', e);
   });
   return splashHidePromise;

@@ -8,7 +8,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { BlurView }         from 'expo-blur';
-import { useAuth }          from '@/Contexts/authContext';
+import { useAuthh }          from '@/Contexts/authContext';
 import { useProfile }       from '@/Contexts/profileContext';
 import { useProfileImage }  from '@/hooks/useProfileImage';
 
@@ -16,7 +16,7 @@ const { width: W, height: H } = Dimensions.get('window');
 const IMAGE_SIZE = W * 0.78;
 
 export default function ImagePreviewScreen() {
-  const { user }    = useAuth();
+  const { user }    = useAuthh();
   const { profile } = useProfile();
   const insets      = useSafeAreaInsets();
 

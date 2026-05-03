@@ -13,7 +13,7 @@ import { SafeAreaView }                 from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons }                     from '@expo/vector-icons';
 import { ProfileAvatar }                from '@/components/Profileavatar';
-import { useAuth }                      from '@/Contexts/authContext';
+import { useAuthh }                      from '@/Contexts/authContext';
 import { useMessages, findChat, getChatId, ChatMessage } from '@/hooks/useChat';
 import { useTyping }                    from '@/hooks/useTyping';   // ← NEW
 import { supabase }                     from '@/lib/supabase';
@@ -389,7 +389,7 @@ const MessageBubble = React.memo(({
 // MAIN SCREEN
 // ═══════════════════════════════════════════════════════════════════
 export default function ChatScreen() {
-  const { user } = useAuth();
+  const { user } = useAuthh();
   const params = useLocalSearchParams<{
     chatId:string; userId:string; name:string; image:string; lastSeen?:string;
   }>();
@@ -494,7 +494,7 @@ export default function ChatScreen() {
   // ── Handlers ───────────────────────────────────────────────────
   const handleReact = useCallback(async (msg: ChatMessage, emoji: string) => {
     if (!user?.id) return;
-    setMessages(prev => prev.map(m => {
+    setMessages((prev: any) => prev.map((m: any) => {
       if (m.$id !== msg.$id) return m;
       let rx: { userId:string; emoji:string }[] = [];
       try { rx = JSON.parse((m as any).reactions || '[]'); } catch {}
@@ -529,12 +529,12 @@ export default function ChatScreen() {
   }, [user?.id]);
 
   const doSoftDelete = useCallback((msg: ActionMessage) => {
-    setMessages(prev => prev.filter(m => m.$id !== msg.$id));
+    setMessages((prev: any) => prev.filter((m: any) => m.$id !== msg.$id));
     withRetry(() => callFn({ action:'delete_message', messageId:msg.$id })).catch(() => {});
   }, [setMessages]);
 
   const doHardDelete = useCallback((msg: ActionMessage) => {
-    setMessages(prev => prev.filter(m => m.$id !== msg.$id));
+    setMessages((prev: any) => prev.filter((m: any) => m.$id !== msg.$id));
     withRetry(() => callFn({ action:'delete_for_everyone', messageId:msg.$id })).catch(() => {});
   }, [setMessages]);
 
@@ -599,10 +599,10 @@ export default function ChatScreen() {
     if (editingMsg) {
       const msgId = editingMsg.$id;
       setInputText(''); setSending(true); setEditingMsg(null);
-      setMessages(prev => prev.map(m => m.$id === msgId ? { ...m, message:text, edited:true } : m));
+      setMessages((prev: any) => prev.map((m: any) => m.$id === msgId ? { ...m, message:text, edited:true } : m));
       callFn({ action:'edit_message', messageId:msgId, newText:text })
         .catch(() => {
-          setMessages(prev => prev.map(m => m.$id === msgId ? { ...m, message:editingMsg.message } : m));
+          setMessages((prev: any) => prev.map((m: any) => m.$id === msgId ? { ...m, message:editingMsg.message } : m));
         });
       setSending(false); return;
     }

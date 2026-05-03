@@ -8,7 +8,7 @@ import {
 import * as ImagePicker      from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { router }            from 'expo-router';
-import { useAuth }           from '@/Contexts/authContext';
+import { useAuthh }           from '@/Contexts/authContext';
 import { useProfile }        from '@/Contexts/profileContext';
 import Toast                 from 'react-native-toast-message';
 import { Ionicons }          from '@expo/vector-icons';
@@ -22,7 +22,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const AVATAR_SIZE = SCREEN_WIDTH * 0.38;
 
 export default function ProfileImageScreen() {
-  const { user }                   = useAuth();
+  const { user }                   = useAuthh();
   const { updateProfile, profile } = useProfile();
 
   const [imageUri,       setImageUri]       = useState<string | null>(profile?.profileImage ?? null);

@@ -15,7 +15,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Platform }     from 'react-native';
 import { supabase }     from '@/lib/supabase';
 import { useProfile }   from '@/Contexts/profileContext';
-import { useAuth }      from '@/Contexts/authContext';
+import { useAuthh }      from '@/Contexts/authContext';
 import { clearAvatarCache } from '@/components/Profileavatar';
 import {
   uploadProfileToCloudinary,
@@ -44,7 +44,7 @@ const compressOnWeb = (blob: Blob): Promise<Blob> =>
   });
 
 export const useProfileImage = () => {
-  const { user }                   = useAuth();
+  const { user }                   = useAuthh();
   const { profile, updateProfile } = useProfile();
 
   const [imageUri,  setImageUri]  = useState<string | null>(profile?.profileImage ?? null);

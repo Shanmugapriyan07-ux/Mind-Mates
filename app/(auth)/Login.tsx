@@ -1,6 +1,5 @@
 // auth/login.tsx
 
-import { useAuth } from '@/Contexts/authContext';
 import React, { useState,useCallback, useMemo, useEffect, memo } from 'react';
 import icons from '@/constants/icons';
 import {
@@ -28,8 +27,10 @@ import Toast from 'react-native-toast-message';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { loginValidationRules } from '@/utils/validationRules';
 import { Ionicons } from '@expo/vector-icons';
-import { GoogleSignInButton } from '@/components/Googlesigninbutton';
-import { useGoogleAuth } from '@/hooks/useGoogleauth';
+import GoogleSignInButton from '@/components/Googlesigninbutton';
+import { useAuth } from '@/hooks/useAuth';
+import { useAuthh } from '@/Contexts/authContext';
+import { signInWithGoogle } from '@/services/authService';
 
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -50,8 +51,8 @@ interface LoginScreenProps {
 }
 
 const LoginScreen = memo(({ onAuthenticated }: LoginScreenProps)=> {
-   const { login, loginWithOAuth } = useAuth();
-    const { status, error, signInWithGoogle } = useGoogleAuth();
+  const { isSigningIn, error, signIn, clearError } = useAuth();
+  const { login,loginWithOAuth } = useAuthh();
 
 
    
@@ -614,3 +615,4 @@ const styles = StyleSheet.create({
 });
 
 export default LoginScreen;
+

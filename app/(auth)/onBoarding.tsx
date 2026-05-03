@@ -52,7 +52,7 @@ const DOT_SIZE = 10;
 const ACTIVE_WIDTH = 24;
 
 // ─── Single Animated Dot ──────────────────────────────────────────────────────
-const Dot = ({ index, activeIndex }: { index: number; activeIndex: number }) => {
+const Dot = ({ index, activeIndex }: { index: number; activeIndex: number; key?: any }) => {
   const dotStyle = useAnimatedStyle(() => {
     const isActive = activeIndex === index;
     return {

@@ -9,12 +9,12 @@ import { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Image } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { useAuth }  from '@/Contexts/authContext';
+import { useAuthh }  from '@/Contexts/authContext';
 import images       from '@/constants/images';
 
 export default function AuthCallback() {
   const params        = useLocalSearchParams();
-  const { loginWithOAuth } = useAuth();
+  const { loginWithOAuth } = useAuthh();
   const pulseAnim     = useRef(new Animated.Value(0.4)).current;
   const hasProcessed  = useRef(false);
 

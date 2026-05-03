@@ -6,7 +6,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Platform }   from 'react-native';
 import { supabase }   from '@/lib/supabase';
-import { useAuth }    from '@/Contexts/authContext';
+import { useAuthh }    from '@/Contexts/authContext';
 import Toast          from 'react-native-toast-message';
 
 export type ConnectStatus = 'none' | 'pending' | 'accepted' | 'rejected';
@@ -95,7 +95,7 @@ const callFn = async (body: Record<string, any>): Promise<any> => {
 };
 
 export const useConnection = () => {
-  const { user } = useAuth();
+  const { user } = useAuthh();
   const [statusMap,  setStatusMap]  = useState<Record<string, ConnectStatus>>({});
   const [loadingMap, setLoadingMap] = useState<Record<string, boolean>>({});
 

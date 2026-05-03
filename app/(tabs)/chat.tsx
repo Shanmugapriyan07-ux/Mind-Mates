@@ -16,7 +16,7 @@ import { router }           from 'expo-router';
 import supabase, { TABLES } from '@/lib/supabase';
 import { ProfileAvatar }    from '@/components/Profileavatar';
 import { Ionicons }         from '@expo/vector-icons';
-import { useAuth }          from '@/Contexts/authContext';
+import { useAuthh }          from '@/Contexts/authContext';
 import { useConnection }    from '@/hooks/useConnection';
 import { useNotifBadge } from '@/hooks/useBadgeSync';
 
@@ -390,7 +390,7 @@ const bk = StyleSheet.create({
 
 // ── Main Screen ───────────────────────────────────────────────────────────────
 export default function NotificationsScreen() {
-  const { user }                                    = useAuth();
+  const { user }                                    = useAuthh();
   const { acceptRequest, rejectRequest, setStatus } = useConnection();
 
   const [notifs,        setNotifs]        = useState<NotifItem[]>([]);
@@ -404,7 +404,7 @@ export default function NotificationsScreen() {
   const [swipedIds, setSwipedIds] = useState<Set<string>>(new Set());
 
   const safeSet = useCallback((fn: (p: NotifItem[]) => NotifItem[]) =>
-    setNotifs(p => dedup(fn(p))), []);
+    setNotifs((p:any) => dedup(fn(p))), []);
 
   // ── Load / Realtime (logic unchanged) ────────────────────────────────────
   const loadNotifs = useCallback(async (isRefresh = false) => {
@@ -433,29 +433,29 @@ export default function NotificationsScreen() {
     // FIX: Use a unique channel name to prevent "already subscribed" errors on re-render
     const ch = supabase.channel(`notifs-${user.id}-${Date.now()}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: TABLES.notifications, filter: `user_id=eq.${user.id}` },
-        (payload) => {
+        (payload: any) => {
           const doc = payload.new as NotifItem;
-          if (payload.eventType === 'INSERT') safeSet(p => [doc, ...p]);
-          if (payload.eventType === 'DELETE') setNotifs(p => p.filter(n => n.id !== (payload.old as any).id));
-          if (payload.eventType === 'UPDATE') setNotifs(p => p.map(n => n.id === doc.id ? { ...n, ...doc } : n));
+          if (payload.eventType === 'INSERT') safeSet((p:any) => [doc, ...p]);
+          if (payload.eventType === 'DELETE') setNotifs((p:any) => p.filter((n:any) => n.id !== (payload.old as any).id));
+          if (payload.eventType === 'UPDATE') setNotifs((p:any) => p.map((n:any) => n.id === doc.id ? { ...n, ...doc } : n));
         }).subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user?.id, safeSet]);
 
   useEffect(() => {
     if (!user?.id || !notifs.length) return;
-    const unread = notifs.filter(n => !n.is_read);
+    const unread = notifs.filter((n:any)=> !n.is_read);
     if (!unread.length) return;
-    setNotifs(p => p.map(n => ({ ...n, is_read: true })));
-    Promise.all(unread.map(n => supabase.from(TABLES.notifications).update({ is_read: true }).eq('id', n.id))).catch(() => {});
+    setNotifs((p:any) => p.map((n:any) => ({ ...n, is_read: true })));
+    Promise.all(unread.map((n:any) => supabase.from(TABLES.notifications).update({ is_read: true }).eq('id', n.id))).catch(() => {});
   }, [notifs.length, user?.id]);
 
   // ── Swipe tracking ─────────────────────────────────────────────────────────
   const handleSwipeOpen  = useCallback((id: string) =>
-    setSwipedIds(prev => new Set([...prev, id])), []);
+    setSwipedIds((prev: any) => new Set([...prev, id])), []);
 
   const handleSwipeClose = useCallback((id: string) =>
-    setSwipedIds(prev => { const n = new Set(prev); n.delete(id); return n; }), []);
+    setSwipedIds((prev: any) => { const n = new Set(prev); n.delete(id); return n; }), []);
 
   // ── Single delete (swipe button OR action sheet) ──────────────────────────
    const handleDelete = useCallback(async (item: NotifItem) => {
@@ -466,7 +466,7 @@ export default function NotificationsScreen() {
     // WHY it failed before: RLS policy was missing DELETE permission.
     // notif_read policy only allowed SELECT.
     // fix_rls_final.sql adds: CREATE POLICY "notif_delete" FOR DELETE USING (user_id = auth.uid())
-    setNotifs(prev => prev.filter(n => n.id !== item.id));
+    setNotifs((prev: any) => prev.filter((n:any) => n.id !== item.id));
 
     const { error } = await supabase
       .from(TABLES.notifications)
@@ -478,7 +478,7 @@ export default function NotificationsScreen() {
       console.error('❌ Notif delete failed:', error.message,
         error.code === '42501' ? '→ Run fix_rls_final.sql in Supabase SQL Editor' : '');
       // Rollback
-      setNotifs(prev => dedup([item, ...prev].sort((a, b) =>
+      setNotifs((prev: any) => dedup([item, ...prev].sort((a, b) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       )));
     }
@@ -488,10 +488,10 @@ export default function NotificationsScreen() {
   // ── Bulk delete (header bar) ──────────────────────────────────────────────
   const handleBulkDelete = useCallback(async () => {
     const ids      = Array.from(swipedIds);
-    const toDelete = notifs.filter(n => ids.includes(n.id));
+    const toDelete = notifs.filter((n: any) => ids.includes(n.id));
 
     // Optimistic remove all
-    setNotifs(prev => prev.filter(n => !ids.includes(n.id)));
+    setNotifs((prev: any) => prev.filter((n: any) => !ids.includes(n.id)));
     setSwipedIds(new Set());
 
     // Delete all in parallel and track results
@@ -505,7 +505,7 @@ export default function NotificationsScreen() {
 
     if (failed.length) {
       console.warn(`⚠️ ${failed.length} notifications failed to delete, rolling back`);
-      setNotifs(prev => dedup([...failed, ...prev].sort((a, b) =>
+      setNotifs((prev: any) => dedup([...failed, ...prev].sort((a, b) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime())));
     } else {
       console.log('✅ All notifications deleted successfully');
@@ -515,12 +515,12 @@ export default function NotificationsScreen() {
 //   // ── Accept / Reject (logic unchanged) ─────────────────────────────────────
    const handleAccept = useCallback(async (item: NotifItem) => {
     setActionLoading(item.id);
-    setNotifs(p => p.map(n => n.id === item.id ? { ...n, type: 'accepted' } : n));
+    setNotifs((p: any) => p.map((n:any) => n.id === item.id ? { ...n, type: 'accepted' } : n));
     setStatus(item.sender_id, 'accepted');
     try {
       await acceptRequest(item.connection_id, item.id, item.sender_id);
     } catch {
-      setNotifs(p => p.map(n => n.id === item.id ? { ...n, type: 'connection_request' } : n));
+      setNotifs((p: any) => p.map((n:any) => n.id === item.id ? { ...n, type: 'connection_request' } : n));
       setStatus(item.sender_id, 'pending');
     } finally {
       setActionLoading(null);
@@ -528,7 +528,7 @@ export default function NotificationsScreen() {
   }, [acceptRequest, setStatus]);
 
   const handleReject = useCallback(async (item: NotifItem) => {
-    setNotifs(p => p.filter(n => n.id !== item.id));
+    setNotifs(p => p.filter((n: any) => n.id !== item.id));
     setStatus(item.sender_id, 'none');
     rejectRequest(item.connection_id, item.id, item.sender_id).catch(() => loadNotifs());
   }, [rejectRequest, setStatus, loadNotifs]);
@@ -545,7 +545,7 @@ export default function NotificationsScreen() {
     <SafeAreaView style={s.safe} edges={['top']}>
       <StatusBar barStyle="dark-content" />
 
-      <Header count={notifs.filter(n => !n.is_read).length} />
+      <Header count={notifs.filter((n: any) => !n.is_read).length} />
 
       {/* ── Bulk delete bar — only when 2+ cards swiped ── */}
       <BulkDeleteBar count={swipedIds.size} onDeleteAll={handleBulkDelete} />

@@ -10,7 +10,7 @@ import React, {
   useEffect, useCallback, useRef,
 } from 'react';
 import { Platform }         from 'react-native';
-import { useAuth }          from '@/Contexts/authContext';
+import { useAuthh }          from '@/Contexts/authContext';
 import { supabase, TABLES } from '@/lib/supabase';
 
 // ── Web-safe cache ────────────────────────────────────────────
@@ -186,7 +186,7 @@ const wq = new WriteQueue();
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
 export const ProfileProvider = ({ children }: { children: React.ReactNode }) => {
-  const { user, isLoggedIn, authStatus } = useAuth();
+  const { user, isLoggedIn, authStatus } = useAuthh();
 
   const [profile,       setProfile]       = useState<Profile | null>(null);
   const [isLoading,     setIsLoading]     = useState(true);

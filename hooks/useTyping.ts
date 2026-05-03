@@ -1,29 +1,3 @@
-// hooks/useTyping.ts
-//
-// ══════════════════════════════════════════════════════════════════
-// INSTAGRAM-LEVEL TYPING INDICATOR — Production Architecture
-// ══════════════════════════════════════════════════════════════════
-//
-// STRATEGY: Supabase Realtime BROADCAST (not DB writes)
-//   • Broadcast = ephemeral pub/sub, zero table writes, zero RLS overhead
-//   • Channel: `typing:{chatId}` — one per conversation
-//   • Events: { type:'typing', userId } and { type:'stopped', userId }
-//
-// DEBOUNCE DESIGN (prevents spam):
-//   • "typing" fires once when user starts typing — NOT on every keystroke
-//   • A 2.5s idle timer fires "stopped" automatically
-//   • If user keeps typing, the timer resets (no extra events sent)
-//   • Net result: ~1 event per burst, not 1 per character ✅
-//
-// RECEIVER DESIGN:
-//   • Stores { userId → lastSeenAt } in a Map
-//   • A 3s safety timer clears stale indicators (handles missed "stopped" events)
-//   • isOtherTyping derived from that Map — no re-render unless it actually changes
-//
-// PERFORMANCE:
-//   • useRef for debounce timer — no state, no re-render
-//   • Channel unsubscribed on unmount (no memory leak)
-//   • Works across Android + iOS (Supabase realtime uses websockets)
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';

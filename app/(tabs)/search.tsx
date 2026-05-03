@@ -13,7 +13,7 @@ import { SafeAreaView }          from 'react-native-safe-area-context';
 import { Ionicons }              from '@expo/vector-icons';
 import { router }                from 'expo-router';
 import { ProfileAvatar }         from '@/components/Profileavatar';
-import { useAuth }               from '@/Contexts/authContext';
+import { useAuthh }               from '@/Contexts/authContext';
 import { useConnection }         from '@/hooks/useConnection';
 import { useMatches, MatchUser } from '@/hooks/useMatches';
 import supabase from '@/lib/supabase';
@@ -186,7 +186,7 @@ interface SearchUser {
 
 // ─── Main Screen ──────────────────────────────────────────────────
 export default function DiscoverScreen() {
-  const { user }    = useAuth();
+  const { user }    = useAuthh();
   const { loadStatuses, getStatus } = useConnection();
   const {
     matches, fetching, refreshing,error,loading,

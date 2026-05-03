@@ -5,7 +5,7 @@ import * as Device        from 'expo-device';
 import { Platform }       from 'react-native';
 import supabase, { databases, config, Query, TABLES } from '@/lib/supabase';
  
-import { useAuth }           from '@/Contexts/authContext';
+import { useAuthh }           from '@/Contexts/authContext';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -18,7 +18,7 @@ Notifications.setNotificationHandler({
 });
 
 export const usePushNotifications = () => {
-  const { user } = useAuth();
+  const { user } = useAuthh();
   useEffect(() => {
     if (!user?.id) return;
     registerAndSaveToken(user.id);

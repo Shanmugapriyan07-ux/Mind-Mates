@@ -10,7 +10,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router }         from 'expo-router';
 import { useProfile }     from '@/Contexts/profileContext';
 import { Ionicons }       from '@expo/vector-icons';
-import { useAuth }        from '@/Contexts/authContext';
+import { useAuthh }        from '@/Contexts/authContext';
 
 type Category = 'Tech' | 'Design' | 'Business' | 'Sports' | 'Passion' | 'Fun';
 interface Skill { id: number; name: string; category: Category; icon: string; }
@@ -127,13 +127,13 @@ export default function SkillSelection() {
   const [showLimit,      setShowLimit]      = useState(false);
   const [saving,         setSaving]         = useState(false);
 
-  const { user }                   = useAuth();
+  const { user }                   = useAuthh();
   const { profile, updateProfile } = useProfile();
 
   useEffect(() => { router.prefetch('/(tabs)/home'); }, []);
 
   const toggleSkill = useCallback((id: number) => {
-    setSelectedIds(prev => {
+    setSelectedIds((prev: any) => {
       const next = new Set(prev);
       if (next.has(id)) { next.delete(id); setShowLimit(false); }
       else if (next.size < 3) { next.add(id); setShowLimit(false); }
@@ -162,7 +162,7 @@ export default function SkillSelection() {
     setTimeout(() => { setSaving(false); router.replace('/(tabs)/home'); }, 100);
   }, [user?.id, saving, selectedIds, profile?.profileImage, updateProfile]);
 
-  const renderSkill: ListRenderItem<Skill> = useCallback(({ item }) => (
+  const renderSkill: ListRenderItem<Skill> = useCallback(({ item }: { item: Skill }) => (
     <SkillCard
       skill={item}
       isSelected={selectedIds.has(item.id)}

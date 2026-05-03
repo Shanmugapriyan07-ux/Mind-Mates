@@ -10,7 +10,7 @@ import { BlurView }  from 'expo-blur';
 import { Ionicons }  from '@expo/vector-icons';
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useProfile } from '@/Contexts/profileContext';
-import { useAuth }    from '@/Contexts/authContext';
+import { useAuthh }    from '@/Contexts/authContext';
 import { supabase, TABLES } from '@/lib/supabase';
 
 // ── Notification badge hook ───────────────────────────────────
@@ -59,16 +59,16 @@ const useUnreadCount = (myUserId: string | undefined) => {
         event: '*', schema: 'public',
         table: TABLES.notifications,
         filter: `user_id=eq.${myUserId}`,
-      }, (payload) => {
+      }, (payload:any) => {
         console.log('badge realtime:', payload.eventType);
         if (payload.eventType === 'INSERT' && payload.new?.is_read === false) {
-          setCount(prev => prev + 1);
+          setCount((prev:any) => prev + 1);
         } else {
           // For UPDATE/DELETE: refetch accurate count
           fetchCount();
         }
       })
-      .subscribe((status) => {
+      .subscribe((status:any) => {
         console.log('badge channel:', status);
       });
 
@@ -109,7 +109,7 @@ const Badge = React.memo(({ count }: { count: number }) => {
 // ── Tab bar ───────────────────────────────────────────────────
 const FloatingBlurTabBar = React.memo(({ state, navigation }: any) => {
   const { profile }            = useProfile();
-  const { user }               = useAuth();
+  const { user }               = useAuthh();
   const { count, markAllRead } = useUnreadCount(user?.id);
 
   const iconMap: Record<string, { active: string; inactive: string }> = {
@@ -136,8 +136,8 @@ const FloatingBlurTabBar = React.memo(({ state, navigation }: any) => {
             };
 
             return (
-              <View key={route.key} style={t.tabItem}>
-                {focused && <View style={t.activePill} />}
+              <View key={route.key} style={t.tabItem as any}>
+                {focused && <View style={t.activePill as any} />}
                 <Pressable onPress={handlePress} style={t.pressable}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   android_ripple={{ color: 'transparent', radius: 28 }}>

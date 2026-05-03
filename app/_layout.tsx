@@ -2,7 +2,7 @@
 import { useEffect, useRef } from 'react';
 import {InteractionManager, Platform, View } from 'react-native';
 import { Stack, SplashScreen, useRouter, useSegments, router } from 'expo-router';
-import { AuthProvider, useAuth }       from '@/Contexts/authContext';
+import { AuthProvider, useAuthh }       from '@/Contexts/authContext';
 import { ProfileProvider, useProfile } from '@/Contexts/profileContext';
 import { SafeAreaProvider }            from 'react-native-safe-area-context';
 import { PaperProvider }               from 'react-native-paper';
@@ -19,7 +19,7 @@ SplashScreen.preventAutoHideAsync();
 const CONTENT_FADE_MS = 280;
 
 function RootLayoutNav() {
-  const { isLoggedIn, authStatus, deleteType, user } = useAuth();
+  const { isLoggedIn, authStatus, deleteType, user } = useAuthh();
   const { profile, profileStatus }             = useProfile();
   const segments = useSegments();
   const router   = useRouter();
