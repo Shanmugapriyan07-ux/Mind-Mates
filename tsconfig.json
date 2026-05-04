@@ -27,8 +27,6 @@
     "nativewind-env.d.ts",
     "app/(auth)",
     "app/utils/validationRules.js",
-    "app/hooks/useFormValidation.js",
-    ".expo/types/**/*.ts",
-    "expo-env.d.ts"
+    "app/hooks/useFormValidation.js"
   ]
 }

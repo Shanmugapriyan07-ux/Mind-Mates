@@ -1,31 +1,3 @@
-// utils/preloadAssets.ts
-//
-// ══════════════════════════════════════════════════════════════════
-// ASSET PRELOADING — Gmail / Instagram Strategy
-// ══════════════════════════════════════════════════════════════════
-//
-// ARCHITECTURE: Two-phase loading
-//
-//   Phase 1 (CRITICAL — blocks splash hide):
-//     • Fonts (UI layout depends on them — flash if missing)
-//     • App icon / logo image (shown during splash itself)
-//     • Cached user session (to know which screen to show)
-//
-//   Phase 2 (DEFERRED — runs after app is visible):
-//     • Avatar images, chat thumbnails
-//     • Non-critical API data
-//     • Heavy screen assets
-//
-// WHY THIS MATTERS:
-//   Loading everything before showing the app adds 2-4 seconds.
-//   Loading only critical assets (fonts + session) takes ~200-400ms.
-//   Deferred assets load while the user sees skeleton UI — invisible lag.
-//
-// PERFORMANCE:
-//   All Phase 1 loads run in PARALLEL via Promise.all — not sequentially.
-//   A single slow asset can't block others.
-//   Each loader has a 5s timeout to prevent infinite hang.
-
 import * as Font       from 'expo-font';
 import { Asset }       from 'expo-asset';
 import { Image }       from 'react-native';

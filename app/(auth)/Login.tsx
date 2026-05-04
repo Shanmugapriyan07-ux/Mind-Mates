@@ -30,7 +30,6 @@ import { Ionicons } from '@expo/vector-icons';
 import GoogleSignInButton from '@/components/Googlesigninbutton';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthh } from '@/Contexts/authContext';
-import { signInWithGoogle } from '@/services/authService';
 
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -61,7 +60,6 @@ const LoginScreen = memo(({ onAuthenticated }: LoginScreenProps)=> {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
-  const [sheetVisible, setSheetVisible] = useState(false);
 
 
   const [validationErrors, setValidationErrors] = useState<{ email?: string; password?: string }>({});
@@ -160,64 +158,14 @@ const LoginScreen = memo(({ onAuthenticated }: LoginScreenProps)=> {
     }
   }, [validateAll, isSubmitting, login, values.email, values.password]);
 
-
-
-// ── Paste this inside your Login/Signup screen component ─────────────────────
- const handleGoogleSignIn = useCallback(async () => {
-    if (googleLoading) return; // Strategy 8: tap guard
-
-      router.prefetch('/(tabs)/home');
-      router.prefetch('/(profileSetUp)/BasicInfo');
-
-
-    setGoogleLoading(true);
-    try {
-
-      // Step 1: open OAuth browser
-      // googleLogin() handles Pattern A (WebBrowser intercepts redirect)
-      // AuthCallback handles Pattern B (deep link on Android/web)
-      const result = await googleLogin();
-
-      if (!result) {
-        // null = user cancelled OR Pattern B deep link will handle it
-        // Either way: silent, no error
-        return;
-      }
-
-      // Step 2: Strategy 1 — verify identity via account.get()
-      // result only tells us OAuth succeeded — loginWithOAuth gets real Appwrite $id
-      const verifiedUser = await loginWithOAuth();
-
-      if (!verifiedUser) {
-        Toast.show({
-          type: 'error', text1: 'Sign In Failed',
-          text2: 'Could not verify your account. Please try again.',
-        });
-        return;
-      }
-
-      console.log('✅ Google login complete. userId:', verifiedUser.id);
-      // Strategy 7: _layout routes automatically based on profileStatus
-
-    } catch (err: any) {
-      const msg = err?.message ?? '';
-      // Silent cancel — not an error worth showing
-      if (
-        msg.toLowerCase().includes('cancel') ||
-        msg.includes('user_canceled') ||
-        msg.includes('dismissed')
-      ) return;
-
-      Toast.show({
-        type: 'error', text1: 'Sign In Failed',
-        text2: msg || 'Something went wrong. Please try again.',
-      });
-    } finally {
-      setGoogleLoading(false);
-      prewarmGoogleOAuth(); // Strategy 5: re-warm for next attempt
-    }
-  }, [googleLoading, loginWithOAuth]);
-
+  const handleGoogleLogin = useCallback(async () => {
+          // googleLogin() handles all logic:
+          //   - Shows native account picker
+          //   - Exchanges token with Supabase
+          //   - Returns null (success/cancel) or error string
+          // After success, onAuthStateChange fires → _layout.tsx routes automatically
+          await googleLogin();
+        }, [googleLogin]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -373,7 +321,7 @@ const LoginScreen = memo(({ onAuthenticated }: LoginScreenProps)=> {
                 {/* Google Sign-In */}
                 <View style={styles.authSection}>
                   <GoogleSignInButton
-                   onPress={signInWithGoogle}
+                   onPress={handleGoogleLogin}
                    isLoading={loading}
                    disabled={loading}
                  />

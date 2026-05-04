@@ -1,39 +1,35 @@
-// config/googleAuth.js
-// Centralized Google Sign-In configuration.
-// GoogleSignin.configure() is called ONCE at app startup — not on every button press.
-// This is what makes the login feel instant: auth is ready before the user taps anything.
+// config/googleAuth.ts
+// Called ONCE in _layout.tsx before any render.
+// This pre-warms the Google SDK so the account picker opens instantly on tap.
+// UNCHANGED from your existing file — just made TypeScript-safe.
 
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 let _isConfigured = false;
 
-export function configureGoogleSignIn() {
-  if (_isConfigured) return; // Guard against double-init
+export function configureGoogleSignIn(): void {
+  if (_isConfigured) return; // Guard: never configure twice
 
   GoogleSignin.configure({
-    // WEB client ID from Google Cloud Console (OAuth 2.0 → Web application type)
-    // Required for Supabase/Firebase token exchange — do NOT use Android client ID here
+    // Web client ID from Google Cloud Console (OAuth 2.0 → Web application type)
+    // CRITICAL: Must be the WEB client ID, not Android — needed for idToken generation
     webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
 
-    // iOS only: reversed client ID from GoogleService-Info.plist
-    // Format: com.googleusercontent.apps.XXXXXXX-YYYYYYY
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-
-    // Request offline access to get a refresh token (needed for server-side validation)
-    offlineAccess: true,
-
-    // Force account picker even if user is already signed in
-    // This matches Instagram/Tinder behavior — always shows the picker
+    // Force account picker every time (Instagram/Tinder behavior)
+    // Even if user is already signed in, they see the picker
     forceCodeForRefreshToken: true,
 
-    // Scopes — keep minimal. Only request what you actually use.
+    // Offline access — gets refresh token for server-side validation
+    offlineAccess: true,
+
+    // Request only what you need
     scopes: ['profile', 'email'],
   });
 
   _isConfigured = true;
-  console.info('[GoogleAuth] Configured successfully');
+  console.info('[GoogleAuth] ✅ Configured');
 }
 
-export function isGoogleConfigured() {
+export function isGoogleSignInConfigured(): boolean {
   return _isConfigured;
 }

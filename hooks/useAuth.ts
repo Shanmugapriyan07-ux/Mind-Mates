@@ -47,7 +47,7 @@ export function useAuth() {
   //   SIGNED_IN, SIGNED_OUT, TOKEN_REFRESHED, etc.
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      (event: any, session: { user: any; }) => {
         if (!isMounted.current) return;
 
         if (session?.user) {
