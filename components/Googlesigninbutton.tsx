@@ -3,16 +3,16 @@
 // Matches the official Google Sign-In button spec (colors, font, layout).
 // Press animation gives instant tactile feedback before the picker opens.
 
-import React, { memo, useRef, useCallback } from 'react';
+import React, { memo, useCallback, useRef } from "react";
 import {
+  ActivityIndicator,
   Animated,
+  Platform,
+  StyleSheet,
+  Text,
   TouchableWithoutFeedback,
   View,
-  Text,
-  ActivityIndicator,
-  StyleSheet,
-  Platform,
-} from 'react-native';
+} from "react-native";
 
 // Google "G" logo rendered as text — matches brand colors without an asset file
 const GoogleG = memo(() => (
@@ -21,7 +21,7 @@ const GoogleG = memo(() => (
   </View>
 ));
 
-GoogleG.displayName = 'GoogleG';
+GoogleG.displayName = "GoogleG";
 
 interface GoogleSignInButtonProps {
   onPress: () => void;
@@ -29,7 +29,11 @@ interface GoogleSignInButtonProps {
   disabled?: boolean;
 }
 
-function GoogleSignInButton({ onPress, isLoading = false, disabled = false }: GoogleSignInButtonProps) {
+function Googlesigninbutton({
+  onPress,
+  isLoading = false,
+  disabled = false,
+}: GoogleSignInButtonProps) {
   const scale = useRef(new Animated.Value(1)).current;
   const opacity = useRef(new Animated.Value(1)).current;
   const isDisabled = disabled || isLoading;
@@ -86,15 +90,23 @@ function GoogleSignInButton({ onPress, isLoading = false, disabled = false }: Go
       >
         {/* Left: Google G or spinner */}
         <View style={styles.leftSection}>
-          {isLoading
-            ? <ActivityIndicator size="small" color="#5F6368" style={styles.spinner} />
-            : <GoogleG />
-          }
+          {isLoading ? (
+            <ActivityIndicator
+              size="small"
+              color="#5F6368"
+              style={styles.spinner}
+            />
+          ) : (
+            <GoogleG />
+          )}
         </View>
 
         {/* Center: label */}
-        <Text style={[styles.label, isLoading && styles.labelLoading]} numberOfLines={1}>
-          {isLoading ? 'Signing in…' : 'Continue with Google'}
+        <Text
+          style={[styles.label, isLoading && styles.labelLoading]}
+          numberOfLines={1}
+        >
+          {isLoading ? "Signing in…" : "Continue with Google"}
         </Text>
 
         {/* Right: spacer to keep label centered */}
@@ -104,24 +116,24 @@ function GoogleSignInButton({ onPress, isLoading = false, disabled = false }: Go
   );
 }
 
-export default memo(GoogleSignInButton);
+export default memo(Googlesigninbutton);
 
 const styles = StyleSheet.create({
   button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#FFFFFF",
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: '#DADCE0',
+    borderColor: "#DADCE0",
     height: 48,
     paddingHorizontal: 12,
-    width: '100%',
+    width: "100%",
     ...Platform.select({
       android: { elevation: 1 },
       ios: {
-        shadowColor: '#000',
+        shadowColor: "#000",
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.15,
         shadowRadius: 1.5,
@@ -129,13 +141,13 @@ const styles = StyleSheet.create({
     }),
   },
   buttonDisabled: {
-    backgroundColor: '#F8F9FA',
-    borderColor: '#E8EAED',
+    backgroundColor: "#F8F9FA",
+    borderColor: "#E8EAED",
   },
   leftSection: {
     width: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   rightSection: {
     width: 36,
@@ -143,14 +155,14 @@ const styles = StyleSheet.create({
   gContainer: {
     width: 22,
     height: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   gText: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#4285F4',
-    fontFamily: Platform.select({ ios: 'Georgia', android: 'serif' }),
+    fontWeight: "700",
+    color: "#4285F4",
+    fontFamily: Platform.select({ ios: "Georgia", android: "serif" }),
     lineHeight: 22,
     includeFontPadding: false,
   },
@@ -160,17 +172,17 @@ const styles = StyleSheet.create({
   },
   label: {
     flex: 1,
-    textAlign: 'center',
+    textAlign: "center",
     fontSize: 15,
-    fontWeight: '500',
-    color: '#3C4043',
+    fontWeight: "500",
+    color: "#3C4043",
     letterSpacing: 0.15,
     fontFamily: Platform.select({
-      ios: 'System',
-      android: 'sans-serif-medium',
+      ios: "System",
+      android: "sans-serif-medium",
     }),
   },
   labelLoading: {
-    color: '#9AA0A6',
+    color: "#9AA0A6",
   },
 });

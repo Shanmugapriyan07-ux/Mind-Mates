@@ -1,6 +1,6 @@
-import Googlesigninbutton from "@/components/Googlesigninbutton";
 import { isNativeGoogleAvailable } from "@/config/googleAuth";
 
+import GoogleSignInButton from "@/components/Googlesigninbutton";
 
 import images from "@/constants/images";
 import { useAppLinks } from "@/Contexts/AppLinksContexts";
@@ -29,6 +29,7 @@ import Animated, {
   withTiming
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Googlesigninbutton from "@/components/Googlesigninbutton";
 
 const { width } = Dimensions.get("window");
 
