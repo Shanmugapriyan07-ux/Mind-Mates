@@ -1,5 +1,5 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
-import icons from '@/constants/icons';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+
 import {
   View, Text, Image, StyleSheet, TextInput, TouchableOpacity,
   StatusBar, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator,
@@ -15,6 +15,7 @@ import { signupValidationRules } from '@/utils/validationRules';
 import Ionicons              from '@expo/vector-icons/Ionicons';
 import { useAuthh }           from '@/Contexts/authContext';
 import React from 'react';
+import icons from '@/constants/icons';
 
 const SPACING = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 };
 
