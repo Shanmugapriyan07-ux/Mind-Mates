@@ -163,6 +163,7 @@ export default function LocationPicker({
           <FlatList
             data={filtered}
             keyExtractor={(item) => item}
+            keyboardShouldPersistTaps="handled"
             renderItem={({ item }) => (
               <TouchableOpacity
                 style={[s.item, value === item && s.itemSelected]}
