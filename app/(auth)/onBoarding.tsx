@@ -21,6 +21,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import images from '@/constants/images';
 
+
 const { width } = Dimensions.get('window');
 
 // ─── Slide Data ───────────────────────────────────────────────────────────────
