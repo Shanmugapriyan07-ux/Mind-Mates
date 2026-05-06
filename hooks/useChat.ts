@@ -245,6 +245,17 @@ export const useMessages = (chatId: string) => {
     }]);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+console.log('🔑 Session exists:', !!session);
+console.log('🔑 Access token:', session?.access_token?.slice(0, 20));
+console.log('📦 Payload:', JSON.stringify({ 
+  action: 'send_message', 
+  chatId, 
+  message: text.slice(0, 20) 
+}));
+
+
+
       // send_message edge fn also clears hidden_for=[] so chat reappears ✅
       await callFn({
         action: 'send_message', chatId, message: text,

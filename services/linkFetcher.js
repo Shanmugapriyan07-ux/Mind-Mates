@@ -9,9 +9,9 @@
 //    • Never throws — always returns a safe URL map
 // ══════════════════════════════════════════════════════════════
 
-import { supabase, isSupabaseAvailable } from "../config/supabase";
-import { STATIC_LINKS, FETCH_CONFIG } from "../config/appLinks";
-import { logger } from "../utils/logger";
+import { FETCH_CONFIG, STATIC_LINKS } from "../config/appLinks";
+import { isSupabaseAvailable, supabase } from "../config/supabase";
+import { log as logger } from "../utils/logger";
 
 /**
  * Wraps a Supabase query with an AbortController timeout.
@@ -44,7 +44,7 @@ async function fetchFromSupabase() {
       .select("key, url")
       .in("key", FETCH_CONFIG.BATCH_KEYS)
       .eq("is_active", true)
-      .abortSignal(signal)
+      .abortSignal(signal),
   );
 
   // ── Classify errors ──────────────────────────────────────────

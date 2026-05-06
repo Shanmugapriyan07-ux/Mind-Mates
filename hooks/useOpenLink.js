@@ -5,27 +5,27 @@
 //  Features: loading state, haptics, fallback, analytics hooks.
 // ══════════════════════════════════════════════════════════════
 
-import { useState, useCallback, useRef } from "react";
-import * as WebBrowser from "expo-web-browser";
 import * as Haptics from "expo-haptics";
-import { Linking, Alert, Platform } from "react-native";
+import * as WebBrowser from "expo-web-browser";
+import { useCallback, useRef, useState } from "react";
+import { Alert, Linking, Platform } from "react-native";
 
 import { useAppLinks } from "@/Contexts/AppLinksContexts";
 import { STATIC_LINKS } from "@/config/appLinks";
-import { logger } from "../utils/logger";
+import { log as logger } from "../utils/logger";
 
 // Branded browser options
 const BROWSER_OPTIONS = {
-  dismissButtonStyle:       "close",
-  preferredBarTintColor:    "#6D4AFF",
+  dismissButtonStyle: "close",
+  preferredBarTintColor: "#6D4AFF",
   preferredControlTintColor: "#FFFFFF",
-  readerMode:               false,
-  enableBarCollapsing:      true,
-  toolbarColor:             "#6D4AFF",
-  secondaryToolbarColor:    "#FFFFFF",
-  showTitle:                true,
-  enableDefaultShare:       true,
-  forceCloseOnRedirection:  false,
+  readerMode: false,
+  enableBarCollapsing: true,
+  toolbarColor: "#6D4AFF",
+  secondaryToolbarColor: "#FFFFFF",
+  showTitle: true,
+  enableDefaultShare: true,
+  forceCloseOnRedirection: false,
 };
 
 /**
@@ -66,7 +66,7 @@ export async function openUrl(url, options = {}) {
     Alert.alert(
       "Unable to Open Link",
       "Please check your internet connection and try again.",
-      [{ text: "OK" }]
+      [{ text: "OK" }],
     );
   } finally {
     if (Platform.OS === "android") {
@@ -108,7 +108,10 @@ export function useOpenLink() {
 
       if (!url) {
         logger.warn(`No URL found for key: ${key}`);
-        Alert.alert("Link Unavailable", "This link is not available right now.");
+        Alert.alert(
+          "Link Unavailable",
+          "This link is not available right now.",
+        );
         safeSetLoading(false);
         return;
       }
@@ -119,7 +122,7 @@ export function useOpenLink() {
       await openUrl(url, options);
       safeSetLoading(false);
     },
-    [getLink, safeSetLoading]
+    [getLink, safeSetLoading],
   );
 
   /**
@@ -132,7 +135,7 @@ export function useOpenLink() {
       await openUrl(url, options);
       safeSetLoading(false);
     },
-    [safeSetLoading]
+    [safeSetLoading],
   );
 
   return { openByKey, openRawUrl, isLoading };

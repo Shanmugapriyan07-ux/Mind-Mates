@@ -2,34 +2,39 @@
 // Called ONCE in _layout.tsx before any render.
 // This pre-warms the Google SDK so the account picker opens instantly on tap.
 // UNCHANGED from your existing file — just made TypeScript-safe.
+import { Platform } from 'react-native';
 
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
+let GoogleSignin: any = null;
+let statusCodes: any = {};
+
+// Only load native module in custom dev client / production builds
+// Expo Go will skip this and use a mock instead
+try {
+  const module = require('@react-native-google-signin/google-signin');
+  GoogleSignin = module.GoogleSignin;
+  statusCodes  = module.statusCodes;
+} catch {
+  console.warn('[GoogleAuth] Native module not available — running in Expo Go mock mode');
+}
 
 let _isConfigured = false;
 
 export function configureGoogleSignIn(): void {
-  if (_isConfigured) return; // Guard: never configure twice
+  if (!GoogleSignin) return; // Silent skip in Expo Go
+  if (_isConfigured)  return;
 
   GoogleSignin.configure({
-    // Web client ID from Google Cloud Console (OAuth 2.0 → Web application type)
-    // CRITICAL: Must be the WEB client ID, not Android — needed for idToken generation
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-
-    // Force account picker every time (Instagram/Tinder behavior)
-    // Even if user is already signed in, they see the picker
+    webClientId:              process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
     forceCodeForRefreshToken: true,
-
-    // Offline access — gets refresh token for server-side validation
-    offlineAccess: true,
-
-    // Request only what you need
-    scopes: ['profile', 'email'],
+    offlineAccess:            true,
+    scopes:                   ['profile', 'email'],
   });
 
   _isConfigured = true;
   console.info('[GoogleAuth] ✅ Configured');
 }
 
-export function isGoogleSignInConfigured(): boolean {
-  return _isConfigured;
+export { GoogleSignin, statusCodes };
+export function isNativeGoogleAvailable(): boolean {
+  return !!GoogleSignin;
 }

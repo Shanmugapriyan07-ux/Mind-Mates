@@ -325,7 +325,7 @@ const s = StyleSheet.create({
   headerImage: {
        zIndex:1,  
     width: '100%',
-     padding: 18,
+     padding: 20,
 
   },
   loadingContainer: {
@@ -335,9 +335,10 @@ const s = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   loadingText: {
-    marginTop: 12,
+    marginTop: 13,
     fontSize: 15,
     color: '#6B7280',
+    top:2
   },
   sptext:{
   fontSize: 23,
@@ -346,6 +347,7 @@ const s = StyleSheet.create({
     position:'relative',
     alignItems:'center',
     justifyContent:'center',
+    top:2
 
   },
       scroll: {

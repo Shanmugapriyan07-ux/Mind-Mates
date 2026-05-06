@@ -1,21 +1,5 @@
-// services/googleAuthService.ts
-// Production-grade native Google Sign-In service.
-// Integrates with your existing Supabase client (lib/supabase.ts).
-// Preserves your 3-stage auth flow exactly — only adds native Google SDK layer.
-//
-// Stage 1: Not logged in        → Login Screen
-// Stage 2: Logged in, no profile → BasicInfo
-// Stage 3: Logged in + complete  → Home
-//
-// ARCHITECTURE:
-//   googleAuthService (this file)
-//     ↓ calls
-//   @react-native-google-signin/google-signin (native SDK — no WebView)
-//     ↓ returns idToken
-//   supabase.auth.signInWithIdToken() (server-side validation)
-//     ↓ creates session
-//   your existing AuthContext (authContext.tsx) picks it up via onAuthStateChange
 
+import { isNativeGoogleAvailable } from "@/config/googleAuth";
 import { supabase } from "@/lib/supabase";
 import { log } from "@/utils/logger";
 import {
@@ -82,6 +66,15 @@ function classifyError(error: any): {
 // ─── Main sign-in function ────────────────────────────────────────────────────
 
 export async function nativeGoogleSignIn(): Promise<GoogleSignInResult> {
+
+  if (!isNativeGoogleAvailable()) {
+    console.warn('[GoogleAuth] Mock sign-in — Expo Go mode');
+    return {
+      success:   false,
+      cancelled: false,
+      error:     'Google Sign-In requires a Custom Dev Client build. Run: eas build --profile development --platform android',
+    };
+  }
   try {
     log.auth("Starting native Google Sign-In...");
 

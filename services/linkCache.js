@@ -8,11 +8,11 @@
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { CACHE_CONFIG } from "../config/appLinks";
-import { logger } from "../utils/logger";
+import { log as logger } from "../utils/logger";
 
 // ── L1: in-memory cache ────────────────────────────────────────
 const memoryCache = {
-  data:      null,  // { [key]: url }
+  data: null, // { [key]: url }
   fetchedAt: 0,
 };
 
@@ -52,7 +52,7 @@ export async function readCache() {
     logger.info(`Cache hit (L2 AsyncStorage) — ${fresh ? "fresh" : "stale"}`);
 
     // Populate L1
-    memoryCache.data      = data;
+    memoryCache.data = data;
     memoryCache.fetchedAt = fetchedAt;
 
     return { data, isStale: !fresh, source: "storage" };
@@ -69,13 +69,14 @@ export async function writeCache(data) {
   const fetchedAt = Date.now();
 
   // L1
-  memoryCache.data      = data;
+  memoryCache.data = data;
   memoryCache.fetchedAt = fetchedAt;
 
   // L2 (non-blocking — don't await in hot path)
-  AsyncStorage.setItem(CACHE_CONFIG.KEY, JSON.stringify({ data, fetchedAt })).catch(
-    (err) => logger.warn("Cache write error:", err.message)
-  );
+  AsyncStorage.setItem(
+    CACHE_CONFIG.KEY,
+    JSON.stringify({ data, fetchedAt }),
+  ).catch((err) => logger.warn("Cache write error:", err.message));
 }
 
 /**
@@ -99,7 +100,7 @@ export async function readStaleCache() {
  * Invalidate all layers — useful after logout or version bump.
  */
 export async function clearCache() {
-  memoryCache.data      = null;
+  memoryCache.data = null;
   memoryCache.fetchedAt = 0;
   await AsyncStorage.removeItem(CACHE_CONFIG.KEY).catch(() => {});
 }

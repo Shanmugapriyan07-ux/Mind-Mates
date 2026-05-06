@@ -1,9 +1,14 @@
 import Googlesigninbutton from "@/components/Googlesigninbutton";
+import { isNativeGoogleAvailable } from "@/config/googleAuth";
+
+
 import images from "@/constants/images";
 import { useAppLinks } from "@/Contexts/AppLinksContexts";
 import { useAuthh } from "@/Contexts/authContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useOpenLink } from "@/hooks/useOpenLink";
+import supabase from "@/lib/supabase";
+
 import { router } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -93,6 +98,19 @@ function GoogleButton({ onPress, isLoading, disabled }: GoogleButtonProps) {
   );
 }
 
+// Remove this before production
+const handleMockLogin = async () => {
+  // Simulate successful Google login with a test Supabase account
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email:    'shanmugapriyancse582@gmail.com',
+    password: 'Artist@123.',
+  });
+  if (error) console.error('Mock login failed:', error.message);
+};
+
+// In your UI — add a temporary button:
+
+
 // ─── Main Onboarding ──────────────────────────────────────────────────────────
 export const Welcome = () => {
   const { isGoogleSigningIn, googleError, googleLogin, clearGoogleError } =
@@ -159,6 +177,13 @@ export const Welcome = () => {
             </View>
           )}
         </View>
+
+        {/* In your UI — add a temporary button: */}
+        {__DEV__ && !isNativeGoogleAvailable() && (
+          <TouchableOpacity onPress={handleMockLogin} style={styles.mockButton}>
+            <Text style={styles.mockText}>🧪 Dev Mock Login (Expo Go only)</Text>
+          </TouchableOpacity>
+        )}
 
         <View style={{ bottom: 110, paddingHorizontal: 1 }}>
           <Text style={{ color: "#cccccc", fontSize: 14, textAlign: "center" }}>
@@ -324,6 +349,24 @@ const styles = StyleSheet.create({
     color: "#1F2937",
     right: 5,
   },
+   mockButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 40,
+    height: 53,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    paddingHorizontal: 48,
+    bottom: 120,
+  },
+    mockText: {
+    fontSize: 17,
+    fontWeight: "600",
+    color: "#1F2937",
+    right: 5,
+    },
 });
 
 export default Welcome;

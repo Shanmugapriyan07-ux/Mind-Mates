@@ -8,40 +8,40 @@
 //    3. Update UI silently when fresh data arrives
 // ══════════════════════════════════════════════════════════════
 
+import NetInfo from "@react-native-community/netinfo";
 import React, {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useRef,
   useState,
-  useCallback,
 } from "react";
-import NetInfo from "@react-native-community/netinfo";
 import { AppState } from "react-native";
 
-import { STATIC_LINKS, FETCH_CONFIG } from "@/config/appLinks";
+import { FETCH_CONFIG, STATIC_LINKS } from "@/config/appLinks";
+import { readCache, readStaleCache, writeCache } from "@/services/linkCache";
 import { fetchAllLinks } from "@/services/linkFetcher";
-import { readCache, writeCache, readStaleCache } from "@/services/linkCache";
-import { logger } from "@/utils/logger";
+import { log as logger } from "@/utils/logger";
 
 // ── Context ────────────────────────────────────────────────────
 
 const AppLinksContext = createContext({
-  links:     STATIC_LINKS,
+  links: STATIC_LINKS,
   isLoading: false,
-  isStale:   false,
-  refresh:   async () => {},
-  getLink:   (key) => STATIC_LINKS[key] ?? "",
+  isStale: false,
+  refresh: async () => {},
+  getLink: (key) => STATIC_LINKS[key] ?? "",
 });
 
 // ── Provider ───────────────────────────────────────────────────
 
 export function AppLinksProvider({ children }) {
-  const [links,     setLinks]     = useState(STATIC_LINKS); // instant render
+  const [links, setLinks] = useState(STATIC_LINKS); // instant render
   const [isLoading, setIsLoading] = useState(false);
-  const [isStale,   setIsStale]   = useState(false);
+  const [isStale, setIsStale] = useState(false);
 
-  const isFetching  = useRef(false); // prevent concurrent fetches
+  const isFetching = useRef(false); // prevent concurrent fetches
   const lastFetchAt = useRef(0);
 
   // ── Core fetch-and-update ──────────────────────────────────────
@@ -137,7 +137,7 @@ export function AppLinksProvider({ children }) {
 
   const getLink = useCallback(
     (key) => links[key] ?? STATIC_LINKS[key] ?? "",
-    [links]
+    [links],
   );
 
   const value = {

@@ -35,28 +35,29 @@
 //   const { onOpen } = useNotifBadge();
 //   useEffect(() => { onOpen(); }, []);
 
-import { useEffect, useRef, useCallback } from 'react';
-import { useUnreadStore }   from '@/stores/useUnreadStore';
-import { updateAppIconBadge } from '@/services/badgeService';
+import { useAuthh } from "@/Contexts/authContext";
+import { updateAppIconBadge } from "@/services/badgeService";
 import {
-  initSyncService,
-  destroySyncService,
-  onChatOpened,
-  onNotifScreenOpened,
-} from '@/services/syncService';
-import {
+  handleKilledStateNotification,
   registerPushToken,
   setupNotificationResponseListener,
-  handleKilledStateNotification,
-} from '@/services/notificationService';
+} from "@/services/notificationService";
+import {
+  destroySyncService,
+  initSyncService,
+  onChatOpened,
+  onNotifScreenOpened,
+} from "@/services/syncService";
+import { useUnreadStore } from "@/stores/useUnreadStore";
+import { useCallback, useEffect, useRef } from "react";
 
 // ── Main badge sync hook ──────────────────────────────────────────
 // Add this ONCE at the root of your app (root layout or auth wrapper).
 // Pass userId — it handles init, cleanup, and re-init on user change.
 export const useBadgeSync = (
-  userId:     string | null,
-  onNavigateToChat?:  (chatId: string) => void,
-  onNavigateToNotifs?: ()              => void,
+  userId: string | null,
+  onNavigateToChat?: (chatId: string) => void,
+  onNavigateToNotifs?: () => void,
 ): void => {
   const prevUserId = useRef<string | null>(null);
 
@@ -84,7 +85,7 @@ export const useBadgeSync = (
       return;
     }
 
-    if (prevUserId.current === userId) return;  // same user, skip
+    if (prevUserId.current === userId) return; // same user, skip
     prevUserId.current = userId;
 
     const setup = async () => {
@@ -98,12 +99,12 @@ export const useBadgeSync = (
       if (onNavigateToChat || onNavigateToNotifs) {
         await handleKilledStateNotification(
           (chatId) => onNavigateToChat?.(chatId),
-          ()       => onNavigateToNotifs?.(),
+          () => onNavigateToNotifs?.(),
         );
       }
     };
 
-    setup().catch(e => console.error('[useBadgeSync] Setup failed:', e));
+    setup().catch((e) => console.error("[useBadgeSync] Setup failed:", e));
 
     // Cleanup on unmount or userId change
     return () => {
@@ -118,7 +119,7 @@ export const useBadgeSync = (
 
     const cleanup = setupNotificationResponseListener(
       (chatId) => onNavigateToChat?.(chatId),
-      ()       => onNavigateToNotifs?.(),
+      () => onNavigateToNotifs?.(),
     );
 
     return cleanup;
@@ -128,7 +129,7 @@ export const useBadgeSync = (
 // ── Chat screen hook ──────────────────────────────────────────────
 // Call in any chat screen to clear that chat's badge on open.
 export const useChatBadge = (chatId: string): { onOpen: () => void } => {
-  const { user } = useCurrentUser();  // your existing auth context hook
+  const { user } = useCurrentUser(); // your existing auth context hook
 
   const onOpen = useCallback(() => {
     if (!user?.id || !chatId) return;
@@ -138,7 +139,7 @@ export const useChatBadge = (chatId: string): { onOpen: () => void } => {
   // Auto-clear when screen mounts
   useEffect(() => {
     onOpen();
-  }, []);  // run once on mount
+  }, []); // run once on mount
 
   return { onOpen };
 };
@@ -180,25 +181,20 @@ export const useChatDot = (chatId: string): number =>
 
 // ── Formatted badge count ─────────────────────────────────────────
 // Returns '' for 0, number string for 1-99, '99+' for 100+
-export const useFormattedBadge = (type: 'total' | 'chat' | 'notif'): string => {
+export const useFormattedBadge = (type: "total" | "chat" | "notif"): string => {
   const count = useUnreadStore((s: any) =>
-    type === 'total' ? s.totalUnread :
-    type === 'chat'  ? s.chatUnread  :
-    s.notifUnread
+    type === "total"
+      ? s.totalUnread
+      : type === "chat"
+        ? s.chatUnread
+        : s.notifUnread,
   );
-  if (count <= 0)  return '';
+  if (count <= 0) return "";
   if (count <= 99) return String(count);
-  return '99+';
+  return "99+";
 };
 
 // ── Helper: get current user from your existing context ───────────
-// Replace this with your actual useAuth() hook
 const useCurrentUser = () => {
-  // Import and use your existing auth context:
-  // import { useAuth } from '@/Contexts/authContext';
-  // return useAuth();
-
-  // Placeholder — replace with your actual hook:
-  const { useAuth } = require('@/Contexts/authContext');
-  return useAuth();
+  return useAuthh();
 };

@@ -98,7 +98,7 @@ export default function LocationPicker({
       <Modal
         visible={modalVisible}
         animationType="slide"
-        presentationStyle="pageSheet"
+        presentationStyle="fullScreen"
         onRequestClose={closeModal}
         onChangeText={setSearch}
         autoCapitalize="words"
@@ -187,6 +187,9 @@ const s = StyleSheet.create({
   backgroundColor: '#FFFFFF',
     width: '100%',
     height: '100%',
+  top:0,
+  flex:1,
+
 
   },
   header: {
@@ -197,6 +200,7 @@ const s = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
+    flex:1,
 
   },
   closeBtn: {

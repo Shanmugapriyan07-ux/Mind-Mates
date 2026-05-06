@@ -1,13 +1,3 @@
-// hooks/useAuth.js
-// Manages the full auth lifecycle:
-//   1. Session restore from AsyncStorage (instant, no flicker)
-//   2. Silent Google sign-in attempt (auto-login)
-//   3. Google Sign-In flow on demand
-//   4. Sign-out
-//   5. Real-time auth state from Supabase
-//
-// Returns a clean interface — components never touch authService directly.
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import {
@@ -15,7 +5,7 @@ import {
   trySilentSignIn,
   signOut as authSignOut,
   AuthResult,
-} from '../services/authService';
+} from '../services/authServices';
 
 export interface AuthUser {
   id: string;
