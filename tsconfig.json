@@ -1,5 +1,4 @@
 {
-<<<<<<< HEAD
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
@@ -29,9 +28,7 @@
     "app/(auth)",
     "app/utils/validationRules.js",
     "app/hooks/useFormValidation.js"
-  ]
-=======
+  ],
   "compilerOptions": {},
-  "extends": "expo/tsconfig.base"
->>>>>>> 7275110d682c270b189b9356f557026dd337136e
+  "extends": "expo/tsconfig.base",
 }

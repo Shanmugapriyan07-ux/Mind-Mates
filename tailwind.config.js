@@ -1,6 +1,5 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-<<<<<<< HEAD
   // NOTE: content paths are relative to this file
   content: ["./app/**/*.{js,jsx,ts,tsx}", "./components/**/*.{js,jsx,ts,tsx}", "./lib/**/*.{js,jsx,ts,tsx}"],
   presets: [require("nativewind/preset")],
@@ -25,15 +24,14 @@ module.exports = {
         },
         black:{
           1:"black"
-        }
+        },
 
        },
         
     },
   },
   plugins: [],
-}
-=======
+
   // NOTE: Update this to include the paths to all files that contain Nativewind classes.
   content: ["./App.tsx", "./components/**/*.{js,jsx,ts,tsx}"],
   presets: [require("nativewind/preset")],
@@ -41,5 +39,5 @@ module.exports = {
     extend: {},
   },
   plugins: [],
-}
->>>>>>> 7275110d682c270b189b9356f557026dd337136e
+};
+
