@@ -2,63 +2,92 @@
 // ✅ COMPLETE LOCATION SELECT INPUT (Like Google Maps)
 // Copy this ENTIRE file to: components/LocationPicker.js
 
-import React, { useState, useMemo } from 'react';
+import { Ionicons } from "@expo/vector-icons";
+import React, { useMemo, useState } from "react";
 import {
-  View,
+  FlatList,
+  Modal,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  Modal,
-  FlatList,
-  StyleSheet,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 // ═══════════════════════════════════════════════════════════════
 // TAMIL NADU DISTRICTS (You already have this data!)
 // ═══════════════════════════════════════════════════════════════
 
 const TAMILNADU_DISTRICTS = [
-  "Ariyalur", "Chengalpattu", "Chennai", "Coimbatore", "Cuddalore",
-  "Dharmapuri", "Dindigul", "Erode", "Kallakurichi", "Kancheepuram",
-  "Karur", "Krishnagiri", "Madurai", "Mayiladuthurai", "Nagapattinam",
-  "Namakkal", "Nilgiris", "Perambalur", "Pudukkottai", "Ramanathapuram",
-  "Ranipet", "Salem", "Sivaganga", "Tenkasi", "Thanjavur", "Theni",
-  "Thoothukudi", "Tiruchirappalli", "Tirunelveli", "Tirupathur",
-  "Tiruppur", "Tiruvallur", "Tiruvannamalai", "Tiruvarur", "Vellore",
-  "Viluppuram", "Virudhunagar"
+  "Ariyalur",
+  "Chengalpattu",
+  "Chennai",
+  "Coimbatore",
+  "Cuddalore",
+  "Dharmapuri",
+  "Dindigul",
+  "Erode",
+  "Kallakurichi",
+  "Kancheepuram",
+  "Karur",
+  "Krishnagiri",
+  "Madurai",
+  "Mayiladuthurai",
+  "Nagapattinam",
+  "Namakkal",
+  "Nilgiris",
+  "Perambalur",
+  "Pudukkottai",
+  "Ramanathapuram",
+  "Ranipet",
+  "Salem",
+  "Sivaganga",
+  "Tenkasi",
+  "Thanjavur",
+  "Theni",
+  "Thoothukudi",
+  "Tiruchirappalli",
+  "Tirunelveli",
+  "Tirupathur",
+  "Tiruppur",
+  "Tiruvallur",
+  "Tiruvannamalai",
+  "Tiruvarur",
+  "Vellore",
+  "Viluppuram",
+  "Virudhunagar",
 ];
 
 // ═══════════════════════════════════════════════════════════════
 // LOCATION PICKER COMPONENT
 // ═══════════════════════════════════════════════════════════════
 
-export default function LocationPicker({ 
-  value,           // Selected district (e.g., "Chennai")
-  onSelect,        // Function called when user selects (district) => {}
+export default function LocationPicker({
+  value, // Selected district (e.g., "Chennai")
+  onSelect, // Function called when user selects (district) => {}
   placeholder = "Select District",
-  onFocus,         // Optional: Called when picker is opened
-  onBlur,          // Optional: Called when picker is closed
+  onFocus, // Optional: Called when picker is opened
+  onBlur, // Optional: Called when picker is closed
 }) {
   const [modalVisible, setModalVisible] = useState(false);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
 
   // ✅ Filter districts based on search
   const filtered = useMemo(() => {
     if (!search.trim()) {
       return TAMILNADU_DISTRICTS;
     }
-    return TAMILNADU_DISTRICTS.filter(d => 
-      d.toLowerCase().includes(search.toLowerCase())
+    return TAMILNADU_DISTRICTS.filter((d) =>
+      d.toLowerCase().includes(search.toLowerCase()),
     );
   }, [search]);
 
   // ✅ Handle district selection
   const handleSelect = (location) => {
-    onSelect(location);           // Send to parent
-    setModalVisible(false);       // Close modal
-    setSearch('');                // Clear search
+    onSelect(location); // Send to parent
+    setModalVisible(false); // Close modal
+    setSearch(""); // Clear search
   };
 
   // ✅ Open modal
@@ -70,7 +99,7 @@ export default function LocationPicker({
   // ✅ Close modal
   const closeModal = () => {
     setModalVisible(false);
-    setSearch('');
+    setSearch("");
     onBlur?.();
   };
 
@@ -79,7 +108,7 @@ export default function LocationPicker({
       {/* ═══════════════════════════════════════════════════ */}
       {/* INPUT BUTTON (What user taps to open) */}
       {/* ═══════════════════════════════════════════════════ */}
-      
+
       <TouchableOpacity
         style={s.selectButton}
         onPress={openModal}
@@ -94,19 +123,14 @@ export default function LocationPicker({
       {/* ═══════════════════════════════════════════════════ */}
       {/* MODAL (The select dropdown) */}
       {/* ═══════════════════════════════════════════════════ */}
-      
+
       <Modal
         visible={modalVisible}
         animationType="slide"
         presentationStyle="fullScreen"
         onRequestClose={closeModal}
-        onChangeText={setSearch}
-        autoCapitalize="words"
-        autoFocus
-        required
       >
-         <SafeAreaProvider style={s.modal}> 
-          
+        <SafeAreaView style={s.modal}>
           {/* Header */}
           <View style={s.header}>
             <TouchableOpacity onPress={closeModal} style={s.closeBtn}>
@@ -127,10 +151,9 @@ export default function LocationPicker({
               onChangeText={setSearch}
               autoCapitalize="words"
               autoFocus
-              required
             />
             {search.length > 0 && (
-              <TouchableOpacity onPress={() => setSearch('')}>
+              <TouchableOpacity onPress={() => setSearch("")}>
                 <Ionicons name="close-circle" size={20} color="#9CA3AF" />
               </TouchableOpacity>
             )}
@@ -145,7 +168,9 @@ export default function LocationPicker({
                 style={[s.item, value === item && s.itemSelected]}
                 onPress={() => handleSelect(item)}
               >
-                <Text style={[s.itemText, value === item && s.itemTextSelected]}>
+                <Text
+                  style={[s.itemText, value === item && s.itemTextSelected]}
+                >
                   {item}
                 </Text>
                 {value === item && (
@@ -159,7 +184,7 @@ export default function LocationPicker({
               </View>
             )}
           />
-        </SafeAreaProvider>
+        </SafeAreaView>
       </Modal>
     </>
   );
@@ -171,53 +196,50 @@ export default function LocationPicker({
 
 const s = StyleSheet.create({
   selectButton: {
-    flexDirection: 'row', justifyContent:'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginLeft: 3,
     marginRight: 16,
   },
 
   selectText: {
     fontSize: 16,
-    color: '#1F2937',
+    color: "#1F2937",
   },
   placeholder: {
-    color: '#9CA3AF',
+    color: "#9CA3AF",
   },
   modal: {
-  backgroundColor: '#FFFFFF',
-    width: '100%',
-    height: '100%',
-  top:0,
-  flex:1,
-
-
+    backgroundColor: "#FFFFFF",
+    width: "100%",
+    height: "100%",
+    top: 0,
+    flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-    flex:1,
-
+    borderBottomColor: "#F3F4F6",
   },
   closeBtn: {
     width: 40,
     height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
+    fontWeight: "700",
+    color: "#111827",
   },
   searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor:'#F9FAFB',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F9FAFB",
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -228,34 +250,34 @@ const s = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: '#252525',
+    color: "#252525",
   },
   item: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: "#F3F4F6",
   },
   itemSelected: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: "#F9FAFB",
   },
   itemText: {
     fontSize: 16,
-    color: '#1F2937',
+    color: "#1F2937",
   },
   itemTextSelected: {
-    fontWeight: '600',
-    color: '#6D4AFF',
+    fontWeight: "600",
+    color: "#6D4AFF",
   },
   empty: {
-    alignItems: 'center',
+    alignItems: "center",
     padding: 40,
   },
   emptyText: {
     fontSize: 16,
-    color: '#9CA3AF',
+    color: "#9CA3AF",
   },
 });

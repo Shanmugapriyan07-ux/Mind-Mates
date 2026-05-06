@@ -28,7 +28,7 @@
     "@react-navigation/stack": "^7.0.0",
     "@supabase/supabase-js": "^2.101.1",
     "babel-plugin-transform-import-meta": "^2.3.3",
-    "expo": "~54.0.34",
+    "expo": "^55.0.23",
     "expo-auth-session": "~7.0.11",
     "expo-av": "~16.0.8",
     "expo-blur": "~15.0.8",
@@ -80,7 +80,7 @@
   "devDependencies": {
     "@babel/core": "^7.23.6",
     "@expo/ngrok": "^4.1.3",
-    "@react-native-community/cli": "^13.6.9",
+    "@react-native-community/cli": "^20.1.3",
     "@types/react": "~19.1.0",
     "eslint": "^8.0.0",
     "eslint-config-expo": "^10.0.0",
