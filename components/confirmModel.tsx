@@ -1,25 +1,3 @@
-/**
- * ConfirmModal.tsx
- * ─────────────────────────────────────────────────────────────
- * Production-ready confirmation popup for MindMates chat app
- * Design: Premium minimal — inspired by Instagram / WhatsApp
- * Primary: #6D4AFF
- *
- * Usage:
- *   <ConfirmModal
- *     visible={modalVisible}
- *     title="Clear Chat?"
- *     message="This will remove all messages from your view only."
- *     confirmLabel="Clear"          // optional, default "Confirm"
- *     cancelLabel="Cancel"          // optional, default "Cancel"
- *     confirmDestructive={true}     // optional, default true
- *     icon="trash-outline"          // optional Ionicons name
- *     onConfirm={handleClear}
- *     onCancel={() => setModalVisible(false)}
- *   />
- * ─────────────────────────────────────────────────────────────
- */
-
 import React, {
   useCallback,
   useEffect,

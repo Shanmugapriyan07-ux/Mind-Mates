@@ -1,18 +1,5 @@
-// hooks/useProfileImage.ts
-// Profile image upload — signed Cloudinary strategy
-//
-// SIGNED UPLOAD FLOW:
-//   1. User picks image → compress → show instantly (optimistic UI)
-//   2. Call edge fn sign_upload → returns {signature, timestamp, apiKey, publicId}
-//   3. POST FormData to Cloudinary directly (overwrite=true, signed)
-//   4. Get back secure_url → save to Supabase users table
-//   5. On any error → rollback to previous image
-//
-// This works on Android + iOS + Web without any 500 errors
-
 import { useState, useCallback, useRef } from 'react';
 import * as ImagePicker from 'expo-image-picker';
-import { Platform }     from 'react-native';
 import { supabase }     from '@/lib/supabase';
 import { useProfile }   from '@/Contexts/profileContext';
 import { useAuthh }      from '@/Contexts/authContext';
@@ -187,7 +174,7 @@ export const useProfileImage = () => {
     const publicId = `mindmates/profiles/profile_${safeId}`;
     supabase.functions.invoke('mindmates', {
       body: { action: 'delete_cloudinary_image', publicId, resourceType: 'image' },
-    }).catch(e => console.warn('[removePhoto Cloudinary]', e?.message));
+    }).catch((e: { message: any; }) => console.warn('[removePhoto Cloudinary]', e?.message));
   }, [profile?.profileImage, user?.id, updateProfile]);
 
   return {

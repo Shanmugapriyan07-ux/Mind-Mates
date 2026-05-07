@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, Text, Image, StyleSheet, TouchableOpacity,
@@ -135,13 +134,8 @@ const SkillCard = React.memo(({ skill }: { skill: string }) => (
 const ScrollablePills = ({ skills }: { skills: string[] }) => {
   const scrollRef  = useRef<ScrollView>(null);
   const scrollX    = useRef(0);
-  const SCROLL_AMT = 140; // px per tap
 
-  const scrollLeft = () =>
-    scrollRef.current?.scrollTo({ x: Math.max(0, scrollX.current - SCROLL_AMT), animated: true });
 
-  const scrollRight = () =>
-    scrollRef.current?.scrollTo({ x: scrollX.current + SCROLL_AMT, animated: true });
 
   return (
     <View style={s.pillsWrapper}>

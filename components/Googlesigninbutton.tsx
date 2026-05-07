@@ -1,8 +1,3 @@
-// components/GoogleSignInButton.js
-// Production-quality Google Sign-In button.
-// Matches the official Google Sign-In button spec (colors, font, layout).
-// Press animation gives instant tactile feedback before the picker opens.
-
 import React, { memo, useCallback, useRef } from "react";
 import {
   ActivityIndicator,

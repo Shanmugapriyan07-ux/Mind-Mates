@@ -1,39 +1,3 @@
-// services/notificationService.ts
-//
-// ══════════════════════════════════════════════════════════════════
-// NOTIFICATION SERVICE — Push + Foreground + Badge from Payload
-// ══════════════════════════════════════════════════════════════════
-//
-// FOREGROUND vs BACKGROUND STRATEGY:
-//
-//   FOREGROUND (app is open):
-//     - Supabase Realtime fires → syncService updates store + badge
-//     - Push notifications are SUPPRESSED (no alert popup)
-//       because realtime already handled it
-//     - UX: silent badge update, no interruption
-//
-//   BACKGROUND / KILLED (app not running):
-//     - Supabase Realtime is disconnected
-//     - Backend sends Expo push notification WITH badge count in payload
-//     - OS receives notification → reads badge from payload → updates launcher
-//     - User opens app → AppState listener fires → fresh re-sync
-//
-//   RESULT: Badge is ALWAYS accurate regardless of app state.
-//
-// PUSH PAYLOAD STRUCTURE (backend must send this):
-//   {
-//     "to": "ExponentPushToken[...]",
-//     "title": "MindMates",
-//     "body": "John: Hey!",
-//     "badge": 5,              ← CRITICAL: this drives iOS badge
-//     "data": {
-//       "type": "message",
-//       "chatId": "...",
-//       "senderId": "...",
-//       "totalUnread": 5       ← used for Android badge sync on open
-//     },
-//     "channelId": "messages"  ← Android notification channel
-//   }
 
 import * as Notifications from 'expo-notifications';
 import { Platform }        from 'react-native';

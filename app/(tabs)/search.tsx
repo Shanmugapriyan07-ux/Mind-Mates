@@ -1,9 +1,4 @@
-// app/(tabs)/matchscreen.tsx
-// ⚡ Uses useMatches hook → only shows skill-matched users
-// Ranked by tier: all skills + same city first → down to partial + diff city
-// DESIGN: friendsList row layout + common skills purple · dots + +N extra badge
-
-import React, { useEffect, useCallback, useMemo, useState, useRef } from 'react';
+import React, { useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity,
   ActivityIndicator, StyleSheet, StatusBar,
@@ -16,9 +11,7 @@ import { ProfileAvatar }         from '@/components/Profileavatar';
 import { useAuthh }               from '@/Contexts/authContext';
 import { useConnection }         from '@/hooks/useConnection';
 import { useMatches, MatchUser } from '@/hooks/useMatches';
-import supabase from '@/lib/supabase';
 
-type FilterTab = 'people' | 'skills' | 'location';
 
 // ─── Design tokens ────────────────────────────────────────────────
 const C = {
@@ -37,14 +30,7 @@ const C = {
   gold:     '#F59E0B',
 };
 
-const TABS: { key: FilterTab; label: string; icon: string; placeholder: string }[] = [
-  { key: 'people',   label: 'People',   icon: 'person-outline',     placeholder: 'Search by name...'  },
-  { key: 'skills',   label: 'Skills',   icon: 'code-slash-outline', placeholder: 'Search by skill...' },
-  { key: 'location', label: 'Location', icon: 'location-outline',   placeholder: 'Search by city...'  },
-];
 
-const LIMIT      = 20;
-const DEBOUNCE   = 400;
 
 // ─── Skeleton ─────────────────────────────────────────────────────
 const SkeletonCard = ({ opacity = 1 }: { opacity?: number }) => (
@@ -174,19 +160,10 @@ const MatchCard = React.memo(({ item }: { item: MatchUser }) => {
   );
 });
 
-interface SearchUser {
-  $id:            string;
-  userId:         string;
-  fullName:       string;
-  location:       string;
-  bio:            string;
-  profileImage:   string | null;
-  skills:         string | string[];
-}
 
 // ─── Main Screen ──────────────────────────────────────────────────
 export default function DiscoverScreen() {
-  const { user }    = useAuthh();
+  useAuthh();
   const { loadStatuses, getStatus } = useConnection();
   const {
     matches, fetching, refreshing,error,loading,

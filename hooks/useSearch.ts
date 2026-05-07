@@ -1,9 +1,5 @@
-// hooks/useSearch.ts
-// ✅ OPTIMIZED SEARCH HOOK - Instagram/LinkedIn Performance
-// Features: Debouncing, Caching, Pagination, Offline support
-
 import { useState, useEffect, useCallback, useRef } from 'react';
-import supabase, { databases, config, Query, TABLES } from '@/lib/supabase';
+import supabase, { TABLES } from '@/lib/supabase';
 
 const searchStorage = {
   getItem: async (key: string) => {
@@ -50,7 +46,7 @@ export function useSearch() {
 
   // Cache
   const cacheRef = useRef<SearchCache>({});
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentUserIdRef = useRef<string>('');
 
   // ──────────────────────────────────────────────────────────────

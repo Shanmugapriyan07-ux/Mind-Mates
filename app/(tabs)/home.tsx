@@ -1,4 +1,3 @@
-
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity,

@@ -1,14 +1,3 @@
-// hooks/useChat.ts
-//
-// ARCHITECTURE: Soft-delete chat system
-//   hidden_for[]  on chats    → per-user list visibility only
-//   deleted_for[] on messages → per-user message visibility
-//
-// KEY DESIGN: hidden_for is an APP-LEVEL filter, not an RLS filter.
-//   RLS allows any participant to SELECT the chat row always.
-//   This means findChat() always works even for hidden chats.
-//   The hidden_for filter is only applied in the chat LIST query.
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, TABLES } from '@/lib/supabase';
 import { callFn }           from '@/lib/callFn';

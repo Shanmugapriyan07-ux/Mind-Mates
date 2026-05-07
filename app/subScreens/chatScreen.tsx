@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef, RefObject } from 'react';
 import {
   View, Text, FlatList, TextInput, TouchableOpacity,
@@ -19,7 +18,7 @@ import { useTyping }                    from '@/hooks/useTyping';   // ← NEW
 import { supabase }                     from '@/lib/supabase';
 import { MessageActionSheet, ActionMessage } from '@/components/messageActionSheet';
 import { ChatMenuSheet }                from '@/components/blockSheet';
-import { cdnChatUrl, cdnVideoUrl, cdnVideoThumbUrl, compressForUpload, uploadToCloudinary } from '@/lib/cloudinaryUpload';
+import { cdnChatUrl, cdnVideoThumbUrl, compressForUpload, uploadToCloudinary } from '@/lib/cloudinaryUpload';
 import ChatInput                        from '@/components/chatInput';
 import MediaViewer                      from '@/components/mediaViewer';
 import MediaPreview                     from '@/components/mediaPreview';
@@ -191,7 +190,7 @@ const TypingDots = React.memo(() => {
 
 // ── TypingBubble — the "other user is typing" bubble ─────────────
 // Appears at the bottom of the message list, exactly like Instagram
-const TypingBubble = React.memo(({ name }: { name: string }) => (
+const TypingBubble = React.memo(() => (
   <View style={t.typingBubbleWrap}>
     <View style={t.typingBubble}>
       <TypingDots />
@@ -721,7 +720,7 @@ export default function ChatScreen() {
               // ── Typing bubble at the bottom of the list ──────────
               // Renders BELOW all messages, auto-scrolled into view ✅
               ListFooterComponent={
-                isOtherTyping ? <TypingBubble name={params.name ?? ''} /> : null
+                isOtherTyping ? <TypingBubble /> : null
               }
               initialNumToRender={20} maxToRenderPerBatch={10}
               windowSize={10} removeClippedSubviews

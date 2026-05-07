@@ -1,8 +1,7 @@
-
 import React, { useRef, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, Image,
-  StyleSheet, ActivityIndicator, Platform,
+  StyleSheet, Platform,
   Animated, Dimensions, StatusBar,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,7 +11,7 @@ import { useAuthh }          from '@/Contexts/authContext';
 import { useProfile }       from '@/Contexts/profileContext';
 import { useProfileImage }  from '@/hooks/useProfileImage';
 
-const { width: W, height: H } = Dimensions.get('window');
+const { width: W } = Dimensions.get('window');
 const IMAGE_SIZE = W * 0.78;
 
 export default function ImagePreviewScreen() {
@@ -58,7 +57,6 @@ export default function ImagePreviewScreen() {
     .split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2);
 
   const displayImage = isOwnProfile ? imageUri : profile?.profileImage;
-  const hasNewImage  = isOwnProfile && !!imageUri && imageUri !== profile?.profileImage;
   const isBusy       = uploading;
 
   // ── Save ──────────────────────────────────────────────────────────────────

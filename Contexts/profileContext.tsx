@@ -1,10 +1,3 @@
-// Contexts/profileContext.tsx — Supabase (all bugs fixed)
-// FIXES:
-//   1. .eq('user_id', userId) not .eq('userId', userId) — 400 fixed ✅
-//   2. Insert uses auth.uid() as id — 403 fixed ✅  
-//   3. Navigation timing fixed — home routing works ✅
-//   4. Web-safe cache (localStorage not AsyncStorage) ✅
-
 import React, {
   createContext, useContext, useState,
   useEffect, useCallback, useRef,

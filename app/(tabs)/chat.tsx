@@ -1,9 +1,3 @@
-// app/(tabs)/notifications.tsx
-// NEW UX:
-//  1. Swipe left on a card → red Delete button slides out behind it (like iOS Mail)
-//  2. Swipe 2+ cards → bulk-delete bar appears in header showing count
-//  3. Tap bulk-delete bar → deletes all swiped cards at once + optimistic rollback
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity,
@@ -597,7 +591,7 @@ export default function NotificationsScreen() {
 }
 
 // ── Header ─────────────────────────────────────────────────────────────────────
-const Header = ({ count }: { count: number }) => (
+const Header = ({ }: { count: number }) => (
   <View style={s.header}>
     <Text style={s.headerTitle}>Notifications</Text>
   </View>

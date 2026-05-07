@@ -1,13 +1,3 @@
-// src/context/AppLinksContext.js
-// ══════════════════════════════════════════════════════════════
-//  Global link state — fetched ONCE at startup, shared everywhere.
-//  Implements the "stale-while-revalidate" pattern used by
-//  Instagram's config service:
-//    1. Serve stale cached data immediately (zero latency)
-//    2. Refresh in background
-//    3. Update UI silently when fresh data arrives
-// ══════════════════════════════════════════════════════════════
-
 import NetInfo from "@react-native-community/netinfo";
 import React, {
   createContext,

@@ -1,7 +1,3 @@
-// BasicInfo.tsx — All 10 strategies applied
-// FIXES: SafeAreaProvider→SafeAreaView, dead imports removed, wrong field names,
-//        saveDraft never called, handlers not memoized, paddingBottom excessive
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,

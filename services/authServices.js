@@ -1,15 +1,3 @@
-// services/authService.js
-// Production-grade Google Sign-In with Supabase backend integration.
-// 
-// Flow:
-//   GoogleSignin.signIn() → native account picker
-//   → get idToken
-//   → supabase.auth.signInWithIdToken()
-//   → session persisted automatically
-//
-// All errors are caught, classified, and returned as structured results.
-// The UI layer only needs to check result.success — no try/catch needed there.
-
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { supabase } from '../lib/supabase';
 

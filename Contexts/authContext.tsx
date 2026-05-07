@@ -1,20 +1,3 @@
-// Contexts/authContext.tsx
-// MINIMAL CHANGES from your original — only googleLogin() is replaced.
-// Everything else (logout, deleteAccount, routing logic, state) is UNCHANGED.
-//
-// What changed:
-//   - googleLogin() now calls nativeGoogleSignIn() instead of supabase OAuth redirect
-//   - trySilentGoogleSignIn() called on mount for instant auto-login
-//   - googleSignOut() called inside logout() to clear Google SDK session too
-//
-// What is NOT changed:
-//   - Your 3-stage routing logic in _layout.tsx
-//   - authStatus states (loading/authenticated/unauthenticated)
-//   - deleteType logic
-//   - logout() / deleteAccount() business logic
-//   - storage helpers
-//   - Everything else
-
 import React, {
   createContext,
   useContext,
@@ -124,7 +107,6 @@ const toAuthUser = (u: User | null): AuthUser | null => {
 
 export const AuthProvider = ({
   children,
-  initialSession,
 }: {
   children:       React.ReactNode;
   initialSession: StoredSession | null;

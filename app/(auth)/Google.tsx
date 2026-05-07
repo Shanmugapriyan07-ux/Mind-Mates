@@ -1,18 +1,13 @@
 import { isNativeGoogleAvailable } from "@/config/googleAuth";
-
-import GoogleSignInButton from "@/components/Googlesigninbutton";
-
 import images from "@/constants/images";
 import { useAppLinks } from "@/Contexts/AppLinksContexts";
 import { useAuthh } from "@/Contexts/authContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useOpenLink } from "@/hooks/useOpenLink";
 import supabase from "@/lib/supabase";
-
 import { router } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Dimensions,
   Image,
   Platform,
@@ -31,78 +26,14 @@ import Animated, {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Googlesigninbutton from "@/components/Googlesigninbutton";
 
-const { width } = Dimensions.get("window");
+Dimensions.get("window");
 
-interface GoogleButtonProps {
-  onPress: () => void;
-  isLoading: boolean;
-  disabled: boolean;
-}
 
-function GoogleButton({ onPress, isLoading, disabled }: GoogleButtonProps) {
-  const scale = useSharedValue(1);
-  const opacity = useSharedValue(1);
-
-  const handlePressIn = useCallback(() => {
-    if (disabled) return;
-    scale.value = withSpring(0.96, { damping: 10, stiffness: 400 });
-    opacity.value = withTiming(0.8, { duration: 60 });
-  }, [disabled]);
-
-  const handlePressOut = useCallback(() => {
-    scale.value = withSpring(1, { damping: 10, stiffness: 400 });
-    opacity.value = withTiming(1, { duration: 120 });
-  }, []);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    opacity: opacity.value,
-  }));
-
-  return (
-    <TouchableWithoutFeedback
-      onPress={disabled ? undefined : onPress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      accessible
-      accessibilityRole="button"
-      accessibilityLabel="Continue with Google"
-      accessibilityState={{ disabled, busy: isLoading }}
-    >
-      <Animated.View
-        style={[
-          styles.googleButton,
-          disabled && styles.googleButtonDisabled,
-          animatedStyle,
-        ]}
-      >
-        {/* Left: icon or spinner */}
-        <View style={styles.iconSlot}>
-          {isLoading ? (
-            <ActivityIndicator size="small" color="#5F6368" />
-          ) : (
-            <Text style={styles.gLetter}>G</Text>
-          )}
-        </View>
-
-        {/* Center: label */}
-        <Text
-          style={[styles.googleLabel, isLoading && styles.googleLabelMuted]}
-        >
-          {isLoading ? "Signing in…" : "Continue with Google"}
-        </Text>
-
-        {/* Right: spacer keeps label centered */}
-        <View style={styles.iconSlot} />
-      </Animated.View>
-    </TouchableWithoutFeedback>
-  );
-}
 
 // Remove this before production
 const handleMockLogin = async () => {
   // Simulate successful Google login with a test Supabase account
-  const { data, error } = await supabase.auth.signInWithPassword({
+  const { error } = await supabase.auth.signInWithPassword({
     email:    'shanmugapriyancse582@gmail.com',
     password: 'Artist@123.',
   });
@@ -114,13 +45,13 @@ const handleMockLogin = async () => {
 
 // ─── Main Onboarding ──────────────────────────────────────────────────────────
 export const Welcome = () => {
-  const { isGoogleSigningIn, googleError, googleLogin, clearGoogleError } =
+  const { googleLogin, clearGoogleError } =
     useAuthh();
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const { openByKey } = useOpenLink();
   const { isStale, refresh } = useAppLinks();
-  const { isSigningIn, error, signIn, clearError } = useAuth();
+  const { isSigningIn, error, clearError } = useAuth();
   const tap = useCallback(
     (key: string, name: string) => () => openByKey(key, name),
     [openByKey],

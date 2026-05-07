@@ -1,8 +1,4 @@
-// components/MediaPreview.tsx
-// Full-screen preview before sending — image + video support
-// Native video: expo-av  |  Web video: HTML <video> element
-
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import {
   View, Text, Image, TouchableOpacity,
   StyleSheet, Dimensions, Platform,

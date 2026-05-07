@@ -1,24 +1,17 @@
-
-
-
-// app/subScreens/Settings.tsx — all original UI kept, logic upgraded
-
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView,
   StyleSheet, ActivityIndicator, Pressable, StatusBar,
   Modal, Linking, Platform, Alert,
-  InteractionManager,
 } from 'react-native';
 import { SafeAreaView }             from 'react-native-safe-area-context';
 import { router }                   from 'expo-router';
 import { Button, Dialog, Portal, TextInput } from 'react-native-paper';
 import { useAuthh }                  from '@/Contexts/authContext';
 import { useProfile }               from '@/Contexts/profileContext';
-import { supabase, TABLES }         from '@/lib/supabase';
+import { supabase }         from '@/lib/supabase';
 import Toast                        from 'react-native-toast-message';
 import { Ionicons }                 from '@expo/vector-icons';
-import * as Haptics from "expo-haptics";
 
 import { useOpenLink } from "@/hooks/useOpenLink";
 import { useAppLinks } from "@/Contexts/AppLinksContexts";
@@ -118,7 +111,7 @@ const h = StyleSheet.create({
 // ═══════════════════════════════════════════════════════════════════
 export default function SettingsScreen() {
   const { user, logout, deleteAccount } = useAuthh();
-  const { profile, clearProfile }       = useProfile();
+  const { clearProfile }       = useProfile();
 
   const [logoutLoading, setLogoutLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -127,8 +120,8 @@ export default function SettingsScreen() {
   const [confirmText,   setConfirmText]   = useState('');
   const [helpVisible,   setHelpVisible]   = useState(false);
 
-  const { openByKey, isLoading } = useOpenLink();
-  const { isStale, refresh } = useAppLinks();
+  const { openByKey } = useOpenLink();
+  useAppLinks();
 
   // Dynamic links from Supabase (falls back to static instantly)
   const tap = useCallback(
@@ -202,7 +195,7 @@ export default function SettingsScreen() {
 
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
         <View style={s.section}>
-          {rows.map((row, i) => (
+          {rows.map((row) => (
             <React.Fragment key={row.label}>
               <TouchableOpacity style={s.row} onPress={row.onPress} activeOpacity={0.6}>
                 <View style={s.iconWrap}>{row.icon}</View>

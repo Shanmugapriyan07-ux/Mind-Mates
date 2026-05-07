@@ -1,7 +1,3 @@
-// components/FriendsSearchModal.tsx
-// Instagram-style inline search — filters connected friends in memory (instant, no network)
-// Triggered by search icon in chat list header
-
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   View, Text, TextInput, FlatList, TouchableOpacity,

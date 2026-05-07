@@ -1,35 +1,3 @@
-// services/syncService.ts
-//
-// ══════════════════════════════════════════════════════════════════
-// SYNC SERVICE — Backend ↔ Store ↔ Badge
-// ══════════════════════════════════════════════════════════════════
-//
-// THIS IS THE ORCHESTRATOR. It:
-//   1. Fetches ground-truth unread counts from Supabase on demand
-//   2. Subscribes to realtime changes — updates store + badge live
-//   3. Handles AppState (foreground/background) transitions
-//   4. Re-syncs from backend when app returns to foreground
-//      (catches any events missed during background)
-//   5. Cleans up all subscriptions on unmount — zero memory leaks
-//
-// DESIGN PRINCIPLE — BACKEND IS SOURCE OF TRUTH:
-//   We NEVER increment/decrement the count locally.
-//   Every count update runs a fresh SELECT COUNT(*) query.
-//   This costs one Supabase query per event (~5ms), but guarantees:
-//     - No phantom counts from duplicate events
-//     - No missed decrements (race conditions)
-//     - Multi-device sync is automatic
-//
-//   Exception: clearChatBadge() does a local optimistic subtract
-//   (user opened a chat → it feels instant). Background sync corrects it.
-//
-// REALTIME STRATEGY:
-//   We subscribe to INSERT + UPDATE on the messages table.
-//   On any event WHERE receiver_id = myUserId:
-//     → Fetch fresh COUNT(*) from backend
-//     → Write to Zustand store
-//     → Write to app icon badge
-//   One subscription handles all chats — no N subscriptions per conversation.
 
 import { AppState, AppStateStatus } from 'react-native';
 import { supabase }                 from '@/lib/supabase';

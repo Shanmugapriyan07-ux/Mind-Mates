@@ -1,6 +1,3 @@
-// app/index.tsx
-// This file is just a placeholder.
-// Real routing logic is handled in app/_layout.tsx
 import React, { useEffect, useRef } from 'react';
 import { View, Animated, StyleSheet, Image } from 'react-native';
 import { SplashScreen } from 'expo-router';

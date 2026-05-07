@@ -1,15 +1,3 @@
-/**
- * imageEdit.tsx — Profile Image Viewer / Editor
- *
- * UX Strategy (Instagram/WhatsApp):
- *   - Opens as full-screen modal overlay
- *   - Shows profile image large, centered
- *   - Own profile → shows Edit + Delete action sheet at bottom
- *   - Other user's profile → shows image only (clean, no action buttons)
- *   - X button top-left → back to profile
- *   - Smooth slide-up action sheet, backdrop blur
- */
-
 import React, { useRef, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, Image,
@@ -22,9 +10,9 @@ import { BlurView }         from 'expo-blur';
 import { useAuthh }          from '@/Contexts/authContext';
 import { useProfile }       from '@/Contexts/profileContext';
 import { useProfileImage }  from '@/hooks/useProfileImage';
-import { FontAwesome5, Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 
-const { width: W, height: H } = Dimensions.get('window');
+const { width: W } = Dimensions.get('window');
 const IMAGE_SIZE = W * 0.78;
 
 export default function ImageEditScreen() {
@@ -45,7 +33,6 @@ export default function ImageEditScreen() {
     progress,
     error,
     pickFromGallery,
-    takePhoto,
     uploadAndSave,
     removePhoto,
   } = useProfileImage();

@@ -1,10 +1,3 @@
-// src/config/supabase.js
-// ══════════════════════════════════════════════════════════════
-//  Singleton Supabase client.
-//  Exports a ready-to-use client OR null if env vars are missing.
-//  The rest of the app NEVER crashes if Supabase is misconfigured.
-// ══════════════════════════════════════════════════════════════
-
 import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL     = process.env.EXPO_PUBLIC_SUPABASE_URL     || "";

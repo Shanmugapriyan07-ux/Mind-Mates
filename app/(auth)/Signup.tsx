@@ -17,6 +17,7 @@ import { useAuthh }           from '@/Contexts/authContext';
 import React from 'react';
 import icons from '@/constants/icons';
 
+
 const SPACING = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 };
 
 export default function SignupScreen() {

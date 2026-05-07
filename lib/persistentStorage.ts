@@ -1,9 +1,3 @@
-// ═══════════════════════════════════════════════════════════════════════════
-// profileCache.ts — plugged into your existing persistentStorage.ts
-// Uses userKey(userId).profile as the cache key (already defined!)
-// Flow: Optimistic UI → AsyncStorage (~5ms) → Navigate → Appwrite (background)
-// ═══════════════════════════════════════════════════════════════════════════
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import supabase, { TABLES } from "@/lib/supabase";
  

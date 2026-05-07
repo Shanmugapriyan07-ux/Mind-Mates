@@ -1,13 +1,3 @@
-// src/services/linkFetcher.js
-// ══════════════════════════════════════════════════════════════
-//  Fetches ALL required app_links in a SINGLE Supabase query.
-//  Features:
-//    • AbortController timeout (no dangling requests)
-//    • Retry with exponential backoff
-//    • Graceful 404 / empty-table handling
-//    • Merges Supabase data with static fallbacks
-//    • Never throws — always returns a safe URL map
-// ══════════════════════════════════════════════════════════════
 
 import { FETCH_CONFIG, STATIC_LINKS } from "../config/appLinks";
 import { isSupabaseAvailable, supabase } from "../config/supabase";

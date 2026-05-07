@@ -1,7 +1,3 @@
-// hooks/useConnectionCount.ts
-// Counts accepted connections for ANY user (own or other's profile)
-// Requires: fix_connections_rls.sql (allows reading accepted connections)
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 

@@ -1,8 +1,3 @@
-// hooks/useConnection.ts — all bugs fixed
-// FIX 1: callFn correctly parses 409 conflict response → restores status ✅
-// FIX 2: sendRequest handles 409 gracefully without crashing ✅
-// FIX 3: loadStatuses called on mount to sync server state with cache ✅
-
 import { useState, useCallback, useEffect } from 'react';
 import { Platform }   from 'react-native';
 import { supabase }   from '@/lib/supabase';

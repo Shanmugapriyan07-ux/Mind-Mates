@@ -1,5 +1,3 @@
-// hooks/useFormValidation.ts
-
 import { useState, useCallback, useRef, useEffect } from 'react';
 
 type FormValues = Record<string, any>;

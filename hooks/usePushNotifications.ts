@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import * as Notifications from 'expo-notifications';
 import * as Device        from 'expo-device';
 import { Platform }       from 'react-native';
-import supabase, { databases, config, Query, TABLES } from '@/lib/supabase';
+import supabase, { TABLES } from '@/lib/supabase';
  
 import { useAuthh }           from '@/Contexts/authContext';
 
@@ -81,7 +81,7 @@ const registerAndSaveToken = async (userId: string) => {
     console.log('📬 Push token:', token);
 
     // ✅ FIX: Use Supabase syntax instead of Appwrite
-    const { data: userData, error: fetchError } = await supabase
+    const { data: userData } = await supabase
       .from(TABLES.users)
       .select('id, pushToken')
       .eq('user_id', userId)

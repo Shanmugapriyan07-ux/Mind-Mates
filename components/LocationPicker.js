@@ -1,7 +1,3 @@
-// components/LocationPicker.js
-// ✅ COMPLETE LOCATION SELECT INPUT (Like Google Maps)
-// Copy this ENTIRE file to: components/LocationPicker.js
-
 import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo, useState } from "react";
 import {

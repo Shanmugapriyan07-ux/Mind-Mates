@@ -1,9 +1,3 @@
-// components/MessageActionSheet.tsx
-// FIX: Delete options visible to ALL users (not just sender)
-//   Sender   → "Unsend" (delete for everyone, within 60s) + "Delete for me"
-//   Receiver → "Delete for me" only
-//   Both actions call onDelete(msg, mode) where mode is 'for_me' | 'for_everyone'
-
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,

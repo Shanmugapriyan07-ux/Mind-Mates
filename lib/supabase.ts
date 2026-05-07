@@ -1,7 +1,4 @@
-﻿// lib/supabase.ts — Web-safe Supabase client
-// FIX: window is not defined → use localStorage on web, AsyncStorage on native
-
-const { createClient } = require("@supabase/supabase-js");
+﻿import { createClient } from "@supabase/supabase-js";
 import * as Crypto from "expo-crypto";
 import { Platform } from "react-native";
 import "react-native-get-random-values";

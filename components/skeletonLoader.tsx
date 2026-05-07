@@ -1,25 +1,4 @@
-
-// components/SkeletonLoader.tsx
-//
-// ══════════════════════════════════════════════════════════════════
-// INSTAGRAM-STYLE SHIMMER SKELETON
-// ══════════════════════════════════════════════════════════════════
-//
-// DESIGN: Horizontal shimmer light sweeping left-to-right,
-// identical to Instagram's story loading skeleton.
-//
-// PERFORMANCE:
-//   - Shimmer is a single Animated.Value shared by ALL skeleton boxes
-//   - One animation loop drives the entire skeleton — not one per box
-//   - useNativeDriver=true → runs on UI thread, never drops frames
-//   - React.memo on all components — zero re-renders on parent updates
-//
-// USAGE:
-//   <ChatListSkeleton />          → full chat list placeholder
-//   <ProfileSkeleton />           → profile screen placeholder
-//   <SkeletonBox w={200} h={16} /> → custom inline box
-
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import {
   View, StyleSheet, Animated, Dimensions,
 } from 'react-native';

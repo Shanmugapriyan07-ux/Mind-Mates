@@ -1,14 +1,3 @@
-// app/(tabs)/search.tsx
-// Performance strategy like Instagram/LinkedIn:
-//   ✅ No users loaded on mount — empty prompt shown
-//   ✅ Debounced 400ms search — only fires after pause
-//   ✅ select() only needed columns — not .select('*')
-//   ✅ loadStatuses() called AFTER state set, not in critical path
-//   ✅ ConnectButton isolated with React.memo — status changes don't rerender list
-//   ✅ getItemLayout — FlatList skips height measurement → faster scroll
-//   ✅ Stable keyExtractor uses user_id — no phantom rerenders
-//   ✅ rowToUser memoised outside component — not recreated each render
-
 import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import {
   View, Text, TextInput, FlatList, TouchableOpacity,

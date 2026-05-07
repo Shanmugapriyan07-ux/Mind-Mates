@@ -1,7 +1,3 @@
-// // hooks/usePresence.ts
-// //
-// // TEACHING: How presence (online/offline) works
-
 import { useEffect, useRef } from 'react';
 import { AppState }          from 'react-native';
 import { supabase }          from '@/lib/supabase';

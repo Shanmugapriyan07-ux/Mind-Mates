@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
@@ -129,8 +128,6 @@ export default function SkillSelection() {
 
   const { user }                   = useAuthh();
   const { profile, updateProfile } = useProfile();
-
-  useEffect(() => { router.prefetch('/(tabs)/home'); }, []);
 
   const toggleSkill = useCallback((id: number) => {
     setSelectedIds((prev: Set<number>) => {

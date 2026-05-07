@@ -1,4 +1,3 @@
-
 import { Platform } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import * as ImageManipulator from 'expo-image-manipulator';

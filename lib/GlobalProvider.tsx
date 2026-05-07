@@ -1,6 +1,7 @@
 import React, { createContext, useContext, ReactNode, useState, useEffect } from "react";
 import { supabase } from "./supabase";
- 
+import type { Session } from '@supabase/supabase-js';
+
 
 // 1. Define the User Type clearly
 interface User {
@@ -58,7 +59,7 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
 
       // Listen for future auth changes
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        (_event, session) => {
+        (_event, session: Session | null) => {
           if (session?.user) {
             const u = session.user;
             setUser({

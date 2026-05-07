@@ -1,14 +1,8 @@
-
-
-// app/(tabs)/_layout.tsx — fixed badge + realtime on all platforms
-// FIX: Badge realtime works on web (WebSocket, not native-only) ✅
-// FIX: markAllRead uses correct snake_case field names ✅
-
 import { Tabs } from 'expo-router';
 import { Platform, StyleSheet, View, Image, Text, Pressable } from 'react-native';
 import { BlurView }  from 'expo-blur';
 import { Ionicons }  from '@expo/vector-icons';
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useProfile } from '@/Contexts/profileContext';
 import { useAuthh }    from '@/Contexts/authContext';
 import { supabase, TABLES } from '@/lib/supabase';

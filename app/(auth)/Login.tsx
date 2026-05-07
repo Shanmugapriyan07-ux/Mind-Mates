@@ -1,7 +1,4 @@
-// auth/login.tsx
-
 import Googlesigninbutton from "@/components/Googlesigninbutton";
-import GoogleSignInButton from "@/components/Googlesigninbutton";
 import images from "@/constants/images";
 import { useAuthh } from "@/Contexts/authContext";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,7 +8,7 @@ import { loginValidationRules } from "@/utils/validationRules";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
+import React, { memo, useCallback, useEffect, useState } from "react";
 import {
     ActivityIndicator,
     Animated,
@@ -31,7 +28,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+Dimensions.get("window");
 
 // 8px Grid System
 const SPACING = {
@@ -43,21 +40,17 @@ const SPACING = {
   xxl: 40,
 };
 
-// ─── Single Animated Dot ──────────────────────────────────────────────────────
-interface LoginScreenProps {
-  onAuthenticated?: () => void; // Called after successful login
-}
 
-const LoginScreen = memo(({ onAuthenticated }: LoginScreenProps) => {
-  const { isSigningIn, error, signIn, clearError } = useAuth();
-  const { login, loginWithOAuth } = useAuthh();
+const LoginScreen = memo(() => {
+  const { error } = useAuth();
+  const { login } = useAuthh();
 
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
+  const [loading] = useState(false);
+  const [googleLoading] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
 
-  const [validationErrors, setValidationErrors] = useState<{
+  const [] = useState<{
     email?: string;
     password?: string;
   }>({});
@@ -67,11 +60,9 @@ const LoginScreen = memo(({ onAuthenticated }: LoginScreenProps) => {
     values,
     errors,
     touched,
-    isValidating,
     handleChange,
     handleBlur,
     validateAll,
-    reset,
   } = useFormValidation({ email: "", password: "" }, loginValidationRules) as {
     values: { email: string; password: string };
     errors: { email?: string; password?: string };
@@ -83,15 +74,6 @@ const LoginScreen = memo(({ onAuthenticated }: LoginScreenProps) => {
     reset: () => void;
   };
 
-  const canSubmit = useMemo(() => {
-    return (
-      values.email.trim() !== "" &&
-      values.password !== "" &&
-      !errors.email &&
-      !errors.password &&
-      !loading
-    );
-  }, [values.email, values.password, errors.email, errors.password, loading]);
 
   const handleEmailChange = useCallback(
     (text: any) => {

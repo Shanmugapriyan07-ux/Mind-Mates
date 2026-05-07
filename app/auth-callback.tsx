@@ -1,13 +1,3 @@
-// app/auth-callback.tsx  ← FILE NAME MUST MATCH Supabase redirect URL
-// Handle Google OAuth return — mindmates://auth-callback
-//
-// SETUP: Supabase Dashboard → Auth → URL Configuration
-//   Add redirect URL: mindmates://auth-callback
-//   (must match exactly what's in googleLogin() redirectTo param)
-//
-// Also add to app.json:
-//   "scheme": "mindmates"
-
 import { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Image } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';

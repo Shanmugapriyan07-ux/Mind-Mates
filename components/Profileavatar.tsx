@@ -1,20 +1,3 @@
-/**
- * ProfileAvatar.tsx
- *
- * Performance strategy:
- *   React Native <Image> already caches images to disk automatically.
- *   We add a memory cache (Map) on top to skip even the disk read
- *   on repeated renders within the same session.
- *
- *   No expo-file-system needed — no version compatibility issues.
- *
- *   Load order:
- *     1. Colored initials     → 0ms   (always visible behind image)
- *     2. Image fades in       → 0ms   (memory cache, same session)
- *                             → ~10ms (RN disk cache, app restart)
- *                             → 200-400ms (network, first ever load)
- */
-
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, Animated,
@@ -55,7 +38,7 @@ export const ProfileAvatar: React.FC<Props> = ({
 }) => {
   // If already loaded this session — start fully visible (no fade needed)
   const alreadyLoaded  = !!uri && loadedUris.has(uri);
-  const [ready, setReady] = useState(alreadyLoaded);
+  const [, setReady] = useState(alreadyLoaded);
   const fadeAnim = useRef(new Animated.Value(alreadyLoaded ? 1 : 0)).current;
 
   // Reset when URI changes (user picks new photo)

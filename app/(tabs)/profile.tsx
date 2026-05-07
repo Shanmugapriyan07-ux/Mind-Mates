@@ -131,13 +131,8 @@ const SkillCard = React.memo(({ skill }: { skill: string }) => (
 const ScrollablePills = ({ skills }: { skills: string[] }) => {
   const scrollRef  = useRef<ScrollView>(null);
   const scrollX    = useRef(0);
-  const SCROLL_AMT = 140;
 
-  const scrollLeft = () =>
-    scrollRef.current?.scrollTo({ x: Math.max(0, scrollX.current - SCROLL_AMT), animated: true });
 
-  const scrollRight = () =>
-    scrollRef.current?.scrollTo({ x: scrollX.current + SCROLL_AMT, animated: true });
 
   return (
     <View style={s.pillsWrapper}>
@@ -167,22 +162,6 @@ const ScrollablePills = ({ skills }: { skills: string[] }) => {
 };
 
 // ── Stars ─────────────────────────────────────────────────────────
-const Stars = ({ rating = 4.8 }: { rating?: number }) => {
-  const full    = Math.floor(rating);
-  const partial = rating - full;
-  return (
-    <View style={{ flexDirection: 'row', gap: 1 }}>
-      {[0, 1, 2, 3, 4].map(i => (
-        <Ionicons
-          key={i}
-          name={i < full ? 'star' : i === full && partial >= 0.5 ? 'star-half' : 'star-outline'}
-          size={11}
-          color="#F5A623"
-        />
-      ))}
-    </View>
-  );
-};
 
 // ── Main screen ───────────────────────────────────────────────────
 const ProfileScreen = () => {
@@ -194,13 +173,7 @@ const ProfileScreen = () => {
     if (!isLoading && !profile && user?.id) reloadProfile();
   }, [isLoading, profile, user?.id]);
 
-  useEffect(() => {
-    router.prefetch('/subScreens/editProfile');
-    router.prefetch('/subScreens/Settings');
-    router.prefetch('/subScreens/imageEdit');
-    router.prefetch('/subScreens/imagePreview');
-    router.prefetch('/subScreens/friendsList');
-  }, []);
+
 
   if (isLoading) return (
     <SafeAreaView style={s.safe} edges={['top']}>
@@ -219,7 +192,7 @@ const ProfileScreen = () => {
       <StatusBar barStyle="dark-content" />
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <AntDesign name="arrow-left" size={20} color="#232529" />
+          <AntDesign name="arrowleft" size={20} color="#232529" />
         </TouchableOpacity>
         <Text style={s.headerTitle}>Profile</Text>
         <View style={{ width: 32 }} />

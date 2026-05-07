@@ -1,7 +1,3 @@
-// supabase/functions/mindmates/index.ts
-// KEY FIX: Never pass created_at — let DB DEFAULT NOW() handle it
-// Deploy: supabase functions deploy mindmates --no-verify-jwt
-
 import { serve }        from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 

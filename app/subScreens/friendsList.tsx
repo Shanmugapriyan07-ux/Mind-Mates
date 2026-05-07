@@ -1,7 +1,3 @@
-// app/subScreens/friendsList.tsx — fixed
-// FIX 1: targetUserId never falls back to me?.id when params.userId is present ✅
-// FIX 2: All DB fields use snake_case ✅
-
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity,
@@ -168,7 +164,7 @@ export default function ConnectionsListScreen() {
   useEffect(() => { fetchConnections(); }, [fetchConnections]);
 
   const handleRemove = useCallback((item: ConnectedUser) => {
-    setConnections((prev: any) => prev.filter(c => c.connection_id !== item.connection_id));
+    setConnections((prev: any) => prev.filter((c: { connection_id: string; }) => c.connection_id !== item.connection_id));
     supabase.from(TABLES.connections).delete().eq('id', item.connection_id)
       .then(() => fetchConnections()).catch(() => fetchConnections());
   }, [fetchConnections]);

@@ -1,10 +1,3 @@
-// src/services/linkCache.js
-// ══════════════════════════════════════════════════════════════
-//  Two-layer cache: in-memory (L1) + AsyncStorage (L2).
-//  L1: instant reads, reset on app restart.
-//  L2: persists across restarts, survives force-close.
-//  Strategy mirrors how Instagram caches config values.
-// ══════════════════════════════════════════════════════════════
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { CACHE_CONFIG } from "../config/appLinks";

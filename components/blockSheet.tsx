@@ -9,7 +9,6 @@ import Animated, {
   withTiming,
   withSpring,
   Easing,
-  runOnJS,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 

@@ -1,45 +1,7 @@
-// hooks/useAppReady.ts
-//
-// ══════════════════════════════════════════════════════════════════
-// APP READY ORCHESTRATION HOOK
-// ══════════════════════════════════════════════════════════════════
-//
-// This is the single source of truth for app startup sequencing.
-// It coordinates three things in order:
-//
-//   1. preventAutoHideAsync() — called at module level (before React mounts)
-//      to hold the native splash screen open.
-//
-//   2. preloadCriticalAssets() — runs in parallel while splash is visible.
-//      Fonts, images, cached session — all loaded simultaneously.
-//
-//   3. hideAsync() — called only when BOTH preload is done AND the
-//      animated splash has signaled it's ready to dismiss.
-//      This prevents the "white flash" between native splash and JS UI.
-//
-// ANTI-FLICKER STRATEGY:
-//   The native splash screen stays up until we call hideAsync().
-//   Our AnimatedSplash component mounts simultaneously (invisible behind native splash).
-//   When native splash hides, our AnimatedSplash is already rendered and plays.
-//   When our animation finishes, it calls onReady() → app content fades in.
-//   Result: native splash → animated splash → app content, zero gap between any step.
-//
-// STATE MACHINE:
-//   'loading'   → preloading assets, native splash visible
-//   'animating' → assets ready, AnimatedSplash playing
-//   'ready'     → animation done, show app content
-
 import { useEffect, useCallback, useRef, useState } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 import { preloadCriticalAssets, PreloadResult } from '@/utils/Preloadassets';
-
-// ── Prevent native splash from auto-hiding ────────────────────────
-// MUST be called at module level (outside any component), before React
-// renders anything. This is the EAS/Expo-recommended approach.
-// If called inside useEffect, there's a race condition — the native
-// splash may already be hiding before the effect runs.
 SplashScreen.preventAutoHideAsync().catch(() => {
-  // If this fails (e.g. splash already hidden by OS), it's non-fatal
   console.warn('[SplashScreen] preventAutoHideAsync failed — already hidden?');
 });
 
@@ -59,7 +21,6 @@ export function useAppReady(): UseAppReadyReturn {
 
   // Ref guards prevent double-execution in React Strict Mode
   const hasStarted  = useRef(false);
-  const splashHidden = useRef(false);
 
   // ── Step 1: Run preload ───────────────────────────────────────
   useEffect(() => {

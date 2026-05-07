@@ -1,17 +1,3 @@
-// lib/callFn.ts
-// Single source of truth for all edge function calls.
-//
-// ROOT CAUSE OF 400 ERROR:
-//   WRONG:  body: JSON.stringify(body)   ← double-serializes; edge fn gets string not object
-//   WRONG:  headers: {'Content-Type': 'application/json'}  ← Supabase SDK sets this already
-//   RIGHT:  body: plainObject            ← SDK serializes once automatically ✅
-//
-// The Supabase JS SDK's functions.invoke() already:
-//   1. JSON.stringifies the body object
-//   2. Sets Content-Type: application/json
-//   3. Attaches the current session Bearer token
-// Doing any of those manually causes double-encoding or header conflicts.
-
 import { supabase } from '@/lib/supabase';
 
 export const callFn = async (body: Record<string, any>): Promise<any> => {

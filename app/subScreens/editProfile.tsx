@@ -8,7 +8,6 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Image,
   ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -33,7 +32,7 @@ const Edit = () => {
   });
 
   const [focused, setFocused] = useState<String |null>(null);
-  const [saving, setSaving] = useState(false);
+  const [, setSaving] = useState(false);
 
   // ──────────────────────────────────────────────────────────────────────
   // STEP 3: Load profile data when component mounts
@@ -126,7 +125,7 @@ const Edit = () => {
 
     try {
       // ✅ CORRECT: Call updateProfile with form data
-      await updateProfile({
+      updateProfile({
         fullName: formData.fullName.trim(),
         InterestedSkills: formData.InterestedSkills.trim(),
         location: formData.location.trim(),
@@ -163,14 +162,6 @@ const Edit = () => {
   // ──────────────────────────────────────────────────────────────────────
   // STEP 7: Check if form has changes
   // ──────────────────────────────────────────────────────────────────────
-  const hasChanges = useCallback(() => {
-    return (
-      formData.fullName !== (profile?.fullName || '') ||
-      formData.InterestedSkills !== (profile?.InterestedSkills || '') ||
-      formData.location !== (profile?.location || '') ||
-      formData.bio !== (profile?.bio || '')
-    );
-  }, [formData, profile]);
 
   // ──────────────────────────────────────────────────────────────────────
   // STEP 8: Handle cancel

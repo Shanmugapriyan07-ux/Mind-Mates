@@ -1,10 +1,3 @@
-// src/hooks/useOpenLink.js
-// ══════════════════════════════════════════════════════════════
-//  Opens URLs in the in-app browser (expo-web-browser).
-//  Integrates with AppLinksContext for link resolution.
-//  Features: loading state, haptics, fallback, analytics hooks.
-// ══════════════════════════════════════════════════════════════
-
 import * as Haptics from "expo-haptics";
 import * as WebBrowser from "expo-web-browser";
 import { useCallback, useRef, useState } from "react";
@@ -99,7 +92,7 @@ export function useOpenLink() {
    * Falls back to STATIC_LINKS if context hasn't loaded yet.
    */
   const openByKey = useCallback(
-    async (key, name = key, options = {}) => {
+    async (key, _name = key, options = {}) => {
       safeSetLoading(true);
       await Haptics.selectionAsync().catch(() => {});
 

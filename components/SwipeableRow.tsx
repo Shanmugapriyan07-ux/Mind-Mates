@@ -1,4 +1,3 @@
-
 import React, { useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
@@ -211,8 +210,5 @@ const sw = StyleSheet.create({
   preview:     { fontSize:13, color:C.muted, flex:1 },
 });
 
-const st = StyleSheet.create({
-  tick: { fontSize:13, fontWeight:'700', lineHeight:16 },
-});
 
 export default SwipeableRow;

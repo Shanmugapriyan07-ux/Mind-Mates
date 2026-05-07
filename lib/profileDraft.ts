@@ -1,16 +1,8 @@
-// ═══════════════════════════════════════════════════════════════════════════
-// profileDraft.ts — multi-step form draft system
-// Accumulates data across BasicInfo → ImageUpload → SkillSelection
-// One final Appwrite sync at the end (not on every page)
-// ═══════════════════════════════════════════════════════════════════════════
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import supabase, { config, TABLES } from "@/lib/supabase";
+import supabase, { TABLES } from "@/lib/supabase";
  
 import { userKey } from "@/lib/persistentStorage";
 
-const DB   = config.databaseId;
-const PROF = config.usersCollectionId;
 
 // ─────────────────────────────────────────────────────────────────────────
 // Draft key — separate from final profile cache

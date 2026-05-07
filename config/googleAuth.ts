@@ -1,8 +1,3 @@
-// config/googleAuth.ts
-// Called ONCE in _layout.tsx before any render.
-// This pre-warms the Google SDK so the account picker opens instantly on tap.
-// UNCHANGED from your existing file — just made TypeScript-safe.
-import { Platform } from 'react-native';
 
 let GoogleSignin: any = null;
 let statusCodes: any = {};

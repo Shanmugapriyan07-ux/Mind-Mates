@@ -1,5 +1,3 @@
-// profileSetUp/ProfileImage.tsx — fixed for Supabase + Cloudinary
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, Image, StyleSheet,

@@ -1,13 +1,6 @@
-// app/auth.tsx — OAuth callback handler (Supabase version)
-// TEACHING: When Google redirects back to your app via deep link
-// this screen handles the code exchange automatically
-//
-// Deep link: mindmates://auth?code=xxx
-// Supabase: exchanges code → JWT session automatically ✅
-
 import { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Image } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuthh }  from '@/Contexts/authContext';
 import images       from '@/constants/images';

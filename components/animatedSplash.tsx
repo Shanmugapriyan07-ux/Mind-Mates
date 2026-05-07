@@ -1,35 +1,3 @@
-
-
-// components/AnimatedSplash.tsx
-//
-// ══════════════════════════════════════════════════════════════════
-// ANIMATED SPLASH SCREEN — Gmail / Google Style
-// ══════════════════════════════════════════════════════════════════
-//
-// ANIMATION SEQUENCE:
-//   0ms      → Logo at scale 0.72, opacity 0 (invisible)
-//   0–80ms   → Fade in instantly (opacity 0 → 1)
-//   0–700ms  → Scale up with spring easing (0.72 → 1.0)
-//              Spring physics = natural feel, not mechanical
-//   700ms    → Hold for 100ms at full size
-//   800ms    → Fade out (opacity 1 → 0, 200ms)
-//   1000ms   → onAnimationComplete() fires → app content appears
-//
-// WHY REANIMATED (not Animated):
-//   - Reanimated runs on the UI thread, not the JS thread
-//   - Even if JS is busy (loading data, parsing JSON), animation is 60fps
-//   - Animated API can drop frames during heavy JS work
-//   - This is the difference between "feels native" and "feels like an app"
-//
-// ANTI-FLICKER:
-//   This component renders BEHIND the native splash (same background color).
-//   When native splash hides (after preload), this is already rendered.
-//   The user sees: [native splash] → [this component] → [app] with no gap.
-//
-// BACKGROUND COLOR:
-//   Must EXACTLY match your expo splash screen backgroundColor in app.json.
-//   Any mismatch creates a visible color flash between native and JS splash.
-
 import React, { useEffect } from 'react';
 import { StyleSheet, View, Image, Dimensions } from 'react-native';
 import Animated, {
@@ -43,7 +11,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 
-const { width: SW, height: SH } = Dimensions.get('window');
+Dimensions.get('window');
 
 // ── MUST MATCH app.json splash backgroundColor exactly ────────────
 const SPLASH_BG   = '#FFFFFF';

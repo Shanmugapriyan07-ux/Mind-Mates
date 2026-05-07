@@ -1,30 +1,6 @@
-
-
-// components/UnreadBadge.tsx
-//
-// ══════════════════════════════════════════════════════════════════
-// UNREAD BADGE UI COMPONENT
-// ══════════════════════════════════════════════════════════════════
-//
-// Renders the red dot with count number — used in:
-//   1. Tab bar icons (chat tab, notification tab)
-//   2. Chat list rows (per-conversation dot)
-//   3. Any screen header that shows unread count
-//
-// ANIMATION:
-//   Badge scales in with a spring when it appears (count 0 → 1+).
-//   Badge scales out when count reaches 0.
-//   Count number cross-fades when it changes (1 → 2 → 3).
-//   All animations use useNativeDriver=true → 60fps, zero JS thread cost.
-//
-// PERFORMANCE:
-//   React.memo — only re-renders when its count prop changes.
-//   Zero re-renders from parent component updates.
-//   Animated.Value is created once via useRef — no re-creation on render.
-
 import React, { useEffect, useRef, memo } from 'react';
 import {
-  View, Text, StyleSheet, Animated, ViewStyle,
+  StyleSheet, Animated, ViewStyle,
 } from 'react-native';
 
 // ── Props ─────────────────────────────────────────────────────────
