@@ -165,8 +165,10 @@ export default function ConnectionsListScreen() {
 
   const handleRemove = useCallback((item: ConnectedUser) => {
     setConnections((prev: any) => prev.filter((c: { connection_id: string; }) => c.connection_id !== item.connection_id));
-    supabase.from(TABLES.connections).delete().eq('id', item.connection_id)
-      .then(() => fetchConnections()).catch(() => fetchConnections());
+    supabase.from(TABLES.connections)
+      .delete()
+      .eq('id', item.connection_id)
+      .then(() => { fetchConnections(); });
   }, [fetchConnections]);
 
   const renderItem = useCallback(({ item }: { item: ConnectedUser }) => (

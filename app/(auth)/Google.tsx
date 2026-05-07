@@ -1,5 +1,6 @@
+import Googlesigninbutton from "@/components/Googlesigninbutton";
 import { isNativeGoogleAvailable } from "@/config/googleAuth";
-import images from "@/constants/images";
+import images from "@/Constants/images";
 import { useAppLinks } from "@/Contexts/AppLinksContexts";
 import { useAuthh } from "@/Contexts/authContext";
 import { useAuth } from "@/hooks/useAuth";
@@ -14,39 +15,28 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
+  View
 } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming
-} from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Googlesigninbutton from "@/components/Googlesigninbutton";
 
 Dimensions.get("window");
-
-
 
 // Remove this before production
 const handleMockLogin = async () => {
   // Simulate successful Google login with a test Supabase account
   const { error } = await supabase.auth.signInWithPassword({
-    email:    'shanmugapriyancse582@gmail.com',
-    password: 'Artist@123.',
+    email: "shanmugapriyancse582@gmail.com",
+    password: "Artist@123.",
   });
-  if (error) console.error('Mock login failed:', error.message);
+  if (error) console.error("Mock login failed:", error.message);
 };
 
 // In your UI — add a temporary button:
 
-
 // ─── Main Onboarding ──────────────────────────────────────────────────────────
 export const Welcome = () => {
-  const { googleLogin, clearGoogleError } =
-    useAuthh();
+  const { googleLogin, clearGoogleError } = useAuthh();
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const { openByKey } = useOpenLink();
@@ -113,7 +103,9 @@ export const Welcome = () => {
         {/* In your UI — add a temporary button: */}
         {__DEV__ && !isNativeGoogleAvailable() && (
           <TouchableOpacity onPress={handleMockLogin} style={styles.mockButton}>
-            <Text style={styles.mockText}>🧪 Dev Mock Login (Expo Go only)</Text>
+            <Text style={styles.mockText}>
+              🧪 Dev Mock Login (Expo Go only)
+            </Text>
           </TouchableOpacity>
         )}
 
@@ -281,7 +273,7 @@ const styles = StyleSheet.create({
     color: "#1F2937",
     right: 5,
   },
-   mockButton: {
+  mockButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -293,12 +285,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 48,
     bottom: 120,
   },
-    mockText: {
+  mockText: {
     fontSize: 17,
     fontWeight: "600",
     color: "#1F2937",
     right: 5,
-    },
+  },
 });
 
 export default Welcome;

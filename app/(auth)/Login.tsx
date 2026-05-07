@@ -1,5 +1,5 @@
 import Googlesigninbutton from "@/components/Googlesigninbutton";
-import images from "@/constants/images";
+import images from "@/Constants/images";
 import { useAuthh } from "@/Contexts/authContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useFormValidation } from "@/hooks/useFormValidation";
@@ -10,20 +10,20 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { memo, useCallback, useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Animated,
-    Dimensions,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Animated,
+  Dimensions,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
@@ -40,7 +40,6 @@ const SPACING = {
   xxl: 40,
 };
 
-
 const LoginScreen = memo(() => {
   const { error } = useAuth();
   const { login } = useAuthh();
@@ -56,24 +55,17 @@ const LoginScreen = memo(() => {
   }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const {
-    values,
-    errors,
-    touched,
-    handleChange,
-    handleBlur,
-    validateAll,
-  } = useFormValidation({ email: "", password: "" }, loginValidationRules) as {
-    values: { email: string; password: string };
-    errors: { email?: string; password?: string };
-    touched: { email?: boolean; password?: boolean };
-    isValidating: boolean;
-    handleChange: (field: string, value: string) => void;
-    handleBlur: (field: string) => void;
-    validateAll: () => boolean;
-    reset: () => void;
-  };
-
+  const { values, errors, touched, handleChange, handleBlur, validateAll } =
+    useFormValidation({ email: "", password: "" }, loginValidationRules) as {
+      values: { email: string; password: string };
+      errors: { email?: string; password?: string };
+      touched: { email?: boolean; password?: boolean };
+      isValidating: boolean;
+      handleChange: (field: string, value: string) => void;
+      handleBlur: (field: string) => void;
+      validateAll: () => boolean;
+      reset: () => void;
+    };
 
   const handleEmailChange = useCallback(
     (text: any) => {
