@@ -6,7 +6,6 @@ import { useAuthh } from "@/Contexts/authContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useOpenLink } from "@/hooks/useOpenLink";
 import supabase from "@/lib/supabase";
-import { GoogleSigninButton } from "@react-native-google-signin/google-signin";
 import { router } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -16,7 +15,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import Animated from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -113,15 +112,19 @@ export const Welcome = () => {
         <View style={{ bottom: 110, paddingHorizontal: 1 }}>
           <Text style={{ color: "#cccccc", fontSize: 14, textAlign: "center" }}>
             By continuing, you agree to our{" "}
-            <TouchableOpacity
+            <Text
+              style={{ color: "#6D4AFF" }}
               onPress={tap("TERMS_OF_SERVICE", "Terms of Service")}
             >
-              <Text style={{ color: "#6D4AFF", top: 5 }}>Terms of Service</Text>
-            </TouchableOpacity>{" "}
+              Terms of Service
+            </Text>{" "}
             and{" "}
-            <TouchableOpacity onPress={tap("PRIVACY_POLICY", "Privacy Policy")}>
-              <Text style={{ color: "#6D4AFF", top: 5 }}>Privacy Policy</Text>
-            </TouchableOpacity>{" "}
+            <Text
+              style={{ color: "#6D4AFF" }}
+              onPress={tap("PRIVACY_POLICY", "Privacy Policy")}
+            >
+              Privacy Policy
+            </Text>
             .
           </Text>
         </View>

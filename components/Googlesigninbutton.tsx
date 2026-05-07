@@ -18,7 +18,7 @@ const GoogleG = memo(() => (
 
 GoogleG.displayName = "GoogleG";
 
-interface GoogleSignInButtonProps {
+interface GooglesigninbuttonProps {
   onPress: () => void;
   isLoading?: boolean;
   disabled?: boolean;
@@ -28,7 +28,7 @@ function Googlesigninbutton({
   onPress,
   isLoading = false,
   disabled = false,
-}: GoogleSignInButtonProps) {
+}: GooglesigninbuttonProps) {
   const scale = useRef(new Animated.Value(1)).current;
   const opacity = useRef(new Animated.Value(1)).current;
   const isDisabled = disabled || isLoading;
