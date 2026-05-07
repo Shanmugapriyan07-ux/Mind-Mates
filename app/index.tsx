@@ -1,4 +1,5 @@
-import images from "@/Constants/images";
+
+import images from "@/constants/images";
 import { SplashScreen } from "expo-router";
 import React, { useEffect, useRef } from "react";
 import { Animated, Image, StyleSheet, View } from "react-native";

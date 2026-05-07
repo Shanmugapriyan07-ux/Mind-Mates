@@ -42,21 +42,7 @@ export default function SignupScreen() {
   }, [values, errors, loading]);
 
   useEffect(() => { prewarmGoogleOAuth(); }, []);
-
-  // ── EMAIL SIGNUP ──────────────────────────────────────────
-  // TEACHING: Flow after Supabase signup:
-  //
-  //   Email confirm DISABLED (recommended for dev/social apps):
-  //     signUp() → session created → onAuthStateChange fires
-  //     → authStatus = 'authenticated' → profileStatus = 'not_found'
-  //     → _layout routes to BasicInfo automatically ✅
-  //
-  //   Email confirm ENABLED:
-  //     signUp() → session = null → user gets email
-  //     → We throw 'CHECK_EMAIL' → show toast → stay on signup screen
-  //
-  //   TO DISABLE: Supabase Dashboard → Auth → Settings
-  //               → Disable "Enable email confirmations"
+  
   const handleSignup = useCallback(async () => {
     if (!validateAll() || loading) return;
     setLoading(true);

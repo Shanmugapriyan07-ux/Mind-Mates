@@ -1,5 +1,6 @@
 import Googlesigninbutton from "@/components/Googlesigninbutton";
-import images from "@/Constants/images";
+import images from "@/constants/images";
+
 import { useAuthh } from "@/Contexts/authContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useFormValidation } from "@/hooks/useFormValidation";
