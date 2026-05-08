@@ -1,3 +1,4 @@
+// @ts-ignore
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { supabase } from '@/lib/supabase';
 import { log } from '@/utils/logger';

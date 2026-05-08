@@ -16,7 +16,6 @@
     "baseUrl": ".",
     "paths": {
       "@/*": [
-        "./app/*",
         "./*"
       ]
     }
@@ -24,11 +23,6 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
-    "nativewind-env.d.ts",
-    "app/(auth)",
-    "app/utils/validationRules.js",
-    "app/hooks/useFormValidation.js"
-  ],
-  "compilerOptions": {},
-  "extends": "expo/tsconfig.base",
+    "nativewind-env.d.ts"
+  ]
 }

@@ -1,11 +1,3 @@
-import Googlesigninbutton from "@/components/Googlesigninbutton";
-import { isNativeGoogleAvailable } from "@/config/googleAuth";
-import images from "@/constants/images";
-import { useAppLinks } from "@/Contexts/AppLinksContexts";
-import { useAuthh } from "@/Contexts/authContext";
-import { useAuth } from "@/hooks/useAuth";
-import { useOpenLink } from "@/hooks/useOpenLink";
-import supabase from "@/lib/supabase";
 import { router } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -19,6 +11,14 @@ import {
 } from "react-native";
 import Animated from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Googlesigninbutton from "../../components/Googlesigninbutton";
+import { isNativeGoogleAvailable } from "../../config/googleAuth";
+import images from "../../constants/images";
+import { useAppLinks } from "../../Contexts/AppLinksContexts";
+import { useAuthh } from "../../Contexts/authContext";
+import { useAuth } from "../../hooks/useAuth";
+import { useOpenLink } from "../../hooks/useOpenLink";
+import supabase from "../../lib/supabase";
 
 Dimensions.get("window");
 

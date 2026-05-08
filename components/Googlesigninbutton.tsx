@@ -111,7 +111,7 @@ function Googlesigninbutton({
   );
 }
 
-export default memo(Googlesigninbutton);
+export default Googlesigninbutton;
 
 const styles = StyleSheet.create({
   button: {

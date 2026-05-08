@@ -10,19 +10,6 @@ export default function AuthLayout() {
         freezeOnBlur: true,
         contentStyle: { backgroundColor: '#FFFFFF' },
       }}/>
-      <Stack.Screen name="Login" options={{
-        headerShown: false,
-         lazy: false,
-        freezeOnBlur: true,
-         contentStyle: { backgroundColor: '#FFFFFF' },
-      }}/>
-      <Stack.Screen name="Signup" options={{
-        headerShown: false,
-        lazy: false,
-        freezeOnBlur: true,
-        animation:'slide_from_right',
-         contentStyle: { backgroundColor: '#FFFFFF' },
-      }}/>
          <Stack.Screen name="Google" options={{
       headerShown: false,
       lazy: false,
