@@ -15,8 +15,6 @@ import Animated, {
   useSharedValue, useAnimatedStyle,
   withTiming, withSpring, interpolate, Easing,
 } from 'react-native-reanimated';
-
-// ── Types ─────────────────────────────────────────────────────────
 interface SearchUser {
   user_id:       string;
   full_name:     string;
@@ -25,30 +23,23 @@ interface SearchUser {
   profile_image: string | null;
   skills:        string;
 }
-
 type FilterTab = 'people' | 'skills' | 'location';
-
 const C = {
   bg:'#F7F8FA', white:'#FFFFFF', purple:'#6D4AFF', purpleL:'#EDE9FE',
   text:'#303032', muted:'#6B7280', border:'#EAECF0',
   skeleton:'#F0F0F3',
 };
-
 const LIMIT      = 20;
 const DEBOUNCE   = 400;
-const CARD_H     = 80; // fixed card height for getItemLayout ✅
+const CARD_H     = 80; 
 const TAB_ROW_H  = 48;
-
 const TABS: { key:FilterTab; label:string; icon:string; placeholder:string }[] = [
   { key:'people',   label:'People',   icon:'person-outline',     placeholder:'Search by name...'  },
   { key:'skills',   label:'Skills',   icon:'code-slash-outline', placeholder:'Search by skill...' },
   { key:'location', label:'Location', icon:'location-outline',   placeholder:'Search by city...'  },
 ];
-
 const parseSkills = (s: string | null): string[] =>
   s ? s.split(',').map(x => x.trim()).filter(Boolean) : [];
-
-// rowToUser — defined OUTSIDE component so it's never recreated ✅
 const rowToUser = (row: any): SearchUser => ({
   user_id:       row.user_id       ?? '',
   full_name:     row.full_name     ?? '',
@@ -57,8 +48,6 @@ const rowToUser = (row: any): SearchUser => ({
   profile_image: row.profile_image ?? null,
   skills:        row.skills        ?? '',
 });
-
-// ── Skeleton ──────────────────────────────────────────────────────
 const SkeletonCard = ({ opacity = 1 }: { opacity?: number }) => (
   <View style={[s.card, { opacity, height:CARD_H }]}>
     <View style={{ flexDirection:'row', alignItems:'center', gap:12 }}>
@@ -72,32 +61,24 @@ const SkeletonCard = ({ opacity = 1 }: { opacity?: number }) => (
     </View>
   </View>
 );
-
-// ── ConnectButton — isolated with React.memo ──────────────────────
-// TEACHING: This component is memoised so a connection status change
-// (e.g. one button turns "Requested") ONLY rerenders that button,
-// not the entire FlatList. This is the key perf win. ✅
 const ConnectButton = React.memo(({ user_id, full_name, profile_image, skills }: {
   user_id:string; full_name:string; profile_image:string|null; skills:string;
 }) => {
   const { getStatus, isLoading, sendRequest, cancelRequest } = useConnection();
   const status  = getStatus(user_id);
   const loading = isLoading(user_id);
-
   const cfg = {
     none:     { label:'Connect',   bg:C.purple,   fg:'#fff',      border:C.purple   },
     pending:  { label:'Requested', bg:C.white,    fg:'#6D4AFF',   border:'#6D4AFF'  },
     accepted: { label:'Connected', bg:'#F0FDF4',  fg:'#16A34A',   border:'#16A34A'  },
     rejected: { label:'Connect',   bg:C.purple,   fg:'#fff',      border:C.purple   },
   }[status];
-
   const handlePress = () => {
     if (loading || status==='accepted') return;
     if (status==='none' || status==='rejected')
       sendRequest({ userId:user_id, fullName:full_name, profileImage:profile_image, skills });
     else if (status==='pending') cancelRequest(user_id);
   };
-
   return (
     <TouchableOpacity
       style={[s.connectBtn, { backgroundColor:cfg.bg, borderColor:cfg.border }]}
@@ -111,10 +92,6 @@ const ConnectButton = React.memo(({ user_id, full_name, profile_image, skills }:
     </TouchableOpacity>
   );
 });
-
-// ── UserCard — stable with React.memo ────────────────────────────
-// TEACHING: item prop is stable (same reference from setUsers)
-// + ConnectButton is separate → card body NEVER rerenders on status change ✅
 const UserCard = React.memo(({ item }: { item: SearchUser }) => {
   const skillDots = useMemo(() => parseSkills(item.skills).slice(0,3).join(' · '), [item.skills]);
   const skillsStr = item.skills;
@@ -133,7 +110,6 @@ const UserCard = React.memo(({ item }: { item: SearchUser }) => {
           )}
           {!!skillDots && <Text style={s.skills} numberOfLines={1}>{skillDots}</Text>}
         </View>
-        {/* ConnectButton isolated — status change only rerenders this ✅ */}
         <ConnectButton
           user_id={item.user_id} full_name={item.full_name}
           profile_image={item.profile_image} skills={skillsStr}
@@ -142,8 +118,6 @@ const UserCard = React.memo(({ item }: { item: SearchUser }) => {
     </TouchableOpacity>
   );
 });
-
-// ── Empty / Prompt states ─────────────────────────────────────────
 const EmptyState = React.memo(({ query, filter, error }: {
   query:string; filter:FilterTab; error:string|null;
 }) => (
@@ -180,14 +154,9 @@ const EmptyState = React.memo(({ query, filter, error }: {
     )}
   </View>
 ));
-
-// ═══════════════════════════════════════════════════════════════════
-// MAIN SCREEN
-// ═══════════════════════════════════════════════════════════════════
 export default function SearchScreen() {
   const { user }                    = useAuthh();
   const { loadStatuses }            = useConnection();
-
   const [query,   setQuery]   = useState('');
   const [filter,  setFilter]  = useState<FilterTab>('people');
   const [users,   setUsers]   = useState<SearchUser[]>([]);
@@ -195,29 +164,23 @@ export default function SearchScreen() {
   const [error,   setError]   = useState<string|null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [offset,  setOffset]  = useState(0);
-
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const running     = useRef(false);
-
-  // ── Tab animation (identical to original) ────────────────────
   const tabsVisible = useSharedValue(0);
   const isFocused   = useRef(false);
   const lastScrollY = useRef(0);
   const scrollDown  = useRef(false);
-
   const showTabs = useCallback(() => {
     tabsVisible.value = withSpring(1, { damping:350, stiffness:300, mass:0.8 });
   }, []);
   const hideTabs = useCallback(() => {
     tabsVisible.value = withTiming(0, { duration:200, easing:Easing.out(Easing.ease) });
   }, []);
-
   const tabsAnimStyle = useAnimatedStyle(() => ({
     transform:[{ translateY:interpolate(tabsVisible.value,[0,1],[-TAB_ROW_H,0]) }],
     opacity:interpolate(tabsVisible.value,[0,0.5,1],[0,0.7,1]),
     maxHeight:interpolate(tabsVisible.value,[0,1],[0,TAB_ROW_H]),
   }));
-
   const handleFocus = () => { isFocused.current=true; showTabs(); };
   const handleBlur  = () => { isFocused.current=false; if(scrollDown.current) hideTabs(); };
   const handleScroll = useCallback((e:NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -227,51 +190,35 @@ export default function SearchScreen() {
     if (diff>4 && y>30) { scrollDown.current=true; if(!isFocused.current) hideTabs(); }
     else if (diff<-4)   { scrollDown.current=false; showTabs(); }
   }, [showTabs, hideTabs]);
-
-  // ── Core fetch ────────────────────────────────────────────────
-  // PERFORMANCE: Only select columns we actually display (not .select('*'))
-  // This reduces payload by ~60% — fewer bytes over network ✅
   const fetchUsers = useCallback(async (
     q: string, tab: FilterTab, pageOffset: number,
   ) => {
     if (!user?.id || running.current) return;
     const trimmed = q.trim();
-    if (trimmed.length < 2) return; // guard — never fetch for empty/short query
-
+    if (trimmed.length < 2) return; 
     running.current = true;
     if (pageOffset === 0) { setLoading(true); setError(null); }
-
     try {
       let qb = supabase
         .from('users')
-        // PERFORMANCE: select only needed columns not * ✅
         .select('user_id, full_name, profile_image, location, skills, bio')
         .eq('is_profile_complete', true)
         .neq('user_id', user.id)
         .range(pageOffset, pageOffset + LIMIT - 1);
-
-      // PERFORMANCE: each filter uses indexed columns ✅
       if (tab === 'people')   qb = qb.ilike('full_name', `%${trimmed}%`);
       if (tab === 'skills')   qb = qb.ilike('skills',    `%${trimmed}%`);
       if (tab === 'location') qb = qb.ilike('location',  `%${trimmed}%`);
-
       const { data, error: qErr } = await qb;
       if (qErr) { setError(qErr.message); return; }
-
       const results = (data ?? []).map(rowToUser);
-
       if (pageOffset === 0) setUsers(results);
       else setUsers((prev:any) => {
         const ids = new Set(prev.map((u:any) => u.user_id));
         return [...prev, ...results.filter((u:any) => !ids.has(u.user_id))];
       });
-
       setOffset(pageOffset + LIMIT);
       setHasMore(results.length === LIMIT);
       setError(null);
-
-      // PERFORMANCE: loadStatuses called AFTER setUsers (not in critical path)
-      // So list renders instantly, connection badges load async ✅
       if (results.length > 0) {
         loadStatuses(results.map((u:any) => u.user_id)).catch(() => {});
       }
@@ -282,29 +229,21 @@ export default function SearchScreen() {
       running.current = false;
     }
   }, [user?.id, loadStatuses]);
-
-  // ── Debounced search ──────────────────────────────────────────
-  // PERFORMANCE: Only fires 400ms after user stops typing
-  // Prevents query on every keystroke ✅
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     const q = query.trim();
-
     if (q.length === 0) {
       setUsers([]); setOffset(0); setHasMore(false);
       setLoading(false); running.current = false;
       return;
     }
     if (q.length < 2) return;
-
     debounceRef.current = setTimeout(() => {
       setOffset(0); running.current = false;
       fetchUsers(q, filter, 0);
     }, DEBOUNCE);
-
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [query, filter, fetchUsers]);
-
   const handleFilterChange = (f: FilterTab) => {
     setFilter(f);
     if (query.trim().length >= 2) {
@@ -312,29 +251,19 @@ export default function SearchScreen() {
       fetchUsers(query.trim(), f, 0);
     }
   };
-
   const handleChangeText = (text: string) => { setQuery(text); showTabs(); };
   const loadMore = useCallback(() => {
     if (running.current || !hasMore || query.trim().length < 2) return;
     fetchUsers(query.trim(), filter, offset);
   }, [query, filter, offset, hasMore, fetchUsers]);
-
-  // PERFORMANCE: stable keyExtractor — uses user_id (primary key) ✅
   const keyExtractor = useCallback((item: SearchUser) => item.user_id, []);
-
-  // PERFORMANCE: getItemLayout — FlatList knows height without measuring ✅
-  // This makes scroll and initial render ~3x faster on long lists
   const getItemLayout = useCallback((_: any, index: number) => ({
     length: CARD_H, offset: CARD_H * index, index,
   }), []);
-
-  // PERFORMANCE: renderItem is stable (no inline deps that change) ✅
   const renderItem = useCallback(({ item }: { item: SearchUser }) => (
     <UserCard item={item} />
   ), []);
-
   const placeholder = TABS.find(t => t.key===filter)?.placeholder ?? 'Search...';
-
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
       <StatusBar barStyle="dark-content" />
@@ -365,7 +294,6 @@ export default function SearchScreen() {
             )}
           </View>
         </View>
-
         <View style={s.tabsClip}>
           <Animated.View style={tabsAnimStyle}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}
@@ -394,7 +322,6 @@ export default function SearchScreen() {
           data={users}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
-          // PERFORMANCE: pre-computed heights = no layout thrashing ✅
           getItemLayout={getItemLayout}
           ItemSeparatorComponent={() => <View style={{ height:1, backgroundColor:C.border }} />}
           contentContainerStyle={{ paddingBottom:120 }}
@@ -424,7 +351,6 @@ export default function SearchScreen() {
     </SafeAreaView>
   );
 }
-
 const s = StyleSheet.create({
   safe:       { flex:1, backgroundColor:C.white },
   headerWrap: { backgroundColor:C.white, paddingTop:8, paddingBottom:4 },

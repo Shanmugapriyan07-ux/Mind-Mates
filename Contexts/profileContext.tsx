@@ -44,8 +44,6 @@ export interface Profile {
   full_name?:          string;
   bio:                 string;
   location:            string;
-  locationSearch:      string;
-  location_search?:    string;
   InterestedSkills:    string;
   interested_skills?:  string;
   profileImage:        string | null;
@@ -53,7 +51,6 @@ export interface Profile {
   skills:              string;
   skillsArray:         string[];
   connections:         number;
-  likes:               number;
   isProfileComplete:   boolean;
   is_profile_complete?: boolean;
 }
@@ -100,8 +97,6 @@ const rowToProfile = (row: any): Profile => {
     full_name:         fn,
     bio:               row.bio      ?? '',
     location:          row.location ?? '',
-    locationSearch:    ls,
-    location_search:   ls,
     InterestedSkills:  is_,
     interested_skills: is_,
     profileImage:      pi,
@@ -109,7 +104,6 @@ const rowToProfile = (row: any): Profile => {
     skills:            sk,
     skillsArray:       toArr(sk),
     connections:       row.connections ?? 0,
-    likes:             row.likes       ?? 0,
     isProfileComplete: ipc,
     is_profile_complete: ipc,
   };
@@ -122,12 +116,10 @@ const toInsertPayload = (p: Profile, authId: string): Record<string, any> => ({
   full_name:           p.fullName       ?? '',
   bio:                 p.bio            ?? '',
   location:            p.location       ?? '',
-  location_search:     p.locationSearch ?? '',
   interested_skills:   p.InterestedSkills ?? '',
   profile_image:       safeImg(p.profileImage),
   skills:              toStr(p.skills),
   connections:         p.connections    ?? 0,
-  likes:               p.likes          ?? 0,
   is_profile_complete: p.isProfileComplete ?? false,
 });
 
@@ -136,14 +128,12 @@ const toUpdatePayload = (updates: Partial<Profile>): Record<string, any> => {
   if ('fullName'         in updates || 'full_name'          in updates) p.full_name           = updates.fullName ?? updates.full_name ?? '';
   if ('bio'              in updates)                                     p.bio                 = updates.bio      ?? '';
   if ('location'         in updates)                                     p.location            = updates.location ?? '';
-  if ('locationSearch'   in updates || 'location_search'    in updates) p.location_search     = updates.locationSearch ?? updates.location_search ?? '';
   if ('InterestedSkills' in updates || 'interested_skills'  in updates) p.interested_skills   = updates.InterestedSkills ?? updates.interested_skills ?? '';
   if ('profileImage'     in updates || 'profile_image'      in updates) p.profile_image       = safeImg(updates.profileImage ?? updates.profile_image);
   if ('skills'           in updates)                                     p.skills              = toStr(updates.skills);
   if ('skillsArray'      in updates)                                     p.skills              = toStr(updates.skillsArray);
   if ('isProfileComplete'in updates || 'is_profile_complete'in updates) p.is_profile_complete = updates.isProfileComplete ?? updates.is_profile_complete ?? false;
   if ('connections'      in updates)                                     p.connections         = updates.connections ?? 0;
-  if ('likes'            in updates)                                     p.likes               = updates.likes       ?? 0;
   return p;
 };
 
@@ -347,11 +337,11 @@ export const ProfileProvider = ({ children }: { children: React.ReactNode }) => 
     const updated: Profile = {
       userId: user.id, user_id: user.id,
       fullName: '', full_name: '', bio: '',
-      location: '', locationSearch: '', location_search: '',
+      location: '',
       InterestedSkills: '', interested_skills: '',
       profileImage: null, profile_image: null,
       skills: '', skillsArray: [],
-      connections: 0, likes: 0,
+      connections: 0,
       isProfileComplete: false, is_profile_complete: false,
       ...current,
       ...updates,

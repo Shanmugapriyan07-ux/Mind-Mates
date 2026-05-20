@@ -11,9 +11,6 @@ import { ProfileAvatar }         from '@/components/Profileavatar';
 import { useAuthh }               from '@/Contexts/authContext';
 import { useConnection }         from '@/hooks/useConnection';
 import { useMatches, MatchUser } from '@/hooks/useMatches';
-
-
-// ─── Design tokens ────────────────────────────────────────────────
 const C = {
   bg:       '#F7F8FA',
   white:    '#FFFFFF',
@@ -29,10 +26,6 @@ const C = {
   skeleton: '#F0F0F3',
   gold:     '#F59E0B',
 };
-
-
-
-// ─── Skeleton ─────────────────────────────────────────────────────
 const SkeletonCard = ({ opacity = 1 }: { opacity?: number }) => (
   <View style={[s.card, { opacity }]}>
     <View style={s.cardRow}>
@@ -46,8 +39,6 @@ const SkeletonCard = ({ opacity = 1 }: { opacity?: number }) => (
     </View>
   </View>
 );
-
-// ─── Connect button ───────────────────────────────────────────────
 const ConnectButton = ({ userId, fullName, profileImage, skills, location }: {
   userId: string; fullName: string; profileImage: string | null;
   skills: string; location: string;
@@ -55,14 +46,12 @@ const ConnectButton = ({ userId, fullName, profileImage, skills, location }: {
   const { getStatus, isLoading, sendRequest, cancelRequest } = useConnection();
   const status  = getStatus(userId);
   const loading = isLoading(userId);
-
   const cfg = {
     none:     { label: 'Connect',   bg: C.purple, fg: '#fff',   border: C.purple },
     pending:  { label: 'Requested', bg: C.white,  fg: C.orange, border: C.orange },
     accepted: { label: 'Connected', bg: C.greenL, fg: C.green,  border: C.greenL },
     rejected: { label: 'Connect',   bg: C.purple, fg: '#fff',   border: C.purple },
   }[status];
-
   return (
     <TouchableOpacity
       style={[s.connectBtn, { backgroundColor: cfg.bg, borderColor: cfg.border }]}
@@ -84,19 +73,12 @@ const ConnectButton = ({ userId, fullName, profileImage, skills, location }: {
     </TouchableOpacity>
   );
 };
-
-// ─── Match Card ───────────────────────────────────────────────────
 const MatchCard = React.memo(({ item }: { item: MatchUser }) => {
   const skillsStr    = item.skillsArray?.join(',') ?? '';
   const commonSkills = item.commonSkills ?? [];
   const allSkills    = item.skillsArray  ?? [];
-
-  // Common skills → purple dot-separated string (max 3 shown)
   const commonDots = commonSkills.slice(0, 3).join(' · ');
-
-  // Extra = skills user has beyond the common ones shown
   const extraCount = allSkills.length - commonSkills.length;
-
   return (
     <TouchableOpacity
       style={s.card}
@@ -107,15 +89,10 @@ const MatchCard = React.memo(({ item }: { item: MatchUser }) => {
       })}
     >
       <View style={s.cardRow}>
-        {/* Avatar */}
         <ProfileAvatar uri={item.profileImage} name={item.fullName} size={52} />
-
-        {/* Info column */}
         <View style={s.info}>
           {/* Name */}
           <Text style={s.name} numberOfLines={1}>{item.fullName}</Text>
-
-          {/* Location — purple if same city */}
           {!!item.location && (
             <View style={s.locRow}>
               <Ionicons
@@ -131,8 +108,6 @@ const MatchCard = React.memo(({ item }: { item: MatchUser }) => {
               </Text>
             </View>
           )}
-
-          {/* Skills: common → purple · dots  +  extra → +N grey badge */}
           <View style={s.skillsRow}>
             {!!commonDots && (
               <Text style={s.skillsCommon} numberOfLines={1}>
@@ -146,8 +121,6 @@ const MatchCard = React.memo(({ item }: { item: MatchUser }) => {
             )}
           </View>
         </View>
-
-        {/* Connect button — inline right */}
         <ConnectButton
           userId={item.userId}
           fullName={item.fullName}
@@ -159,9 +132,6 @@ const MatchCard = React.memo(({ item }: { item: MatchUser }) => {
     </TouchableOpacity>
   );
 });
-
-
-// ─── Main Screen ──────────────────────────────────────────────────
 export default function DiscoverScreen() {
   useAuthh();
   const { loadStatuses, getStatus } = useConnection();
@@ -169,31 +139,22 @@ export default function DiscoverScreen() {
     matches, fetching, refreshing,error,loading,
      loadInitial, refresh,hasMore,loadMore
   } = useMatches();
-
   useEffect(() => {
     loadInitial();
   }, [loadInitial]);
-
   useEffect(() => {
     if (matches.length > 0) {
       loadStatuses(matches.map(m => m.userId));
     }
   }, [matches.length]);
-
   const displayMatches = useMemo(() =>
     matches.filter(m => getStatus(m.userId) !== 'accepted'),
     [matches, getStatus]
   );
-
-  // Convert Supabase row → SearchUser
-
   const renderItem = useCallback(({ item }: { item: MatchUser }) => (
     <MatchCard item={item} />
   ), []);
-
   const keyExtractor = useCallback((item: MatchUser) => item.userId, []);
-
-  // ── Loading skeleton ──────────────────────────────────────────
   if (loading && matches.length === 0) {
     return (
       <SafeAreaView style={s.safe} edges={['top']}>
@@ -207,8 +168,6 @@ export default function DiscoverScreen() {
       </SafeAreaView>
     );
   }
-
-  // ── Error ─────────────────────────────────────────────────────
   if (error && matches.length === 0) {
     return (
       <SafeAreaView style={s.safe} edges={['top']}>
@@ -222,12 +181,10 @@ export default function DiscoverScreen() {
       </SafeAreaView>
     );
   }
-
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
       <StatusBar barStyle="dark-content" />
       <Header />
-
       <FlatList
         data={displayMatches}
         renderItem={renderItem}
@@ -272,8 +229,6 @@ export default function DiscoverScreen() {
     </SafeAreaView>
   );
 }
-
-// ─── Header ───────────────────────────────────────────────────────
 const Header = () => (
   <View style={s.header}>
     <TouchableOpacity
@@ -286,19 +241,14 @@ const Header = () => (
     </TouchableOpacity>
   </View>
 );
-
-// ─── Styles ───────────────────────────────────────────────────────
 const s = StyleSheet.create({
   safe:        { flex: 1, backgroundColor: C.white },
   listContent: { paddingBottom: 120,bottom:5 },
   center:      { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40, marginTop: 80 },
-
-
   header: {
     backgroundColor: C.white,
     paddingHorizontal: 20, paddingTop: 12, paddingBottom: 1,
     borderBottomColor: C.border, gap: 10,
-   
   },
   searchBar: {
     flexDirection: 'row',
@@ -314,21 +264,16 @@ const s = StyleSheet.create({
     marginBottom: 8,
   },
   searchPlaceholder: { flex: 1, fontSize: 15, color: C.muted, fontWeight: '400',right:2 },
-
-  // ── Card ──────────────────────────────────────────────────────
   card: {
     backgroundColor: C.white,
     paddingHorizontal: 18,
     paddingVertical: 9,
-
   },
   cardRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   info:    { flex: 1 },
   name:    { fontSize: 15, fontWeight: '700', color: C.text, marginBottom: 3 },
   locRow:  { flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 4 },
   locText: { fontSize: 12 },
-
-  // ── Skills row: purple common dots + grey +N badge ────────────
   skillsRow:    { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'nowrap' },
   skillsCommon: { fontSize: 12, fontWeight: '600', color: C.purple, flexShrink: 1 },
   extraBadge:   {
@@ -340,8 +285,6 @@ const s = StyleSheet.create({
     borderColor: C.border,
   },
   extraText: { fontSize: 11, fontWeight: '600', color: C.muted },
-
-  // ── Connect button ────────────────────────────────────────────
   connectBtn: {
     paddingHorizontal: 8,
     paddingVertical: 8,
@@ -352,7 +295,6 @@ const s = StyleSheet.create({
     minWidth: 82,
   },
   connectText: { fontWeight: '700', fontSize: 12 },
-
   endText:    { textAlign: 'center', color: C.muted, fontSize: 13, paddingVertical: 24 },
   errorText:  { fontSize: 15, color: C.muted, textAlign: 'center',bottom:60 },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: C.text, marginBottom: 8, textAlign: 'center',bottom:60 },

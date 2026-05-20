@@ -1,11 +1,11 @@
 // hooks/usePushNotifications.ts
-import { useEffect } from 'react';
-import * as Notifications from 'expo-notifications';
-import * as Device        from 'expo-device';
-import { Platform }       from 'react-native';
 import supabase, { TABLES } from '@/lib/supabase';
+import * as Device from 'expo-device';
+import * as Notifications from 'expo-notifications';
+import { useEffect } from 'react';
+import { Platform } from 'react-native';
  
-import { useAuthh }           from '@/Contexts/authContext';
+import { useAuthh } from '@/Contexts/authContext';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -76,7 +76,25 @@ const registerAndSaveToken = async (userId: string) => {
       return;
     }
 
-    const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
+//    // Implement retry logic for transient "SERVICE_NOT_AVAILABLE" errors
+    let tokenData;
+    let retries = 0;
+    const MAX_RETRIES = 3;
+
+    while (retries < MAX_RETRIES) {
+      try {
+        tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
+        break;
+      } catch (err: any) {
+        retries++;
+        if (retries >= MAX_RETRIES) throw err;
+        
+        const delay = 2000 * retries;
+        console.warn(`[usePushNotifications] Retry ${retries}/${MAX_RETRIES} due to error: ${err.message}`);
+        await new Promise(res => setTimeout(res, delay));
+      }
+    }
+
     const token     = tokenData.data;
     console.log('📬 Push token:', token);
 

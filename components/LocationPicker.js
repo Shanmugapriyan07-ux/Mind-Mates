@@ -10,11 +10,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-// ═══════════════════════════════════════════════════════════════
-// TAMIL NADU DISTRICTS (You already have this data!)
-// ═══════════════════════════════════════════════════════════════
-
 const TAMILNADU_DISTRICTS = [
   "Ariyalur",
   "Chengalpattu",
@@ -138,7 +133,7 @@ export default function LocationPicker({
 
           {/* Search Bar */}
           <View style={s.searchContainer}>
-            <Ionicons name="search" size={20} color="#9CA3AF" />
+            <Ionicons name="search" size={20} color="#9CA3AF" style={{left: 2}} />
             <TextInput
               style={s.searchInput}
               placeholder="Search district..."
@@ -154,8 +149,6 @@ export default function LocationPicker({
               </TouchableOpacity>
             )}
           </View>
-
-          {/* Districts List */}
           <FlatList
             data={filtered}
             keyExtractor={(item) => item}
@@ -236,8 +229,8 @@ const s = StyleSheet.create({
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F9FAFB",
-    borderRadius: 12,
+    backgroundColor: "#F7F8FA",
+    borderRadius: 25,
     paddingHorizontal: 12,
     paddingVertical: 6,
     height: 48,
@@ -248,6 +241,7 @@ const s = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     color: "#252525",
+    top:3
   },
   item: {
     flexDirection: "row",

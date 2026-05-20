@@ -1,110 +1,149 @@
-// @ts-ignore
-import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import { isGoogleReady } from '@/config/googleAuth';
 import { supabase } from '@/lib/supabase';
-import { log } from '@/utils/logger';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 
-export type GoogleSignInResult =
-  | { success: true;  userId: string; email: string | null }
-  | { success: false; cancelled: boolean; error: string | null };
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-function classifyError(error: any): { cancelled: boolean; message: string | null } {
-  const code = error?.code;
+export interface GoogleTokens {
+  idToken:     string;
+  accessToken: string;
+}
+
+export type GoogleAuthResult =
+  | { success: true;  tokens: GoogleTokens; email: string | null }
+  | { success: false; cancelled: boolean;   error: string | null };
+
+// ─── Error classifier ─────────────────────────────────────────────────────────
+
+export function classifyGoogleError(err: any): {
+  cancelled: boolean;
+  message:   string | null;
+} {
+  const code = err?.code ?? err?.message ?? '';
+
+  console.log('[GoogleAuth] Error details:', {
+    code:    err?.code,
+    message: err?.message,
+    full:    JSON.stringify(err),
+  });
 
   if (
     code === statusCodes.SIGN_IN_CANCELLED ||
-    code === statusCodes.SIGN_IN_REQUIRED
+    code === statusCodes.SIGN_IN_REQUIRED  ||
+    code === '10' && err?.message === 'SIGN_IN_CANCELLED'
   ) {
-    log.auth('Google Sign-In cancelled by user');
     return { cancelled: true, message: null };
   }
 
   if (code === statusCodes.IN_PROGRESS) {
-    log.auth('Google Sign-In already in progress');
     return { cancelled: true, message: null };
   }
 
   if (code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
     return {
       cancelled: false,
-      message: 'Google Play Services is required. Please update it and try again.',
+      message:   'Google Play Services needs to be updated.',
     };
   }
 
-  const msg = error?.message?.toLowerCase() ?? '';
+  const msg = (err?.message ?? '').toLowerCase();
   if (msg.includes('network') || msg.includes('fetch')) {
-    return {
-      cancelled: false,
-      message: 'No internet connection. Please check your connection.',
-    };
+    return { cancelled: false, message: 'No internet connection.' };
   }
 
-
-    log.error('Google Sign-In unknown error:', error?.message);
-  return {
-    cancelled: false,
-    message: 'Sign-in failed. Please try again.',
-  };
+  return { cancelled: false, message: 'Sign-in failed. Please try again.' };
 }
 
-// ─── Main sign-in function ────────────────────────────────────────────────────
+// ─── Core Google Sign-In ──────────────────────────────────────────────────────
 
-export async function nativeGoogleSignIn(): Promise<GoogleSignInResult> {
+export async function performGoogleSignIn(): Promise<GoogleAuthResult> {
+  if (!isGoogleReady()) {
+    return {
+      success:   false,
+      cancelled: false,
+      error:     'Google Sign-In not configured. Use a dev client build.',
+    };
+  }
+
   try {
-    log.auth('Starting native Google Sign-In...');
-
-    // Step 1: Check Google Play Services (Android only — iOS always passes)
+    // ── Step 1: Play Services check ───────────────────────────────────────────
     await GoogleSignin.hasPlayServices({
       showPlayServicesUpdateDialog: true,
     });
+    console.log('[GoogleAuth] Play Services ✅');
 
-    // Step 2: Show native account picker
-    // This is the KEY step — shows native sheet, NOT a WebView or browser
-    // On Android: Material Design bottom sheet with device accounts
-    // On iOS:     Google Sign-In SDK native sheet
-    const result = await GoogleSignin.signIn() as any;
-    const idToken = result.data?.idToken || result.idToken;
-
-    if (!idToken) {
-      log.error('Google Sign-In returned no idToken');
-      return {
-        success:   false,
-        cancelled: false,
-        error:     'Google did not return an ID token. Please try again.',
-      };
+    // ── Step 2: Clear any stale session ───────────────────────────────────────
+    // This prevents stale token issues and forces fresh account picker
+    try {
+      await GoogleSignin.signOut();
+      console.log('[GoogleAuth] Cleared previous session');
+    } catch {
+      // Non-fatal — no previous session to clear
     }
 
-    log.auth('Got idToken, exchanging with Supabase...');
+    // ── Step 3: Show native account picker ────────────────────────────────────
+    console.log('[GoogleAuth] Opening native account picker...');
+    const signInResult = await GoogleSignin.signIn();
 
-    // Step 3: Exchange Google idToken for Supabase session
-    // Supabase validates the JWT with Google's public keys server-side
-    // This is the secure server-validated step — never trust client-only auth
-    const { data, error } = await supabase.auth.signInWithIdToken({
-      provider: 'google',
-      token:    idToken,
+    console.log('[GoogleAuth] signIn() result:', {
+      type:          typeof (signInResult as any),
+      hasData:       !!(signInResult as any)?.data,
+      hasUser:       !!(signInResult as any)?.data?.user,
+      email:         (signInResult as any)?.data?.user?.email,
+      hasIdToken:    !!(signInResult as any)?.data?.idToken,
+      idTokenLength: (signInResult as any)?.data?.idToken?.length ?? 0,
     });
 
-    if (error) {
-      log.error('Supabase token exchange failed:', error.message);
+    // ── Step 4: Get fresh tokens via getTokens() ──────────────────────────────
+    // CRITICAL: This is the correct way to get idToken in SDK v11+
+    // signIn() may return idToken as null — getTokens() always returns fresh ones
+    console.log('[GoogleAuth] Fetching fresh tokens via getTokens()...');
+    const tokens = await GoogleSignin.getTokens();
+
+    console.log('[GoogleAuth] getTokens() result:', {
+      hasIdToken:        !!tokens?.idToken,
+      idTokenLength:     tokens?.idToken?.length ?? 0,
+      hasAccessToken:    !!tokens?.accessToken,
+      accessTokenLength: tokens?.accessToken?.length ?? 0,
+    });
+
+    // ── Step 5: Validate tokens ───────────────────────────────────────────────
+    const idToken     = tokens?.idToken;
+    const accessToken = tokens?.accessToken;
+
+    if (!idToken) {
+      // Last resort: try idToken from signIn result
+      const fallbackIdToken = (signInResult as any)?.data?.idToken;
+
+      if (!fallbackIdToken) {
+        console.error('[GoogleAuth] ❌ No idToken from signIn() or getTokens()');
+        return {
+          success:   false,
+          cancelled: false,
+          error:     'Could not get authentication token. Please try again.',
+        };
+      }
+
+      console.log('[GoogleAuth] Using fallback idToken from signIn() result');
       return {
-        success:   false,
-        cancelled: false,
-        error:     'Authentication failed. Please try again.',
+        success: true,
+        tokens:  {
+          idToken:     fallbackIdToken,
+          accessToken: accessToken ?? '',
+        },
+        email: (signInResult as any)?.data?.user?.email ?? null,
       };
     }
 
-    log.auth('✅ Google Sign-In success:', data.user?.email);
-
-    // Step 4: Your existing onAuthStateChange in AuthContext fires automatically
-    // It sets authStatus = 'authenticated'
-    // Then your _layout.tsx routing logic takes over (unchanged)
+    console.log('[GoogleAuth] ✅ Tokens retrieved successfully');
     return {
       success: true,
-      userId:  data.user?.id  ?? '',
-      email:   data.user?.email ?? null,
+      tokens:  { idToken, accessToken: accessToken ?? '' },
+      email:   (signInResult as any)?.data?.user?.email ?? null,
     };
 
-  } catch (error: any) {
-    const classified = classifyError(error);
+  } catch (err: any) {
+    const classified = classifyGoogleError(err);
     return {
       success:   false,
       cancelled: classified.cancelled,
@@ -113,84 +152,90 @@ export async function nativeGoogleSignIn(): Promise<GoogleSignInResult> {
   }
 }
 
-// ─── Silent sign-in ───────────────────────────────────────────────────────────
-// Attempts to restore previous Google session without showing any UI.
-// Called on app start — gives instant auto-login for returning users.
-// If it fails, falls back to Supabase session (which is also checked).
+// ─── Silent sign-in for session restore ──────────────────────────────────────
 
-export async function trySilentGoogleSignIn(): Promise<boolean> {
+export async function performSilentSignIn(): Promise<GoogleTokens | null> {
+  if (!isGoogleReady()) return null;
+
   try {
     const currentUser = await GoogleSignin.getCurrentUser();
     if (!currentUser) {
-      log.auth('No previous Google Sign-In found');
-      return false;
+      console.log('[GoogleAuth] No previous sign-in found');
+      return null;
     }
 
-    log.auth('Found previous Google Sign-In, attempting silent restore...');
-    const result = await GoogleSignin.signInSilently() as any;
-    const idToken = result.data?.idToken || (result as any).idToken;
+    console.log('[GoogleAuth] Attempting silent sign-in...');
+    await GoogleSignin.signInSilently();
 
-    if (!idToken) {
-      log.auth('Silent sign-in: no idToken returned');
-      return false;
+    // Always use getTokens() after silent sign-in too
+    const tokens = await GoogleSignin.getTokens();
+
+    if (!tokens?.idToken) {
+      console.warn('[GoogleAuth] Silent sign-in: no idToken from getTokens()');
+      return null;
     }
 
-    // Refresh Supabase session with fresh Google token
-    const { error } = await supabase.auth.signInWithIdToken({
-      provider: 'google',
-      token:    idToken,
-    });
+    console.log('[GoogleAuth] ✅ Silent sign-in success');
+    return {
+      idToken:     tokens.idToken,
+      accessToken: tokens.accessToken ?? '',
+    };
 
-    if (error) {
-      log.auth('Silent sign-in Supabase exchange failed:', error.message);
-      return false;
-    }
-
-    log.auth('✅ Silent sign-in success');
-    return true;
-
-  } catch (error: any) {
-    // Silent sign-in failure is completely normal for first-time users
-    // or when user has revoked access — fail silently
-    log.auth('Silent sign-in failed (non-fatal):', error?.code);
-    return false;
+  } catch (err: any) {
+    console.warn('[GoogleAuth] Silent sign-in failed (non-fatal):', err?.code);
+    return null;
   }
 }
 
 // ─── Sign out ─────────────────────────────────────────────────────────────────
-// Clears both Google session AND Supabase session.
-// Your existing logout() in AuthContext handles the Supabase part.
-// This adds the Google SDK clear on top.
 
-export async function googleSignOut(): Promise<void> {
+export async function performGoogleSignOut(): Promise<void> {
+  if (!isGoogleReady()) return;
   try {
-    // Clear Google SDK session (prevents silent sign-in with stale credentials)
     await GoogleSignin.signOut();
-    log.auth('Google SDK session cleared');
-  } catch (error: any) {
-    // Non-fatal — Supabase session is already cleared by AuthContext.logout()
-    log.auth('Google sign-out failed (non-fatal):', error?.message);
+    console.log('[GoogleAuth] Signed out ✅');
+  } catch (err: any) {
+    console.warn('[GoogleAuth] Sign-out failed (non-fatal):', err?.message);
   }
 }
 
-// ─── Token refresh ────────────────────────────────────────────────────────────
-// Supabase handles token refresh automatically via autoRefreshToken: true.
-// This is a manual refresh for edge cases (e.g. long background periods).
+// ─── Aliases & Wrappers for AuthContext ───────────────────────────────────────
+// These provide the legacy function names expected by authContext.tsx
+// while using the robust token logic above and handling Supabase integration.
 
-export async function refreshGoogleToken(): Promise<boolean> {
-  try {
-    // Get fresh tokens from Google SDK
-    const tokens = await GoogleSignin.getTokens();
-    if (!tokens.idToken) return false;
+export async function nativeGoogleSignIn() {
+  const result = await performGoogleSignIn();
+  if (!result.success) return result;
 
-    // Exchange with Supabase
-    const { error } = await supabase.auth.signInWithIdToken({
-      provider: 'google',
-      token:    tokens.idToken,
-    });
+  const { error } = await supabase.auth.signInWithIdToken({
+    provider:     'google',
+    token:        result.tokens.idToken,
+    access_token: result.tokens.accessToken || undefined,
+  });
 
-    return !error;
-  } catch {
+  if (error) {
+    return { success: false, cancelled: false, error: error.message };
+  }
+  return { success: true, email: result.email };
+}
+
+export async function trySilentGoogleSignIn(): Promise<boolean> {
+  const tokens = await performSilentSignIn();
+  if (!tokens) return false;
+
+  const { error } = await supabase.auth.signInWithIdToken({
+    provider:     'google',
+    token:        tokens.idToken,
+    access_token: tokens.accessToken || undefined,
+  });
+
+  if (error) {
+    console.warn('[GoogleAuth] Silent sign-in Supabase exchange failed:', error.message);
     return false;
   }
+  return true;
+}
+
+export async function googleSignOut() {
+  return performGoogleSignOut();
 }

@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import {
-  signInWithGoogle,
-  trySilentSignIn,
-  signOut as authSignOut,
-  AuthResult,
+    logout,
+    restoreSession,
+    signInWithGoogle,
 } from '../services/authServices';
+import { trySilentGoogleSignIn } from '@/services/googleAuthService';
 
 export interface AuthUser {
   id: string;
@@ -67,7 +67,7 @@ export function useAuth() {
 
     // 2. No Supabase session — try silent Google sign-in
     // This auto-logs in users who previously authenticated
-    const silentSession = await trySilentSignIn();
+    const { data: { session: silentSession } } = await supabase.auth.getSession();
     if (silentSession?.user && isMounted.current) {
       setUser(mapUser(silentSession.user));
       setStatus('authenticated');
@@ -80,55 +80,11 @@ export function useAuth() {
     }
   }
 
-  // ── Google Sign-In handler ─────────────────────────────────────────────────
-  const handleGoogleSignIn = useCallback(async () => {
-    if (isSigningIn) return; // Prevent double-tap
-
-    setIsSigningIn(true);
-    setError(null);
-
-    const result = await signInWithGoogle();
-
-    if (!isMounted.current) return;
-
-    switch (result.type) {
-      case AuthResult.SUCCESS:
-        // onAuthStateChange will handle state update — no need to setUser here
-        // This prevents a potential double-set race condition
-        break;
-
-      case AuthResult.CANCELLED:
-        // User dismissed — silently reset, no error message
-        break;
-
-      case AuthResult.IN_PROGRESS:
-        // Already signing in — just reset loading state
-        break;
-
-      default:
-        // Show error for network, Play Services, unknown errors
-        if ('message' in result && result.message) {
-          setError(result.message as any);
-        }
-    }
-
-    setIsSigningIn(false);
-  }, [isSigningIn]);
-
-  // ── Sign out ───────────────────────────────────────────────────────────────
-  const handleSignOut = useCallback(async () => {
-    setStatus('initializing');
-    await authSignOut();
-    // onAuthStateChange fires SIGNED_OUT → sets status to unauthenticated
-  }, []);
-
   return {
     user,
     status,           // 'initializing' | 'authenticated' | 'unauthenticated'
     isSigningIn,      // true while Google picker + Supabase exchange in progress
     error,
-    signIn: handleGoogleSignIn,
-    signOut: handleSignOut,
     clearError: () => setError(null),
   };
 }

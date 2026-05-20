@@ -1,13 +1,6 @@
-
 import images from "@/constants/images";
-import { SplashScreen } from "expo-router";
 import React, { useEffect, useRef } from "react";
 import { Animated, Image, StyleSheet, View } from "react-native";
-
-SplashScreen.preventAutoHideAsync();
-
-// ─── Custom loading screen shown during login → home transition ───
-// This replaces the "flash of login screen" with a smooth loading UI
 export default function AuthLoadingScreen(): React.JSX.Element {
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -45,6 +38,6 @@ const ls = StyleSheet.create({
     justifyContent: "center",
     gap: 20,
   },
-  logo: { width: 120, height: 120 },
+  logo: { width: 80, height: 80 },
   text: { color: "#fff", fontSize: 16, fontWeight: "600", opacity: 0.85 },
 });

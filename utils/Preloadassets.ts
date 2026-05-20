@@ -1,7 +1,7 @@
-import * as Font       from 'expo-font';
-import { Asset }       from 'expo-asset';
-import { Image }       from 'react-native';
-import AsyncStorage    from '@react-native-async-storage/async-storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Asset } from 'expo-asset';
+import * as Font from 'expo-font';
+import { Image } from 'react-native';
 
 // ── Type definitions ──────────────────────────────────────────────
 export interface PreloadResult {
@@ -28,13 +28,13 @@ const withTimeout = <T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
 // Loads custom fonts in parallel. Falls back silently on failure
 // (system fonts are used instead — ugly but not a crash).
 const loadFonts = async (): Promise<boolean> => {
+  const fonts = {
+    // 'Inter-Regular': require('../assets/fonts/Inter-Regular.ttf'),
+  };
+  if (Object.keys(fonts).length === 0) return true;
+
   try {
-    await Font.loadAsync({
-      // Add your custom fonts here. Example:
-      // 'Inter-Regular':    require('../assets/fonts/Inter-Regular.ttf'),
-      // 'Inter-SemiBold':   require('../assets/fonts/Inter-SemiBold.ttf'),
-      // 'Inter-Bold':       require('../assets/fonts/Inter-Bold.ttf'),
-    });
+    await Font.loadAsync(fonts);
     return true;
   } catch (e) {
     console.warn('[preload] Font load failed:', e);
@@ -51,7 +51,7 @@ const preloadImages = async (): Promise<void> => {
     require('../assets/images/splash-logo.png'),
     require('../assets/images/splash-logo.png'),
     // Remote images (strings) — user profile placeholder, etc.
-    // 'https://res.cloudinary.com/yourcloud/image/upload/placeholder.png',
+     'https://res.cloudinary.com/yourcloud/image/upload/placeholder.png',
   ];
 
   try {
@@ -100,9 +100,9 @@ const loadCachedSession = async (): Promise<StoredSession | null> => {
 export const preloadCriticalAssets = async (): Promise<PreloadResult> => {
   const start = Date.now();
 
-  // All critical loads run IN PARALLEL — not sequentially
-  // If fonts take 300ms and session takes 10ms, total is still 300ms (not 310ms)
-  const [fontsLoaded, sessionData] = await Promise.all([
+  // Ensure all three promises are destructured correctly
+  // preloadImages is critical for a smooth splash transition
+  const [fontsLoaded, sessionData, _] = await Promise.all([
     withTimeout(loadFonts(),           5000, false),
     withTimeout(loadCachedSession(),   3000, null),
     withTimeout(preloadImages(),       4000, undefined),
@@ -156,4 +156,3 @@ const prefetchInitialChatData = async (userId: string): Promise<void> => {
     console.warn('[preload] Chat prefetch failed:', e);
   }
 };
-

@@ -155,7 +155,7 @@ export const SwipeableRow = React.memo(({
         <TouchableOpacity style={sw.panelBtn} activeOpacity={0.85}
           onPress={() => { close(); setTimeout(() => onDelete(item), 180); }}>
           <Animated.View style={[{ transform: [{ scale: deleteScale }] }]}>
-            <Ionicons name="trash" size={20} color="#fff" style={{marginTop:9}} />
+            <Ionicons name="trash" size={20} color="#fff" style={{top:2}} />
           </Animated.View>
           <Text style={sw.deleteTxt}>Delete</Text>
         </TouchableOpacity>
@@ -178,8 +178,6 @@ export const SwipeableRow = React.memo(({
               )}
             </View>
             <View style={sw.previewRow}>
-             
-              {/* FIX 1: formatPreview handles null/undefined/'' correctly */}
               <Text style={sw.preview} numberOfLines={1}>
                 {formatPreview(item.last_message)}
               </Text>
@@ -198,7 +196,7 @@ const sw = StyleSheet.create({
   panelBtn:    { flex:1, width:'100%', alignItems:'center', justifyContent:'center', gap:5 },
   iconCircle:  { width:40, height:40, borderRadius:20, alignItems:'center', justifyContent:'center' },
   clearTxt:    { fontSize:11, fontWeight:'700', color:C.blue },
-  deleteTxt:   { fontSize:12, fontWeight:'700', color:'#fff' },
+  deleteTxt:   { fontSize:12, fontWeight:'700', color:'#fff',top:1},
   card:        { backgroundColor:C.white },
   row:         { flexDirection:'row', alignItems:'center', paddingHorizontal:15, paddingVertical:8, backgroundColor:C.white, gap:12, minHeight:72 },
   onlineDot:   { position:'absolute', bottom:1, right:1, width:11, height:11, borderRadius:6, backgroundColor:C.green, borderWidth:2, borderColor:C.white },

@@ -1,29 +1,45 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { cdnFullUrl, cdnVideoUrl } from "@/lib/cloudinaryUpload";
+import { Ionicons } from "@expo/vector-icons";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  View, Text, TouchableOpacity, TouchableWithoutFeedback,
-  StyleSheet, Dimensions, Platform, Modal, ActivityIndicator,
-} from 'react-native';
-import { Image } from 'react-native';
-import { Ionicons }           from '@expo/vector-icons';
-import { useSafeAreaInsets }  from 'react-native-safe-area-context';
+  ActivityIndicator,
+  Dimensions,
+  Image,
+  Modal,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
+} from "react-native";
 import Animated, {
-  useSharedValue, useAnimatedStyle,
-  withTiming, withSpring, FadeIn, FadeOut,
-} from 'react-native-reanimated';
-import { cdnFullUrl, cdnVideoUrl } from '@/lib/cloudinaryUpload';
+  FadeIn,
+  FadeOut,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const { width: SW, height: SH } = Dimensions.get('window');
+const { width: SW, height: SH } = Dimensions.get("window");
 const CONTROLS_HIDE_MS = 3000; // auto-hide controls after 3s
 
 // Lazy-load native-only packages (not available on web)
 let Video: any = null;
-if (Platform.OS !== 'web') {
-  try { Video = require('expo-av').Video; } catch {}
+if (Platform.OS !== "web") {
+  try {
+    Video = require("expo-av").Video;
+  } catch {}
 }
 
 interface Props {
-  uri:     string | null;
-  type:    'image' | 'video';
+  uri: string | null;
+  type: "image" | "video";
   onClose: () => void;
 }
 
@@ -35,17 +51,21 @@ const BufferingDots = () => {
   const d3 = useSharedValue(0.3);
 
   useEffect(() => {
-    const pulse = (sv: any, delay: number) => {
-      const loop = () => {
-        sv.value = withTiming(1, { duration: 400 }, () => {
-          sv.value = withTiming(0.3, { duration: 400 }, loop);
-        });
-      };
-      setTimeout(loop, delay);
+    const startPulse = (sv: any, delay: number) => {
+      sv.value = withDelay(
+        delay,
+        withRepeat(
+          withSequence(
+            withTiming(1, { duration: 400 }),
+            withTiming(0.3, { duration: 400 }),
+          ),
+          -1,
+        ),
+      );
     };
-    pulse(d1, 0);
-    pulse(d2, 150);
-    pulse(d3, 300);
+    startPulse(d1, 0);
+    startPulse(d2, 150);
+    startPulse(d3, 300);
   }, []);
 
   const s1 = useAnimatedStyle(() => ({ opacity: d1.value }));
@@ -66,28 +86,28 @@ export const MediaViewer = ({ uri, type, onClose }: Props) => {
   const insets = useSafeAreaInsets();
 
   // Video state
-  const [isPlaying,     setIsPlaying]     = useState(false);
-  const [videoReady,    setVideoReady]     = useState(false);
-  const [videoError,    setVideoError]     = useState(false);
-  const [isBuffering,   setIsBuffering]    = useState(false);
-  const [progress,      setProgress]       = useState(0);      // 0–1
-  const [positionMs,    setPositionMs]     = useState(0);
-  const [durationMs,    setDurationMs]     = useState(0);
-  const [showControls,  setShowControls]   = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
+  const [videoError, setVideoError] = useState(false);
+  const [isBuffering, setIsBuffering] = useState(false);
+  const [progress, setProgress] = useState(0); // 0–1
+  const [positionMs, setPositionMs] = useState(0);
+  const [durationMs, setDurationMs] = useState(0);
+  const [showControls, setShowControls] = useState(true);
 
-  const videoRef       = useRef<any>(null);
-  const controlsTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingPlay    = useRef(false);
+  const videoRef = useRef<any>(null);
+  const controlsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingPlay = useRef(false);
 
   // Animated values for fade in/out
   const backdropOpacity = useSharedValue(0);
-  const mediaScale      = useSharedValue(0.96);
+  const mediaScale = useSharedValue(0.96);
 
   // ── Reset on open ─────────────────────────────────────────────
   useEffect(() => {
     if (uri) {
       backdropOpacity.value = withTiming(1, { duration: 50 });
-      mediaScale.value      = withSpring(1, { damping: 200, stiffness: 350 });
+      mediaScale.value = withSpring(1, { damping: 200, stiffness: 350 });
       setIsPlaying(false);
       setProgress(0);
       setPositionMs(0);
@@ -99,18 +119,22 @@ export const MediaViewer = ({ uri, type, onClose }: Props) => {
       pendingPlay.current = false;
     } else {
       backdropOpacity.value = withTiming(0, { duration: 50 });
-      mediaScale.value      = withTiming(1, { duration: 50 });
+      mediaScale.value = withTiming(1, { duration: 50 });
     }
   }, [uri]);
 
-  const backdropStyle = useAnimatedStyle(() => ({ opacity: backdropOpacity.value }));
-  const mediaStyle    = useAnimatedStyle(() => ({ transform: [{ scale: mediaScale.value }] }));
+  const backdropStyle = useAnimatedStyle(() => ({
+    opacity: backdropOpacity.value,
+  }));
+  const mediaStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: mediaScale.value }],
+  }));
 
   // Build correct Cloudinary URLs
   // VIDEO: must be /video/upload/q_auto,f_auto,vc_auto/ for streaming
   // IMAGE: standard CDN URL
-  const videoUri = uri && type === 'video' ? cdnVideoUrl(uri)  : null;
-  const imageUri = uri && type === 'image' ? cdnFullUrl(uri)   : uri;
+  const videoUri = uri && type === "video" ? cdnVideoUrl(uri) : null;
+  const imageUri = uri && type === "image" ? cdnFullUrl(uri) : uri;
 
   // ── Controls auto-hide ────────────────────────────────────────
   const resetControlsTimer = useCallback(() => {
@@ -150,33 +174,39 @@ export const MediaViewer = ({ uri, type, onClose }: Props) => {
         await videoRef.current.playAsync();
       }
     } catch (e) {
-      console.warn('[MediaViewer playPause]', e);
+      console.warn("[MediaViewer playPause]", e);
     }
   }, [isPlaying, videoReady, progress, resetControlsTimer]);
 
   // ── Seek ──────────────────────────────────────────────────────
-  const handleSeek = useCallback(async (ratio: number) => {
-    if (!videoRef.current || !durationMs) return;
-    try {
-      await videoRef.current.setPositionAsync(Math.max(0, ratio) * durationMs);
-      resetControlsTimer();
-    } catch {}
-  }, [durationMs, resetControlsTimer]);
+  const handleSeek = useCallback(
+    async (ratio: number) => {
+      if (!videoRef.current || !durationMs) return;
+      try {
+        await videoRef.current.setPositionAsync(
+          Math.max(0, ratio) * durationMs,
+        );
+        resetControlsTimer();
+      } catch {}
+    },
+    [durationMs, resetControlsTimer],
+  );
 
   // ── Playback status callback ──────────────────────────────────
   const handleStatus = useCallback((status: any) => {
     if (!status.isLoaded) return;
-    if (status.error) { setVideoError(true); return; }
+    if (status.error) {
+      setVideoError(true);
+      return;
+    }
 
     setVideoReady(true);
-    setIsPlaying(status.isPlaying  ?? false);
+    setIsPlaying(status.isPlaying ?? false);
     setIsBuffering(status.isBuffering ?? false);
     setDurationMs(status.durationMillis ?? 0);
     setPositionMs(status.positionMillis ?? 0);
     setProgress(
-      status.durationMillis
-        ? (status.positionMillis / status.durationMillis)
-        : 0
+      status.durationMillis ? status.positionMillis / status.durationMillis : 0,
     );
 
     if (status.didJustFinish) {
@@ -195,17 +225,20 @@ export const MediaViewer = ({ uri, type, onClose }: Props) => {
   // ── Format time ───────────────────────────────────────────────
   const fmt = (ms: number) => {
     const s = Math.floor(ms / 1000);
-    return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
+    return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
   };
 
   // ── Progress bar press ────────────────────────────────────────
   const progressBarWidth = SW - 48; // horizontal padding
-  const handleProgressPress = useCallback((x: number) => {
-    handleSeek(x / progressBarWidth);
-  }, [handleSeek, progressBarWidth]);
+  const handleProgressPress = useCallback(
+    (x: number) => {
+      handleSeek(x / progressBarWidth);
+    },
+    [handleSeek, progressBarWidth],
+  );
 
   if (!uri) return null;
-  const isVideo = type === 'video';
+  const isVideo = type === "video";
 
   return (
     <Modal
@@ -217,28 +250,31 @@ export const MediaViewer = ({ uri, type, onClose }: Props) => {
       hardwareAccelerated
     >
       <Animated.View style={[vw.backdrop, backdropStyle]}>
-
         {/* ── Tap-to-toggle overlay ─────────────────────────── */}
         <TouchableWithoutFeedback onPress={handleTapMedia}>
           <View style={StyleSheet.absoluteFill} />
         </TouchableWithoutFeedback>
 
         {/* ── Media ────────────────────────────────────────── */}
-        <Animated.View style={[vw.mediaWrap, mediaStyle]} pointerEvents="box-none">
-
+        <Animated.View
+          style={[vw.mediaWrap, mediaStyle]}
+          pointerEvents="box-none"
+        >
           {isVideo ? (
-            Platform.OS === 'web' ? (
+            Platform.OS === "web" ? (
               // ── Web: native <video> element ──────────────────
               <View style={vw.media}>
-                {React.createElement('video', {
-                  src:         videoUri ?? uri,
-                  controls:    true,
+                {React.createElement("video", {
+                  src: videoUri ?? uri,
+                  controls: true,
                   playsInline: true,
-                  autoPlay:    false,
-                  preload:     'auto',
+                  autoPlay: false,
+                  preload: "auto",
                   style: {
-                    width: '100%', height: '100%',
-                    objectFit: 'contain', backgroundColor: '#000',
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
+                    backgroundColor: "#000",
                   },
                 })}
               </View>
@@ -256,7 +292,7 @@ export const MediaViewer = ({ uri, type, onClose }: Props) => {
                   ref={videoRef}
                   source={{ uri: videoUri ?? uri }}
                   style={vw.media}
-                  resizeMode={'contain' as any}
+                  resizeMode={"contain" as any}
                   shouldPlay={false}
                   isLooping={false}
                   isMuted={false}
@@ -272,7 +308,7 @@ export const MediaViewer = ({ uri, type, onClose }: Props) => {
                     }
                   }}
                   onError={(e: any) => {
-                    console.error('[MediaViewer Video error]', e, videoUri);
+                    console.error("[MediaViewer Video error]", e, videoUri);
                     setVideoError(true);
                   }}
                 />
@@ -287,7 +323,11 @@ export const MediaViewer = ({ uri, type, onClose }: Props) => {
                 {/* Error overlay */}
                 {videoError && (
                   <View style={vw.errorOverlay}>
-                    <Ionicons name="alert-circle-outline" size={44} color="rgba(255,255,255,0.5)" />
+                    <Ionicons
+                      name="alert-circle-outline"
+                      size={44}
+                      color="rgba(255,255,255,0.5)"
+                    />
                     <Text style={vw.errorTxt}>Could not play video</Text>
                   </View>
                 )}
@@ -300,10 +340,16 @@ export const MediaViewer = ({ uri, type, onClose }: Props) => {
                     activeOpacity={0.8}
                   >
                     <View style={vw.playBtn}>
-                      {!videoReady
-                        ? <ActivityIndicator size="large" color="#fff" />
-                        : <Ionicons name="play" size={32} color="#fff" style={{ paddingLeft: 4 }} />
-                      }
+                      {!videoReady ? (
+                        <ActivityIndicator size="large" color="#fff" />
+                      ) : (
+                        <Ionicons
+                          name="play"
+                          size={32}
+                          color="#fff"
+                          style={{ paddingLeft: 4 }}
+                        />
+                      )}
                     </View>
                   </TouchableOpacity>
                 )}
@@ -317,14 +363,20 @@ export const MediaViewer = ({ uri, type, onClose }: Props) => {
               </View>
             ) : (
               <View style={[vw.media, vw.fallback]}>
-                <Ionicons name="videocam-outline" size={52} color="rgba(255,255,255,0.35)" />
-                <Text style={vw.fallbackTxt}>Install expo-av to play videos</Text>
+                <Ionicons
+                  name="videocam-outline"
+                  size={52}
+                  color="rgba(255,255,255,0.35)"
+                />
+                <Text style={vw.fallbackTxt}>
+                  Install expo-av to play videos
+                </Text>
               </View>
             )
           ) : (
             // ── Image viewer ──────────────────────────────────
             <Image
-              source={{ uri: imageUri ?? '' }}
+              source={{ uri: imageUri ?? "" }}
               style={vw.media}
               resizeMode="contain"
             />
@@ -353,7 +405,9 @@ export const MediaViewer = ({ uri, type, onClose }: Props) => {
 
             {/* Bottom controls — only for video */}
             {isVideo && videoReady && !videoError && (
-              <View style={[vw.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
+              <View
+                style={[vw.bottomBar, { paddingBottom: insets.bottom + 12 }]}
+              >
                 {/* Time */}
                 <Text style={vw.timeTxt}>{fmt(positionMs)}</Text>
 
@@ -361,19 +415,32 @@ export const MediaViewer = ({ uri, type, onClose }: Props) => {
                 <TouchableOpacity
                   style={vw.progressTrack}
                   activeOpacity={1}
-                  onPress={e => handleProgressPress(e.nativeEvent.locationX)}
+                  onPress={(e) => handleProgressPress(e.nativeEvent.locationX)}
                 >
-                  <View style={[vw.progressFill, { width: `${progress * 100}%` as any }]} />
-                  <View style={[vw.progressThumb, { left: `${Math.min(progress * 100, 98)}%` as any }]} />
+                  <View
+                    style={[
+                      vw.progressFill,
+                      { width: `${progress * 100}%` as any },
+                    ]}
+                  />
+                  <View
+                    style={[
+                      vw.progressThumb,
+                      { left: `${Math.min(progress * 100, 98)}%` as any },
+                    ]}
+                  />
                 </TouchableOpacity>
 
                 {/* Duration */}
                 <Text style={vw.timeTxt}>{fmt(durationMs)}</Text>
 
                 {/* Play / Pause */}
-                <TouchableOpacity onPress={handlePlayPause} style={vw.controlBtn}>
+                <TouchableOpacity
+                  onPress={handlePlayPause}
+                  style={vw.controlBtn}
+                >
                   <Ionicons
-                    name={isPlaying ? 'pause' : 'play'}
+                    name={isPlaying ? "pause" : "play"}
                     size={22}
                     color="#fff"
                   />
@@ -382,7 +449,6 @@ export const MediaViewer = ({ uri, type, onClose }: Props) => {
             )}
           </Animated.View>
         )}
-
       </Animated.View>
     </Modal>
   );
@@ -394,15 +460,15 @@ export default MediaViewer;
 const vw = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: '#000',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#000",
+    alignItems: "center",
+    justifyContent: "center",
   },
   mediaWrap: {
     width: SW,
     height: SH,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   media: {
     width: SW,
@@ -412,118 +478,118 @@ const vw = StyleSheet.create({
   // Buffering dots
   bufferingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   dotsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   dot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
 
   // Error
   errorOverlay: {
     ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     gap: 12,
   },
   errorTxt: {
-    color: 'rgba(255,255,255,0.6)',
+    color: "rgba(255,255,255,0.6)",
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 
   // Center play button
   playCenter: {
     ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   playBtn: {
     width: 70,
     height: 70,
     borderRadius: 35,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "rgba(0,0,0,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   // Fallback
   fallback: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     gap: 14,
   },
   fallbackTxt: {
-    color: 'rgba(255,255,255,0.35)',
+    color: "rgba(255,255,255,0.35)",
     fontSize: 13,
   },
 
   // Controls overlay
   topBar: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 16,
     paddingBottom: 16,
     // Subtle gradient-like fade for readability
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: "rgba(0,0,0,0.4)",
   },
   closeBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "rgba(255,255,255,0.12)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   bottomBar: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
     paddingHorizontal: 16,
     paddingTop: 16,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: "rgba(0,0,0,0.5)",
   },
   timeTxt: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: "500",
     minWidth: 38,
-    textAlign: 'center',
+    textAlign: "center",
   },
   progressTrack: {
     flex: 1,
     height: 4,
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: "rgba(255,255,255,0.25)",
     borderRadius: 2,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   progressFill: {
-    height: '100%',
-    backgroundColor: '#6D4AFF',
+    height: "100%",
+    backgroundColor: "#6D4AFF",
     borderRadius: 2,
   },
   progressThumb: {
-    position: 'absolute',
+    position: "absolute",
     width: 13,
     height: 13,
     borderRadius: 7,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     top: -5,
     transform: [{ translateX: -6 }],
   },

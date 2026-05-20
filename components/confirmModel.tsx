@@ -52,26 +52,19 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   onConfirm,
   onCancel,
 }) => {
-  // Internal visibility drives the RN <Modal> — we keep it alive
-  // during the closing animation so the card doesn't vanish abruptly.
   const [internalVisible, setInternalVisible] = useState(false);
-  const executingRef = useRef(false); // prevents double-tap
-
-  // Animated values
+  const executingRef = useRef(false);
   const backdropOpacity = useRef(new Animated.Value(1)).current;
   const cardScale       = useRef(new Animated.Value(1)).current;
   const cardOpacity     = useRef(new Animated.Value(1)).current;
 
-  // ── Open ──────────────────────────────────────────────────
   useEffect(() => {
     if (visible) {
       executingRef.current = false;
       setInternalVisible(true);
-      // Reset before animating in
       backdropOpacity.setValue(1);
       cardScale.setValue(1);
       cardOpacity.setValue(1);
-
       Animated.parallel([
         Animated.timing(backdropOpacity, { toValue: 1,    ...OPEN_CONFIG }),
         Animated.spring(cardScale,       { toValue: 1,    friction: 7, tension: 160, useNativeDriver: true }),
@@ -79,8 +72,6 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
       ]).start();
     }
   }, [visible]);
-
-  // ── Close helpers ─────────────────────────────────────────
   const animateClose = useCallback((afterClose: () => void) => {
     Animated.parallel([
       Animated.timing(backdropOpacity, { toValue: 0, ...CLOSE_CONFIG }),
@@ -88,38 +79,30 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
       Animated.timing(cardOpacity,     { toValue: 0,    ...CLOSE_CONFIG }),
     ]).start(() => {
       setInternalVisible(false);
-      // Run callback after close so UI never freezes
       InteractionManager.runAfterInteractions(afterClose);
     });
   }, [backdropOpacity, cardScale, cardOpacity]);
-
   const handleCancel = useCallback(() => {
     if (executingRef.current) return;
     animateClose(onCancel);
   }, [animateClose, onCancel]);
-
   const handleConfirm = useCallback(() => {
     if (executingRef.current) return;
     executingRef.current = true;
     animateClose(onConfirm);
   }, [animateClose, onConfirm]);
-
-  // ── Render ────────────────────────────────────────────────
   return (
     <Modal
       transparent
       statusBarTranslucent
       visible={internalVisible}
-      animationType="none"      // we drive our own animation
+      animationType="none"      
       onRequestClose={handleCancel}
-      hardwareAccelerated       // Android GPU compositing
+      hardwareAccelerated       
     >
-      {/* Backdrop — tap to cancel */}
       <Pressable style={StyleSheet.absoluteFill} onPress={handleCancel}>
         <Animated.View style={[s.backdrop, { opacity: backdropOpacity }]} />
       </Pressable>
-
-      {/* Card */}
       <View style={s.centerer} pointerEvents="box-none">
         <Animated.View
           style={[
@@ -130,19 +113,12 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
             },
           ]}
         >
-          {/* Icon badge */}
           <View style={s.iconBadge}>
             <Ionicons name={icon} size={28} color={PURPLE} />
           </View>
-
-          {/* Text */}
           <Text style={s.title}>{title}</Text>
           <Text style={s.message}>{message}</Text>
-
-          {/* Divider */}
           <View style={s.divider} />
-
-          {/* Buttons */}
           <View style={s.buttonRow}>
             {/* Cancel */}
             <TouchableOpacity

@@ -195,7 +195,6 @@ export default function ConnectionsListScreen() {
         contentContainerStyle={sl.list}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchConnections(true)} tintColor={C.purple} colors={[C.purple]} />}
-        ItemSeparatorComponent={() => <View style={sl.sep} />}
         ListEmptyComponent={
           <View style={sl.empty}>
             <Ionicons name="people-outline" size={52} color={C.muted} style={{ marginBottom:16 }} />
@@ -236,7 +235,7 @@ const Header = ({ count, isMyProfile, ownerName }: { count:number; isMyProfile:b
 const sl = StyleSheet.create({
   safe:          { flex:1, backgroundColor:C.white },
   list:          { paddingBottom:100 },
-  header:        { flexDirection:'row', alignItems:'center', gap:14, paddingHorizontal:16, paddingVertical:14, backgroundColor:C.white, borderBottomWidth:1, borderBottomColor:C.border },
+  header:        { flexDirection:'row', alignItems:'center', gap:14, paddingHorizontal:16, paddingVertical:13, backgroundColor:C.white,},
   headerTitle:   { fontSize:17, fontWeight:'700', color:C.text },
   headerSub:     { fontSize:13, color:C.muted, marginTop:1 },
   card:          { backgroundColor:C.white, paddingHorizontal:16, paddingVertical:14 },
@@ -246,7 +245,7 @@ const sl = StyleSheet.create({
   locRow:        { flexDirection:'row', alignItems:'center', gap:3, marginBottom:2 },
   locText:       { fontSize:12, color:C.muted },
   skills:        { fontSize:12, color:C.purple, fontWeight:'500' },
-  sep:           { height:1, backgroundColor:C.border },
+
   profileAction: { backgroundColor:'#6D4AFF', justifyContent:'center', alignItems:'center', width:80, gap:4 },
   removeAction:  { backgroundColor:'#EF4444', justifyContent:'center', alignItems:'center', width:80, gap:4 },
   actionText:    { color:'#fff', fontSize:12, fontWeight:'600' },

@@ -7,76 +7,58 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useProfile } from '@/Contexts/profileContext';
 import Toast from 'react-native-toast-message';
 import { router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context'; // ✅ NOT SafeAreaProvider
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import LocationPicker from '@/components/LocationPicker';
 import { useAuthh } from '@/Contexts/authContext';
 import { readDraft, saveDraft } from '@/lib/profileDraft';
-
 const BasicInfo = () => {
   const { profile, updateProfile } = useProfile();
   const { user } = useAuthh();
-
   const [formData, setFormData] = useState({
     fullName:         profile?.fullName         ?? '',
-    InterestedSkills: profile?.InterestedSkills ?? '', // ✅ fixed: was InterestedSkills
-    location:         profile?.location         ?? '', // ✅ fixed: was location
+    InterestedSkills: profile?.InterestedSkills ?? '', 
+    location:         profile?.location         ?? '', 
     bio:              profile?.bio              ?? '',
   });
-
   const [focused, setFocused] = useState<string | null>(null);
   const [saving,  setSaving]  = useState(false);
-
-  // ── STRATEGY #8: memoized handlers — never recreated on re-render ─────
   const handleChange = useCallback((field: string, value: string) => {
     setFormData((prev:any) => ({ ...prev, [field]: value }));
   }, []);
-
   const handleLocationSelect = useCallback((district: string) => {
     setFormData((prev:any) => ({ ...prev, location: district }));
-  }, []); // ✅ FIXED: was setting "district" key instead of "location"
-
-  // ── OPTIMIZATION: Stable handlers to prevent "focusin" violations ─────
-  // These prevent child components (like LocationPicker) from re-rendering on every keystroke
+  }, []);
   const onNameChange  = useCallback((t: string) => handleChange('fullName', t), [handleChange]);
   const onNameFocus   = useCallback(() => setFocused('fullName'), []);
   const onNameBlur    = useCallback(() => setFocused(null), []);
-
   const onSkillChange = useCallback((t: string) => handleChange('InterestedSkills', t), [handleChange]);
   const onSkillFocus  = useCallback(() => setFocused('InterestedSkills'), []);
   const onSkillBlur   = useCallback(() => setFocused(null), []);
-
   const onLocFocus    = useCallback(() => setFocused('location'), []);
   const onLocBlur     = useCallback(() => setFocused(null), []);
-
   const onBioChange   = useCallback((t: string) => handleChange('bio', t), [handleChange]);
   const onBioFocus    = useCallback(() => setFocused('bio'), []);
   const onBioBlur     = useCallback(() => setFocused(null), []);
-
-  // ── STRATEGY #10: Restore draft on mount ─────────────────────────────
   useEffect(() => {
     if (!user?.id) return;
     readDraft(user.id).then((draft) => {
       if (!draft) return;
       setFormData({
         fullName:         draft.full_Name         ?? '',
-        InterestedSkills: draft.InterestedSkills ?? '', // ✅ fixed field name
+        InterestedSkills: draft.InterestedSkills ?? '', 
         location:         draft.location         ?? '', 
         bio:              draft.bio              ?? '',
       });
     });
   }, [user?.id]);
-
-  // ── STRATEGY #5: Prefetch next screen early ─────────────────────────
 const isMounted = useRef(true);
-
 useEffect(() => {
   isMounted.current = true;
   return () => {
-    isMounted.current = false; // ← tells Portal cleanup we're unmounting
+    isMounted.current = false; 
   };
 }, []);
-
   const handleNext = useCallback(async () => {
     if (!formData.fullName.trim()) {
       Toast.show({ type: 'error', text1: 'Please enter your full name' });
@@ -86,27 +68,17 @@ useEffect(() => {
       Toast.show({ type: 'error', text1: 'Please select your district' });
       return;
     }
-
     setSaving(true);
-
     const payload = {
       fullName:         formData.fullName.trim(),
       bio:              formData.bio.trim(),
-      location:         formData.location.trim(),   // ✅ correct field name
-      InterestedSkills: formData.InterestedSkills,  // ✅ correct field name
+      location:         formData.location.trim(),  
+      InterestedSkills: formData.InterestedSkills, 
     };
-
-    // ── STRATEGY #1: Update memory instantly (0ms) ────────────────────
     updateProfile(payload);
-
-    // ── STRATEGY #3: saveDraft NOT awaited — fire and forget ──────────
-    // ✅ FIXED: was missing entirely — draft was never saved!
     if (user?.id) {
       saveDraft(user.id, { ...payload, currentStep: 1 })
-        .catch(e => console.warn('Draft save failed:', e));
-    }
-
-    // ✅ FIX: State updates must happen BEFORE navigation to avoid Portal unmount issues
+        .catch(e => console.warn('Draft save failed:', e));}
     setSaving(false);
     setFormData({
       fullName:         '',
@@ -114,23 +86,19 @@ useEffect(() => {
       location:         '',
       bio:              '',
     });
-
-    // ── STRATEGY #9: Navigate immediately — no network wait ───────────
     router.push('/(profileSetUp)/ProfileImage');
   }, [formData, updateProfile, user?.id]);
 
   return (
-    <SafeAreaView style={s.safe} edges={['top']}>{/* ✅ SafeAreaView not Provider */}
+    <SafeAreaView style={s.safe} edges={['top']}>
       <KeyboardAvoidingView
         style={s.container}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={s.headerImage}>
-        
           <Text style={s.sptext}>MindMates</Text>
              <Text style={s.stepLabel}>Step 1 of 3</Text>
         </View>
-
         <ScrollView
           contentContainerStyle={s.scroll}
           showsVerticalScrollIndicator={false}
@@ -138,7 +106,6 @@ useEffect(() => {
         >
           <Text style={s.subtitle}>Let's get to know you! </Text>
          <View style={{padding:1}}>
-          {/* Full Name */}
           <View style={s.inputGroup}>
             <Text style={s.label}>Full Name *</Text>
             <View style={[s.inputWrapper, focused === 'fullName' && s.inputFocused]}>
@@ -155,8 +122,6 @@ useEffect(() => {
               />
             </View>
           </View>
-
-          {/* Interested Skills */}
           <View style={s.inputGroup}>
             <Text style={s.label}>Interested Skill *</Text>
             <View style={[s.inputWrapper, focused === 'InterestedSkills' && s.inputFocused]}>
@@ -173,8 +138,6 @@ useEffect(() => {
               />
             </View>
           </View>
-
-          {/* Location */}
           <View style={s.inputGroup}>
             <Text style={s.label}>Location *</Text>
             <View style={[s.inputWrapper, focused === 'location' && s.inputFocused]}>
@@ -190,8 +153,6 @@ useEffect(() => {
               </View>
             </View>
           </View>
-
-          {/* Bio */}
           <View style={s.inputGroup}>
             <Text style={s.label}>About You</Text>
             <View style={[s.textAreaWrapper, focused === 'bio' && s.inputFocused]}>
@@ -213,8 +174,6 @@ useEffect(() => {
           </View>
    </View>
         </ScrollView>
-
-        {/* Continue Button */}
         <View style={s.buttonContainer}>
           <TouchableOpacity
             onPress={handleNext}
@@ -238,7 +197,6 @@ useEffect(() => {
     </SafeAreaView>
   );
 };
-
 const s = StyleSheet.create({
   safe:            { flex: 1, backgroundColor: '#FFFFFF' },
   container:       { flex: 1, backgroundColor: '#FFFFFF' },
@@ -271,5 +229,4 @@ const s = StyleSheet.create({
    
   },
 });
-
 export default BasicInfo;

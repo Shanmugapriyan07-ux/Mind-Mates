@@ -1,36 +1,35 @@
 export default {
-  name: "Mind-Mates",
-  slug: "Mind-Mates",
+  name: "MindMates",
+  slug: "MindMates",
   version: "1.0.0",
   scheme: "mindmates",
   orientation: "portrait",
   userInterfaceStyle: "light",
-
-  icon: "./assets/icon.png",
-
+  icon: "./assets/images/icon.png",
   splash: {
-    image: "./assets/splash-icon.png",
+    image: "./assets/images/splash-logo.png",
     resizeMode: "contain",
     backgroundColor: "#ffffff",
   },
 
   android: {
-    package: "com.Mindset.mindmates",
+    package: "com.mindset.mindmates",
     adaptiveIcon: {
-      foregroundImage: "./assets/adaptive-icon.png",
-      backgroundColor: "#ffffff",
+      foregroundImage: "./assets/images/adaptive-icon.png",
+       backgroundColor: "#ffffff", 
     },
     googleServicesFile: "./google-services.json",
   },
 
   ios: {
-    bundleIdentifier: "com.Mindset.mindmates",
+    bundleIdentifier: "com.mindset.mindmates",
     supportsTablet: false,
     googleServicesFile: "./GoogleService-Info.plist",
   },
 
   plugins: [
     "expo-router",
+    "expo-secure-store",
     "@react-native-firebase/app",
     "@react-native-firebase/auth",
     "@react-native-google-signin/google-signin",
@@ -55,6 +54,7 @@ export default {
   extra: {
     eas: {
       projectId: "d6f6bc93-db51-4bf0-a7e3-e7282540303e",
+      googleWebClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
     },
   },
 };

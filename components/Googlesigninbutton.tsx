@@ -1,29 +1,20 @@
+import icons from "@/constants/icons";
 import React, { memo, useCallback, useRef } from "react";
 import {
   ActivityIndicator,
   Animated,
+  Image,
   Platform,
   StyleSheet,
   Text,
   TouchableWithoutFeedback,
   View,
 } from "react-native";
-
-// Google "G" logo rendered as text — matches brand colors without an asset file
-const GoogleG = memo(() => (
-  <View style={styles.gContainer}>
-    <Text style={styles.gText}>G</Text>
-  </View>
-));
-
-GoogleG.displayName = "GoogleG";
-
 interface GooglesigninbuttonProps {
   onPress: () => void;
   isLoading?: boolean;
   disabled?: boolean;
 }
-
 function Googlesigninbutton({
   onPress,
   isLoading = false,
@@ -32,7 +23,6 @@ function Googlesigninbutton({
   const scale = useRef(new Animated.Value(1)).current;
   const opacity = useRef(new Animated.Value(1)).current;
   const isDisabled = disabled || isLoading;
-
   const handlePressIn = useCallback(() => {
     if (isDisabled) return;
     Animated.parallel([
@@ -65,7 +55,6 @@ function Googlesigninbutton({
       }),
     ]).start();
   }, [scale, opacity]);
-
   return (
     <TouchableWithoutFeedback
       onPress={isDisabled ? undefined : onPress}
@@ -92,7 +81,7 @@ function Googlesigninbutton({
               style={styles.spinner}
             />
           ) : (
-            <GoogleG />
+           <Image source={icons.google} style={{ width: 22, height: 22, left:17 }} />
           )}
         </View>
 
@@ -119,12 +108,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     backgroundColor: "#FFFFFF",
-    borderRadius: 4,
+    borderRadius: 30,
     borderWidth: 1,
     borderColor: "#DADCE0",
-    height: 48,
+    height: 58,
     paddingHorizontal: 12,
     width: "100%",
+    bottom:100,
     ...Platform.select({
       android: { elevation: 1 },
       ios: {
@@ -168,8 +158,9 @@ const styles = StyleSheet.create({
   label: {
     flex: 1,
     textAlign: "center",
-    fontSize: 15,
-    fontWeight: "500",
+    fontSize: 19,
+    fontWeight: "600",
+    left:10,
     color: "#3C4043",
     letterSpacing: 0.15,
     fontFamily: Platform.select({

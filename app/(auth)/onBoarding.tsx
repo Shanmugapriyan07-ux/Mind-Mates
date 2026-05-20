@@ -1,8 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
-  Image,
   StyleSheet,
   TouchableOpacity,
   Dimensions,
@@ -13,18 +12,12 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
   withSpring,
-  interpolate,
-  runOnJS,
   Easing,
 } from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import images from '@/constants/images';
-
-
-const { width } = Dimensions.get('window');
-
-// ─── Slide Data ───────────────────────────────────────────────────────────────
+Dimensions.get('window');
 const slides = [
   {
     id: '1',
@@ -48,11 +41,8 @@ const slides = [
       'Where your interests bring you — connect with people who understand your passions and interests.',
   },
 ];
-
 const DOT_SIZE = 10;
 const ACTIVE_WIDTH = 24;
-
-// ─── Single Animated Dot ──────────────────────────────────────────────────────
 const Dot = ({ index, activeIndex }: { index: number; activeIndex: number; key?: any }) => {
   const dotStyle = useAnimatedStyle(() => {
     const isActive = activeIndex === index;
@@ -69,66 +59,44 @@ const Dot = ({ index, activeIndex }: { index: number; activeIndex: number; key?:
 
   return <Animated.View style={[styles.dot, dotStyle]} />;
 };
-
-// ─── Main Onboarding ──────────────────────────────────────────────────────────
 export default function Onboarding() {
   const [currentIndex, setCurrentIndex] = useState(0);
-
-  // Animated values for content transitions
   const imageOpacity = useSharedValue(1);
   const imageTranslateY = useSharedValue(0);
   const textOpacity = useSharedValue(1);
   const textTranslateY = useSharedValue(0);
-
-  // ── Transition to next slide ──────────────────────────────────────────────
   const goToNext = () => {
     const nextIndex = currentIndex + 1;
-
     if (currentIndex === slides.length - 1) {
       router.replace('/(auth)/Google');
       return;
     }
-
-    // 1️⃣ Fade + slide OUT current content
     imageOpacity.value = withTiming(0, { duration: 150, easing: Easing.out(Easing.ease) });
     imageTranslateY.value = withTiming(1, { duration: 150, easing: Easing.out(Easing.ease) });
     textOpacity.value = withTiming(0, { duration: 150, easing: Easing.out(Easing.ease) });
     textTranslateY.value = withTiming(1, { duration: 150, easing: Easing.out(Easing.ease) });
-
-    // 2️⃣ After exit — update index and fade IN new content
     setTimeout(() => {
       setCurrentIndex(nextIndex);
-
-      // Reset position for enter animation (come from below)
       imageTranslateY.value = 1;
       textTranslateY.value = 1;
-
-      // Fade + slide IN
       imageOpacity.value = withTiming(1, { duration: 150, easing: Easing.out(Easing.ease) });
       imageTranslateY.value = withTiming(0, { duration: 150, easing: Easing.out(Easing.ease) });
       textOpacity.value = withTiming(1, { duration: 150, easing: Easing.out(Easing.ease) });
       textTranslateY.value = withTiming(0, { duration: 150, easing: Easing.out(Easing.ease) });
     }, 260);
   };
-
-  // ── Animated styles ───────────────────────────────────────────────────────
   const animatedImageStyle = useAnimatedStyle(() => ({
     opacity: imageOpacity.value,
     transform: [{ translateY: imageTranslateY.value }],
   }));
-
   const animatedTextStyle = useAnimatedStyle(() => ({
     opacity: textOpacity.value,
     transform: [{ translateY: textTranslateY.value }],
   }));
-
   const slide = slides[currentIndex];
   const isLast = currentIndex === slides.length - 1;
-
   return (
     <SafeAreaView style={styles.container}>
-
-      {/* ── Top: Image area ────────────────────────────────────────────── */}
       <View style={styles.topHalf}>
         <Animated.Image
           source={slide.image}
@@ -136,24 +104,16 @@ export default function Onboarding() {
           resizeMode="contain"
         />
       </View>
-
-      {/* ── Bottom: Black content area ──────────────────────────────────── */}
       <View style={styles.bottomHalf}>
-
-        {/* Dots — always visible, just the active one changes */}
         <View style={styles.dotContainer}>
           {slides.map((_, i) => (
             <Dot key={i} index={i} activeIndex={currentIndex} />
           ))}
         </View>
-
-        {/* Animated text content */}
         <Animated.View style={[styles.textBlock, animatedTextStyle]}>
           <Text style={styles.title}>{slide.title}</Text>
           <Text style={styles.subtitle}>{slide.subtitle}</Text>
         </Animated.View>
-
-        {/* Continue / Get Started button */}
         <TouchableOpacity
           style={styles.button}
           onPress={goToNext}
@@ -169,15 +129,11 @@ export default function Onboarding() {
     </SafeAreaView>
   );
 }
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#ffffff',
   },
-
-  // ── Top white half ──
   topHalf: {
     height: 340,
     backgroundColor: '#ffffff',
@@ -191,20 +147,14 @@ const styles = StyleSheet.create({
     top: 58,
     left: 10,
   },
-
-  // ── Bottom black half ──
   bottomHalf: {
     height: 450,
     backgroundColor: '#000000',
     paddingTop: 28,
     paddingHorizontal: 28,
-   
     paddingBottom: 50,
     alignItems: 'center',
-    
   },
-
-  // ── Dots ──
   dotContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -216,8 +166,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#6D4AFF',
     marginHorizontal: 4,
   },
-
-  // ── Text ──
   textBlock: {
     alignItems: 'center',
     flex: 1,
@@ -237,8 +185,6 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     bottom:13
   },
-
-  // ── Button ──
   button: {
     backgroundColor: '#6D4AFF',
     flexDirection: 'row',

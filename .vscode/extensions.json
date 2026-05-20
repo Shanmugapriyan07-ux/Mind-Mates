@@ -1,7 +1,6 @@
-<<<<<<< HEAD
-{ "recommendations": ["expo.vscode-expo-tools"] }
-=======
+
+{ "recommendations": ["expo.vscode-expo-tools"] },
 {
   "recommendations": ["denoland.vscode-deno"]
 }
->>>>>>> 7275110d682c270b189b9356f557026dd337136e
+

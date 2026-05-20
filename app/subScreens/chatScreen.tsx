@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, RefObject } from 'reac
 import {
   View, Text, FlatList, TextInput, TouchableOpacity,
   StyleSheet, StatusBar, KeyboardAvoidingView, Platform,
-  ActivityIndicator, Alert, Dimensions, Animated, PanResponder,
+  ActivityIndicator, Alert, Dimensions, Animated as RNAnimated, PanResponder,
 } from 'react-native';
 let CachedImage: any;
 try { CachedImage = require('expo-image').Image; }
@@ -25,7 +25,6 @@ import MediaPreview                     from '@/components/mediaPreview';
 import ConfirmModal                     from '@/components/confirmModel';
 import { useChatBadge } from '@/hooks/useBadgeSync';
 
-// ── Media helpers ─────────────────────────────────────────────────
 const IMG_PREFIX          = '__IMG__';
 const VID_PREFIX          = '__VID__';
 const isImageMsg          = (m: string) => m.startsWith(IMG_PREFIX);
@@ -34,7 +33,6 @@ const isMediaMsg          = (m: string) => isImageMsg(m) || isVideoMsg(m);
 const extractMediaUrl     = (m: string) => m.replace(IMG_PREFIX,'').replace(VID_PREFIX,'').split('\n')[0].trim();
 const extractMediaCaption = (m: string) => m.replace(IMG_PREFIX,'').replace(VID_PREFIX,'').split('\n').slice(1).join('\n').trim();
 
-// ── Edge function caller ──────────────────────────────────────────
 const callFn = async (body: Record<string, any>) => {
   const { data, error } = await supabase.functions.invoke('mindmates', { body });
   if (error) throw new Error(error.message);
@@ -57,7 +55,7 @@ const C = {
   bg:'#F5F5F7', white:'#FFFFFF', purple:'#6D4AFF',
   purpleMsg:'#6D4AFF', otherMsg:'#FFFFFF',
   text:'#111827', muted:'#6B7280', border:'#E5E7EB',
-  red:'#EF4444', seen:'#F3CF3E',
+  red:'#EF4444', seen:'#f8d549',
 };
 
 const secToMs    = (ts: number) => ts < 10_000_000_000 ? ts * 1000 : ts;
@@ -78,14 +76,12 @@ const formatLastSeen = (s: string | null) => {
   return `last seen ${d.toLocaleDateString([], { day:'numeric', month:'short' })} at ${tt}`;
 };
 
-// ── StatusTick ────────────────────────────────────────────────────
 const StatusTick = ({ status }: { status: string }) => {
-  if (status === 'seen') return <Ionicons name="checkmark-done-outline" size={14} color={C.seen} />;
-  if (status === 'sent') return <Ionicons name="checkmark-outline" size={14} color="rgba(255,255,255,0.7)" />;
+  if (status === 'seen') return <Ionicons name="checkmark-done-outline" size={18} color={C.seen} />;
+  if (status === 'sent') return <Ionicons name="checkmark-outline" size={18} color="rgba(255,255,255,0.7)" />;
   return null;
 };
 
-// ── DateDivider ───────────────────────────────────────────────────
 const DateDivider = ({ ts }: { ts: number }) => {
   const d = new Date(secToMs(ts)), today = new Date();
   const diff = Math.floor((today.getTime() - secToMs(ts)) / 86400000);
@@ -98,7 +94,6 @@ const DateDivider = ({ ts }: { ts: number }) => {
   );
 };
 
-// ── ReplyQuote ────────────────────────────────────────────────────
 const ReplyQuote = ({ replyToText, replyToSender, myId, otherName }: {
   replyToText:string; replyToSender:string; myId:string; otherName:string;
 }) => {
@@ -125,8 +120,6 @@ const ReplyQuote = ({ replyToText, replyToSender, myId, otherName }: {
     </View>
   );
 };
-
-// ── ReactionsRow ──────────────────────────────────────────────────
 const ReactionsRow = ({ reactionsJson, onReact, msg }: {
   reactionsJson:string; onReact:(m:any, e:string)=>void; msg:any;
 }) => {
@@ -147,49 +140,38 @@ const ReactionsRow = ({ reactionsJson, onReact, msg }: {
     </View>
   );
 };
-
 const MSG_IMG_W = Dimensions.get('window').width * 0.62;
-
-// ── TypingDots — animated "..." for typing indicator ──────────────
-// Three dots that animate sequentially like Instagram
 const TypingDots = React.memo(() => {
-  const dot1 = useRef(new Animated.Value(0.3)).current;
-  const dot2 = useRef(new Animated.Value(0.3)).current;
-  const dot3 = useRef(new Animated.Value(0.3)).current;
-
+  const dot1 = useRef(new RNAnimated.Value(0.3)).current;
+  const dot2 = useRef(new RNAnimated.Value(0.3)).current;
+  const dot3 = useRef(new RNAnimated.Value(0.3)).current;
   useEffect(() => {
-    const pulse = (val: Animated.Value, delay: number) =>
-      Animated.loop(
-        Animated.sequence([
-          Animated.delay(delay),
-          Animated.timing(val, { toValue: 1,   duration: 300, useNativeDriver: true }),
-          Animated.timing(val, { toValue: 0.3, duration: 300, useNativeDriver: true }),
-          Animated.delay(600),
+    const pulse = (val: RNAnimated.Value, delay: number) =>
+      RNAnimated.loop(
+        RNAnimated.sequence([
+          RNAnimated.delay(delay),
+          RNAnimated.timing(val, { toValue: 1,   duration: 300, useNativeDriver: true }),
+          RNAnimated.timing(val, { toValue: 0.3, duration: 300, useNativeDriver: true }),
+          RNAnimated.delay(600),
         ])
       ).start();
-
     pulse(dot1, 0);
     pulse(dot2, 180);
     pulse(dot3, 360);
-
     return () => {
       dot1.stopAnimation();
       dot2.stopAnimation();
       dot3.stopAnimation();
     };
   }, []);
-
   return (
     <View style={t.typingDots}>
       {[dot1, dot2, dot3].map((d, i) => (
-        <Animated.View key={i} style={[t.typingDot, { opacity: d }]} />
+        <RNAnimated.View key={i} style={[t.typingDot, { opacity: d }]} />
       ))}
     </View>
   );
 });
-
-// ── TypingBubble — the "other user is typing" bubble ─────────────
-// Appears at the bottom of the message list, exactly like Instagram
 const TypingBubble = React.memo(() => (
   <View style={t.typingBubbleWrap}>
     <View style={t.typingBubble}>
@@ -197,11 +179,6 @@ const TypingBubble = React.memo(() => (
     </View>
   </View>
 ));
-
-// ── MediaBubble ───────────────────────────────────────────────────
-// FIXED: Video and image are now handled separately.
-// Video always shows thumbnail + play overlay — tapping calls onOpenMedia
-// with type='video' so MediaViewer opens with expo-av, not image viewer.
 const MediaBubble = React.memo(({ message, isMe, pending, onPress }: {
   message:string; isMe:boolean; pending:boolean; onPress:()=>void;
 }) => {
@@ -209,12 +186,7 @@ const MediaBubble = React.memo(({ message, isMe, pending, onPress }: {
   const url     = extractMediaUrl(message);
   const caption = extractMediaCaption(message);
   const isVid   = isVideoMsg(message);
-
-  // VIDEO THUMBNAIL: Cloudinary generates this via so_0 (second offset = 0)
-  // cdnVideoThumbUrl → /video/upload/so_0,w_400,h_300,c_fill,f_jpg/{id}
-  // This is a JPEG (image), not the video — loads instantly ✅
   const thumbUri = isVid ? cdnVideoThumbUrl(url, 400, 300) : null;
-
   return (
     <View style={{ borderRadius: 12, overflow: 'hidden' }}>
       <TouchableOpacity onPress={onPress} activeOpacity={0.88} disabled={pending}>
@@ -230,20 +202,15 @@ const MediaBubble = React.memo(({ message, isMe, pending, onPress }: {
             ) : (
               <View style={[t.mediaBubble, { backgroundColor: '#1C1C1E' }]} />
             )}
-
-            {/* Play button overlay — WhatsApp / Instagram style */}
             <View style={t.videoPlayOverlay}>
               <View style={t.videoPlayBtn}>
                 <Ionicons name="play" size={26} color="#fff" style={{ paddingLeft: 3 }} />
               </View>
             </View>
-
-            {/* "Video" badge bottom-right */}
             <View style={t.videoBadge}>
               <Ionicons name="videocam" size={11} color="#fff" style={{ marginRight: 3 }} />
               <Text style={t.videoBadgeTxt}>Video</Text>
             </View>
-
             {pending && (
               <View style={t.mediaLoadingOverlay}>
                 <ActivityIndicator size="large" color="#fff" />
@@ -251,12 +218,10 @@ const MediaBubble = React.memo(({ message, isMe, pending, onPress }: {
             )}
           </View>
         ) : err ? (
-          // ── Image error fallback ────────────────────────────
           <View style={[t.mediaBubble, { backgroundColor: '#374151' }]}>
             <Ionicons name="image-outline" size={36} color="#9CA3AF" />
           </View>
         ) : (
-          // ── Image bubble ────────────────────────────────────
           <CachedImage
             source={{ uri: url }}
             style={{ width: MSG_IMG_W, height: MSG_IMG_W * 0.75 }}
@@ -264,14 +229,12 @@ const MediaBubble = React.memo(({ message, isMe, pending, onPress }: {
             onError={() => setErr(true)}
           />
         )}
-
         {pending && !isVid && (
           <View style={t.mediaLoadingOverlay}>
             <ActivityIndicator size="large" color="#fff" />
           </View>
         )}
       </TouchableOpacity>
-
       {!!caption && (
         <Text style={[t.msgText, isMe ? t.myText : t.otherText, { marginTop: 6, paddingHorizontal: 4 }]}>
           {caption}
@@ -280,8 +243,6 @@ const MediaBubble = React.memo(({ message, isMe, pending, onPress }: {
     </View>
   );
 });
-
-// ── MessageBubble ─────────────────────────────────────────────────
 const MessageBubble = React.memo(({
   item, isMe, onRetry, onLongPress, onReact, onReply, onOpenMedia, otherName, myId,
 }: {
@@ -290,7 +251,7 @@ const MessageBubble = React.memo(({
   onReply:(m:ChatMessage)=>void; onOpenMedia:(uri:string,type:'image'|'video')=>void;
   otherName:string; myId:string;
 }) => {
-  const swipeX = React.useRef(new Animated.Value(0)).current;
+  const swipeX = React.useRef(new RNAnimated.Value(0)).current;
   const THRESH = 60, MAX = 80;
   const pan = React.useRef(PanResponder.create({
     onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy),
@@ -300,13 +261,12 @@ const MessageBubble = React.memo(({
     onPanResponderRelease: (_, g) => {
       if (isMe ? g.dx < -THRESH : g.dx > THRESH) {
         onReply(item);
-        Animated.spring(swipeX, { toValue:0, useNativeDriver:true, friction:5, tension:100 }).start();
+        RNAnimated.spring(swipeX, { toValue:0, useNativeDriver:true, friction:5, tension:100 }).start();
       } else {
-        Animated.spring(swipeX, { toValue:0, useNativeDriver:true, friction:6, tension:150 }).start();
+        RNAnimated.spring(swipeX, { toValue:0, useNativeDriver:true, friction:6, tension:150 }).start();
       }
     },
   })).current;
-
   const iconOpacity = swipeX.interpolate({
     inputRange: isMe ? [-THRESH,-20,0] : [0,20,THRESH],
     outputRange: isMe ? [1,0.4,0] : [0,0.4,1], extrapolate:'clamp',
@@ -315,16 +275,15 @@ const MessageBubble = React.memo(({
     inputRange: isMe ? [-THRESH,-20,0] : [0,20,THRESH],
     outputRange: isMe ? [1,0.7,0.4] : [0.4,0.7,1], extrapolate:'clamp',
   });
-
   return (
     <View style={[t.msgWrap, isMe ? t.myWrap : t.otherWrap]}>
-      <Animated.View style={[
+      <RNAnimated.View style={[
         t.swipeReplyIcon, isMe ? t.swipeIconLeft : t.swipeIconRight,
         { opacity:iconOpacity, transform:[{scale:iconScale}] },
       ]}>
         <Ionicons name="return-down-back-outline" size={18} color={C.muted}/>
-      </Animated.View>
-      <Animated.View style={{ transform:[{translateX:swipeX}] }} {...pan.panHandlers}>
+      </RNAnimated.View>
+      <RNAnimated.View style={{ transform:[{translateX:swipeX}] }} {...pan.panHandlers}>
         <TouchableOpacity
           activeOpacity={item._failed ? 0.6 : 0.95}
           onPress={() => item._failed && onRetry(item)}
@@ -334,7 +293,6 @@ const MessageBubble = React.memo(({
             t.bubble, isMe ? t.myBubble : t.otherBubble,
             item._pending && { opacity:0.6 },
             item._failed  && t.failedBubble,
-            // Media bubbles: no padding, image fills to edge
             isMediaMsg(item.message) && { padding:0, overflow:'hidden' },
           ]}
         >
@@ -346,8 +304,6 @@ const MessageBubble = React.memo(({
             />
           )}
           {isMediaMsg(item.message) ? (
-            // FIXED: Pass correct type ('video' or 'image') to onOpenMedia
-            // Previously all media was treated as image → video wouldn't play
             <MediaBubble
               message={item.message}
               isMe={isMe}
@@ -379,21 +335,15 @@ const MessageBubble = React.memo(({
         {!!(item as any).reactions && (item as any).reactions !== '[]' && (
           <ReactionsRow reactionsJson={(item as any).reactions} onReact={onReact} msg={item}/>
         )}
-      </Animated.View>
+      </RNAnimated.View>
     </View>
   );
 });
-
-// ═══════════════════════════════════════════════════════════════════
-// MAIN SCREEN
-// ═══════════════════════════════════════════════════════════════════
 export default function ChatScreen() {
   const { user } = useAuthh();
   const params = useLocalSearchParams<{
     chatId:string; userId:string; name:string; image:string; lastSeen?:string;
   }>();
-  
-
   const paramChatId = params.chatId?.trim() || '';
   const [chatId,       setChatId]       = useState(paramChatId);
   const [inputText,    setInputText]    = useState('');
@@ -410,33 +360,21 @@ export default function ChatScreen() {
   const [pendingMedia, setPendingMedia] = useState<{ uri:string; type:'image'|'video' }|null>(null);
   const [sendingMedia, setSendingMedia] = useState(false);
   const [viewerMedia,  setViewerMedia]  = useState<{ uri:string; type:'image'|'video' }|null>(null);
-
-  // Modal state
   const [deleteModal,    setDeleteModal]    = useState<{ msg: ActionMessage; mode: 'soft'|'choose' }|null>(null);
   const [clearChatModal, setClearChatModal] = useState(false);
   const [reportModal,    setReportModal]    = useState(false);
-
   const flatRef  = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
-
   useChatBadge(chatId as string);
-
   const {
     messages, setMessages, loading, loadingOld, hasMore,
     sendMessage, retryMessage, loadOlderMessages,
   } = useMessages(chatId);
-
-  // ── Typing indicator ────────────────────────────────────────────
-  // isOtherTyping: show typing bubble + replace header subtitle
-  // onTypingInput: call on every TextInput onChange
-  // onTypingStop:  call after send or blur
   const { isOtherTyping, onTypingInput, onTypingStop } = useTyping(
     chatId || null,
     user?.id ?? null,
     params.userId ?? null,
   );
-
-  // ── Mark seen ──────────────────────────────────────────────────
   useEffect(() => {
     if (!chatId || !user?.id) return;
     const uid = user.id;
@@ -449,16 +387,12 @@ export default function ChatScreen() {
       .eq('id', chatId)
       .then(() => {}, () => {});
   }, [chatId, user?.id]);
-
-  // ── Block status ───────────────────────────────────────────────
   useEffect(() => {
     if (!params.userId || !user?.id) return;
     callFn({ action:'check_block', otherUserId:params.userId })
       .then(r => { setIsBlocked(r.isBlocked ?? false); setIBlockedThem(r.iBlockedThem ?? false); })
       .catch(() => {});
   }, [params.userId, user?.id]);
-
-  // ── Find chat ──────────────────────────────────────────────────
   useEffect(() => {
     if (paramChatId || !params.userId || !user?.id) return;
     let cancelled = false, attempts = 0;
@@ -477,20 +411,14 @@ export default function ChatScreen() {
     tryFind();
     return () => { cancelled = true; };
   }, [params.userId, user?.id, paramChatId]);
-
-  // ── Auto-scroll ────────────────────────────────────────────────
   useEffect(() => {
     if (messages.length > 0)
       setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 100);
   }, [messages.length]);
-
-  // Also scroll when typing indicator appears
   useEffect(() => {
     if (isOtherTyping)
       setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 80);
   }, [isOtherTyping]);
-
-  // ── Handlers ───────────────────────────────────────────────────
   const handleReact = useCallback(async (msg: ChatMessage, emoji: string) => {
     if (!user?.id) return;
     setMessages((prev: any) => prev.map((m: any) => {
@@ -507,70 +435,58 @@ export default function ChatScreen() {
     }));
     callFn({ action:'react_message', messageId:msg.$id, emoji }).catch(() => {});
   }, [user?.id, setMessages]);
-
   const handleReply = useCallback((msg: ChatMessage) => {
     setReplyTo(msg);
     setTimeout(() => inputRef.current?.focus(), 100);
   }, []);
-
   const handleEdit = useCallback((msg: ActionMessage) => {
     setEditingMsg(msg);
     setInputText(msg.message);
     setReplyTo(null);
     setTimeout(() => inputRef.current?.focus(), 100);
   }, []);
-
   const handleDelete = useCallback((msg: ActionMessage) => {
     const isMine    = msg.sender_id === user?.id;
     const ageMs     = Date.now() - new Date(msg.created_at).getTime();
     const canUnsend = isMine && ageMs < 60_000;
     setDeleteModal({ msg, mode: isMine && canUnsend ? 'choose' : 'soft' });
   }, [user?.id]);
-
   const doSoftDelete = useCallback((msg: ActionMessage) => {
     setMessages((prev: any) => prev.filter((m: any) => m.$id !== msg.$id));
     withRetry(() => callFn({ action:'delete_message', messageId:msg.$id })).catch(() => {});
   }, [setMessages]);
-
   const doHardDelete = useCallback((msg: ActionMessage) => {
     setMessages((prev: any) => prev.filter((m: any) => m.$id !== msg.$id));
     withRetry(() => callFn({ action:'delete_for_everyone', messageId:msg.$id })).catch(() => {});
   }, [setMessages]);
-
   const handleClearChat = useCallback(() => {
     if (!chatId) return;
     setClearChatModal(true);
   }, [chatId]);
-
   const doClearChat = useCallback(async () => {
     setMessages([]);
     try { await withRetry(() => callFn({ action:'clear_chat', chatId })); }
     catch (e: any) { console.error('clear_chat failed:', e?.message); }
   }, [chatId, setMessages]);
-
   const handleBlock = useCallback(async () => {
     setMenuSheet(false);
     await callFn({ action:'block_user', blockedId:params.userId }).catch(() => {});
     setIsBlocked(true); setIBlockedThem(true);
     Alert.alert('Blocked', `You blocked ${params.name}.`);
   }, [params.userId, params.name]);
-
   const handleUnblock = useCallback(async () => {
     setMenuSheet(false);
     await callFn({ action:'unblock_user', blockedId:params.userId }).catch(() => {});
     setIsBlocked(false); setIBlockedThem(false);
   }, [params.userId]);
-
   const handleReportPress = useCallback(() => {
     setMenuSheet(false);
     setTimeout(() => setReportModal(true), 250);
   }, []);
-
   const doReport = useCallback(async () => {
     console.log('🚩 Reported user:', params.userId);
     Alert.alert('Reported ✓', 'Thank you. Our team will review this.');
   }, [params.userId]);
-
   const handleMediaConfirm = useCallback(async (caption: string) => {
     if (!pendingMedia || !chatId) return;
     setSendingMedia(true);
@@ -587,14 +503,10 @@ export default function ChatScreen() {
       setSendingMedia(false);
     }
   }, [pendingMedia, chatId, sendMessage]);
-
-  // ── handleSend — also fires onTypingStop ──────────────────────
   const handleSend = useCallback(async () => {
     const text = inputText.trim();
     if (!text || sending || !chatId || isBlocked) return;
-
-    onTypingStop(); // ← stop typing indicator on send
-
+    onTypingStop();
     if (editingMsg) {
       const msgId = editingMsg.$id;
       setInputText(''); setSending(true); setEditingMsg(null);
@@ -614,19 +526,14 @@ export default function ChatScreen() {
     });
     setSending(false);
   }, [inputText, sending, chatId, isBlocked, replyTo, editingMsg, sendMessage, setMessages, onTypingStop]);
-
-  // ── handleChangeText — triggers typing indicator ──────────────
-  // Wraps the existing setInputText + calls onTypingInput
   const handleChangeText = useCallback((text: string) => {
     setInputText(text);
     if (text.length > 0) {
-      onTypingInput(); // debounced — safe to call on every keystroke ✅
+      onTypingInput(); 
     } else {
-      onTypingStop();  // cleared input → stop indicator
+      onTypingStop();
     }
   }, [onTypingInput, onTypingStop]);
-
-  // ── Render item ────────────────────────────────────────────────
   const renderItem = useCallback(({ item, index }: { item:ChatMessage; index:number }) => {
     if (user?.id && item.deletedFor?.includes(user.id)) return null;
     const isMe  = item.senderId === user?.id;
@@ -652,8 +559,6 @@ export default function ChatScreen() {
       </>
     );
   }, [messages, user?.id, retryMessage, handleReact, handleReply, params.name]);
-
-  // ── Chat finding states ────────────────────────────────────────
   if (chatState === 'finding') return (
     <SafeAreaView style={ch.safe} edges={['top']}>
       <ChatHeader
@@ -677,18 +582,14 @@ export default function ChatScreen() {
       </View>
     </SafeAreaView>
   );
-
   return (
     <SafeAreaView style={ch.safe} edges={['top','bottom']}>
       <StatusBar barStyle="dark-content"/>
-
-      {/* ── Header: isOtherTyping replaces status text ─────────── */}
       <ChatHeader
         name={params.name} image={params.image} lastSeen={params.lastSeen}
         onMenuPress={() => setMenuSheet(true)} userId={params.userId}
         isOtherTyping={isOtherTyping}
       />
-
       <KeyboardAvoidingView style={{ flex:1 }} behavior={Platform.OS==='ios'?'padding':'height'}>
         {loading
           ? <View style={ch.center}><ActivityIndicator color={C.purple} size="large"/></View>
@@ -717,8 +618,6 @@ export default function ChatScreen() {
                   <Text style={ch.emptyChatText}>Say hello to {params.name}!</Text>
                 </View>
               }
-              // ── Typing bubble at the bottom of the list ──────────
-              // Renders BELOW all messages, auto-scrolled into view ✅
               ListFooterComponent={
                 isOtherTyping ? <TypingBubble /> : null
               }
@@ -726,11 +625,9 @@ export default function ChatScreen() {
               windowSize={10} removeClippedSubviews
             />
         }
-
-        {/* ── ChatInput: pass handleChangeText instead of setInputText ── */}
         <ChatInput
           value={inputText}
-          onChangeText={handleChangeText}   // ← triggers typing indicator
+          onChangeText={handleChangeText}   
           onSend={handleSend}
           sending={sending} disabled={!chatId}
           inputRef={inputRef as RefObject<TextInput>}
@@ -744,7 +641,6 @@ export default function ChatScreen() {
           onMediaSend={(uri, type) => setPendingMedia({ uri, type })}
         />
       </KeyboardAvoidingView>
-
       <MediaViewer
         uri={viewerMedia?.uri ?? null} type={viewerMedia?.type ?? 'image'}
         onClose={() => setViewerMedia(null)}/>
@@ -752,7 +648,6 @@ export default function ChatScreen() {
         uri={pendingMedia?.uri ?? null} type={pendingMedia?.type ?? 'image'}
         onSend={handleMediaConfirm} onClose={() => setPendingMedia(null)}
         sending={sendingMedia} otherName={params.name ?? 'them'}/>
-
       <MessageActionSheet
         visible={!!actionMsg} message={actionMsg}
         isMine={actionMsg?.sender_id === user?.id}
@@ -762,7 +657,6 @@ export default function ChatScreen() {
         onReply={msg => handleReply(msg as unknown as ChatMessage)}
         onEdit={handleEdit} onDelete={handleDelete}
       />
-
       <ChatMenuSheet visible={menuSheet} onClose={() => setMenuSheet(false)} items={[
         { icon:'trash-outline',  label:'Clear Chat',  onPress:handleClearChat },
         {
@@ -772,8 +666,6 @@ export default function ChatScreen() {
         },
         { icon:'flag-outline', label:'Report User', onPress:handleReportPress },
       ]}/>
-
-      {/* ── ConfirmModals ────────────────────────────────────────── */}
       <ConfirmModal
         visible={deleteModal?.mode === 'choose'}
         title="Delete Message?"
@@ -814,10 +706,6 @@ export default function ChatScreen() {
     </SafeAreaView>
   );
 }
-
-// ── ChatHeader — typing state replaces status subtitle ───────────
-// isOtherTyping=true → subtitle becomes "typing..." with purple color
-// isOtherTyping=false → normal last seen / online text
 const ChatHeader = ({
   name, image, lastSeen, onMenuPress, userId, isOtherTyping,
 }: {
@@ -854,8 +742,6 @@ const ChatHeader = ({
     </View>
   );
 };
-
-// ── Styles ────────────────────────────────────────────────────────
 const ch = StyleSheet.create({
   safe:         { flex:1, backgroundColor:C.white },
   header:       { flexDirection:'row', alignItems:'center', gap:12, paddingHorizontal:16,
@@ -874,7 +760,6 @@ const ch = StyleSheet.create({
   emptyChat:    { alignItems:'center', paddingTop:80 },
   emptyChatText:{ fontSize:15, color:C.muted },
 });
-
 const t = StyleSheet.create({
   msgWrap:    { marginVertical:2, maxWidth:'80%' },
   myWrap:     { alignSelf:'flex-end' },
@@ -897,7 +782,7 @@ const t = StyleSheet.create({
   mediaBubble:    { width:MSG_IMG_W, height:MSG_IMG_W*0.75, alignItems:'center', justifyContent:'center', borderRadius:12 },
   mediaLoadingOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor:'rgba(0,0,0,0.45)',
                          alignItems:'center', justifyContent:'center', borderRadius:12 },
-  reactionsRow: { flexDirection:'row', flexWrap:'wrap', gap:4, marginTop:4, marginLeft:4 },
+  reactionsRow: { flexDirection:'row', flexWrap:'wrap', gap:4, marginLeft:4,bottom:5 },
   swipeReplyIcon: { position:'absolute', top:'50%' as any, marginTop:-12, zIndex:0 },
   swipeIconLeft:  { left:-28 },
   swipeIconRight: { right:-28 },
@@ -919,8 +804,6 @@ const t = StyleSheet.create({
   videoBadge: { position:'absolute', bottom:7, right:7, flexDirection:'row', alignItems:'center',
                 backgroundColor:'rgba(0,0,0,0.52)', paddingHorizontal:6, paddingVertical:3, borderRadius:5 },
   videoBadgeTxt: { color:'#fff', fontSize:11, fontWeight:'600' },
-
-  // Typing indicator bubble (bottom of list)
   typingBubbleWrap: { paddingLeft:12, paddingVertical:6, alignSelf:'flex-start' },
   typingBubble: {
     backgroundColor: C.otherMsg,

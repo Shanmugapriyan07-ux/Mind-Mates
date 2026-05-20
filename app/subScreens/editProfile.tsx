@@ -17,37 +17,24 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import LocationPicker from '@/components/LocationPicker';
-
 const Edit = () => {
   const { profile, updateProfile, isLoading: contextLoading } = useProfile();
- 
-  // ──────────────────────────────────────────────────────────────────────
-  // STEP 2: Local state for form data
-  // ──────────────────────────────────────────────────────────────────────
   const [formData, setFormData] = useState({
     fullName: '',
     InterestedSkills: '',
     location: '',
     bio: '',
   });
-
   const [focused, setFocused] = useState<String |null>(null);
   const [, setSaving] = useState(false);
-
-  // ──────────────────────────────────────────────────────────────────────
-  // STEP 3: Load profile data when component mounts
-  // ──────────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (profile) {
-      // console.log('📥 Loading profile data'); // Remove noisy log
       const newData = {
         fullName: profile.fullName || '',
         InterestedSkills: profile.InterestedSkills || '',
         location: profile.location || '',
         bio: profile.bio || '',
       };
-
-      // Only update if data actually changed to prevent loop
       if (
         newData.fullName !== formData.fullName ||
         newData.InterestedSkills !== formData.InterestedSkills ||
@@ -57,11 +44,7 @@ const Edit = () => {
         setFormData(newData);
       }
     }
-  }, [profile]); // Re-run if profile changes
-
-  // ──────────────────────────────────────────────────────────────────────
-  // STEP 4: Handle field changes
-  // ──────────────────────────────────────────────────────────────────────
+  }, [profile]);
  const handleChange = useCallback((field: string, value: string) => {
     setFormData((prev: any) => ({ ...prev, [field]: value }));
   }, []);
@@ -73,11 +56,6 @@ const Edit = () => {
     })
   );
     };
-
-
-  // ──────────────────────────────────────────────────────────────────────
-  // STEP 5: Validate form
-  // ──────────────────────────────────────────────────────────────────────
   const validateForm = useCallback(() => {
     // Check required fields
     if (!formData.fullName.trim()) {
@@ -88,7 +66,6 @@ const Edit = () => {
       });
       return false;
     }
-
     if (formData.fullName.trim().length < 2) {
       Toast.show({
         type: 'error',
@@ -106,49 +83,30 @@ const Edit = () => {
       });
       return false;
     }
-
     return true;
   }, [formData]);
-
-  // ──────────────────────────────────────────────────────────────────────
-  // STEP 6: Save changes
-  // ──────────────────────────────────────────────────────────────────────
   const handleNext = useCallback(async () => {
-    console.log('💾 Saving profile...');
-
-    // Validate
     if (!validateForm()) {
       return;
     }
-
     setSaving(true);
-
     try {
-      // ✅ CORRECT: Call updateProfile with form data
       updateProfile({
         fullName: formData.fullName.trim(),
         InterestedSkills: formData.InterestedSkills.trim(),
         location: formData.location.trim(),
         bio: formData.bio.trim(),
       });
-
-      console.log('✅ Profile saved successfully');
-
-      // Success message
       Toast.show({
         type: 'success',
         text1: 'Profile Updated! ✅',
         text2: 'Your changes have been saved',
       });
-
-      // Navigate back to profile
       setTimeout(() => {
         router.replace('/(tabs)/profile');
       });
-
     } catch (error:any) {
       console.error('❌ Save failed:', error);
-
       Toast.show({
         type: 'error',
         text1: 'Save Failed',
@@ -158,16 +116,6 @@ const Edit = () => {
       setSaving(false);
     }
   }, [formData, validateForm, updateProfile]);
-
-  // ──────────────────────────────────────────────────────────────────────
-  // STEP 7: Check if form has changes
-  // ──────────────────────────────────────────────────────────────────────
-
-  // ──────────────────────────────────────────────────────────────────────
-  // STEP 8: Handle cancel
-  // ──────────────────────────────────────────────────────────────────────
-
-  
     if (contextLoading) {
     return (
       <View style={s.loadingContainer}>
@@ -176,7 +124,6 @@ const Edit = () => {
       </View>
     );
   }
-
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: '#FFFFFF'}} edges={['top', 'bottom']}>
        <KeyboardAvoidingView
@@ -187,14 +134,11 @@ const Edit = () => {
                 <Text style={s.sptext}>Edit profile</Text>
           
       </View>
-          
-         
           <ScrollView
         contentContainerStyle={s.scroll}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={true}
       >
-        {/* Full Name */}
         <View style={s.inputGroup}>
           <Text style={s.label}>Full Name *</Text>
           <View style={[
@@ -214,8 +158,6 @@ const Edit = () => {
             />
           </View>
         </View>
-
-        {/* Professional Title */}
         <View style={s.inputGroup}>
           <Text style={s.label}>Interested Skills *</Text>
           <View style={[
@@ -223,7 +165,6 @@ const Edit = () => {
             focused === 'InterestedSkills' && s.inputFocused
           ]}>
            <Ionicons name="happy" style={s.icon}></Ionicons>
-                     
             <TextInput
               style={s.input}
               placeholder="Art & Sports"
@@ -233,12 +174,9 @@ const Edit = () => {
               onFocus={() => setFocused('InterestedSkills')}
               onBlur={() => setFocused(null)}
               autoCapitalize="words"
-              
             />
           </View>
         </View>
-
-        {/* Location */}
         <View style={s.inputGroup}>
           <Text style={s.label}>Location *</Text>
           <View style={[
@@ -257,8 +195,6 @@ const Edit = () => {
           </View>
           </View>
         </View>
-
-        {/* Bio */}
         <View style={s.inputGroup}>
           <Text style={s.label}>About You</Text>
           <View style={[
@@ -267,7 +203,7 @@ const Edit = () => {
           ]}>
             <TextInput
               style={s.textArea}
-              placeholder="Basically i am an artist, i am looking for artist as a mentor for Grow Together !"
+              placeholder="Something about your passion !"
               placeholderTextColor="#9CA3AF"
               value={formData.bio}
               onChangeText={(text) => handleChange('bio', text)}
@@ -280,12 +216,7 @@ const Edit = () => {
           </View>
           <Text style={s.charCount}>{formData.bio.length}/200</Text>
         </View>
-
       </ScrollView>
-      
-     
-
-      {/* Continue Button */}
       <View style={s.buttonContainer}>
         <TouchableOpacity
           onPress={handleNext}
@@ -293,7 +224,7 @@ const Edit = () => {
           style={s.btnOuter}
         >
           <LinearGradient
-            colors={['#6D4AFF', '#6845f3','#6D4AFF']}
+            colors={['#6D4AFF', '#6D4AFF','#613bfc']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={s.btn}
@@ -301,13 +232,11 @@ const Edit = () => {
             <Text style={s.btnText}>Continue</Text>
           </LinearGradient>
         </TouchableOpacity>
-      
       </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
-
 const s = StyleSheet.create({
   container: {
     flex: 1,
@@ -317,7 +246,6 @@ const s = StyleSheet.create({
        zIndex:1,  
     width: '100%',
      padding: 20,
-
   },
   loadingContainer: {
     flex: 1,
@@ -339,7 +267,6 @@ const s = StyleSheet.create({
     alignItems:'center',
     justifyContent:'center',
     top:2
-
   },
       scroll: {
     paddingHorizontal: 24,

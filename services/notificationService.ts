@@ -1,7 +1,7 @@
 
+import { supabase } from '@/lib/supabase';
 import * as Notifications from 'expo-notifications';
-import { Platform }        from 'react-native';
-import { supabase }        from '@/lib/supabase';
+import { Platform } from 'react-native';
 import { ensureNotificationPermission } from './badgeService';
 
 // ── Foreground notification behavior ─────────────────────────────

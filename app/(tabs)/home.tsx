@@ -14,7 +14,6 @@ import { ChatMenuSheet }          from '@/components/blockSheet';
 import { FriendsSearchModal }     from '@/components/FriendSearchModel';
 import { SwipeableRow, Friend }   from '@/components/SwipeableRow';
 import ConfirmModal               from '@/components/confirmModel'; // ← NEW
-
 const cacheGet = async (k: string): Promise<string | null> => {
   try {
     if (Platform.OS === 'web') return localStorage.getItem(k);
@@ -27,22 +26,17 @@ const cacheSet = async (k: string, v: string) => {
     require('@react-native-async-storage/async-storage').default.setItem(k, v).catch(() => {});
   } catch {}
 };
-
 const C = {
   white:'#FFFFFF', purple:'#6D4AFF', text:'#111827',
   muted:'#6B7280', red:'#EF4444', skeleton:'#E9EAEC',
 };
-
 const CACHE_KEY  = (uid: string) => `friends_v6_${uid}`;
 const CACHE_TTL  = 60 * 1000;
-
 const toMs         = (ts?: string | null) => ts ? new Date(ts).getTime() : 0;
 const sortByRecent = (list: Friend[]) =>
   [...list].sort((a, b) => toMs(b.last_message_at) - toMs(a.last_message_at));
-
 const orderChanged = (a: Friend[], b: Friend[]) =>
   a.length !== b.length || a.some((f, i) => f.connection_id !== b[i]?.connection_id);
-
 const SkeletonRow = ({ opacity = 1 }: { opacity?: number }) => (
   <View style={[s.skRow, { opacity }]}>
     <View style={{ width:52, height:52, borderRadius:26, backgroundColor:C.skeleton }} />
@@ -52,7 +46,6 @@ const SkeletonRow = ({ opacity = 1 }: { opacity?: number }) => (
     </View>
   </View>
 );
-
 const BulkDeleteBar = ({ count, onDeleteAll }: { count: number; onDeleteAll: () => void }) => {
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -82,34 +75,26 @@ const bk = StyleSheet.create({
   btnTxt:{ color:'#ffffff', fontWeight:'600', fontSize:13 },
 });
 
-// ═══════════════════════════════════════════════════════════════
 export default function ChatListScreen() {
   const { user } = useAuthh();
-
   const [friends,     setFriends]     = useState<Friend[]>([]);
   const [loading,     setLoading]     = useState(true);
   const [refreshing,  setRefreshing]  = useState(false);
   const [menuSheet,   setMenuSheet]   = useState(false);
   const [searchOpen,  setSearchOpen]  = useState(false);
   const [swipedIds,   setSwipedIds]   = useState<Set<string>>(new Set());
-
-  // ── Modal state (replaces all Alert.alert calls) ──────────────
-  // Holds the Friend being acted on; null = modal closed
   const [deleteModal, setDeleteModal] = useState<Friend | null>(null);
   const [clearModal,  setClearModal]  = useState<Friend | null>(null);
-
   const listKeyRef    = useRef(0);
   const friendsRef    = useRef<Friend[]>([]);
   const allFriendsRef = useRef<Friend[]>([]);
   const isFirstFocus  = useRef(true);
   const closeRegistry = useRef<Map<string, () => void>>(new Map());
   const channelRef    = useRef<any>(null);
-
   const registerClose  = useCallback((id: string, fn: () => void) => { closeRegistry.current.set(id, fn); }, []);
   const closeAllExcept = useCallback((exceptId?: string) => { closeRegistry.current.forEach((fn, id) => { if (id !== exceptId) fn(); }); }, []);
   const onSwipeLeftOpen  = useCallback((id: string) => setSwipedIds(p => new Set([...p, id])), []);
   const onSwipeLeftClose = useCallback((id: string) => setSwipedIds(p => { const n = new Set(p); n.delete(id); return n; }), []);
-
   const setAndSort = useCallback((updater: (p: Friend[]) => Friend[]) => {
     setFriends(prev => {
       const next = sortByRecent(updater(prev));
@@ -220,7 +205,6 @@ export default function ChatListScreen() {
       .catch(() => {});
   }, [fetchFresh, silentUpdate]));
 
-  // ── Realtime ─────────────────────────────────────────────────
   useEffect(() => {
     if (!user?.id) return;
     const uid = user.id;
@@ -281,7 +265,6 @@ export default function ChatListScreen() {
     setDeleteModal(f);
   }, []);
 
-  // Extracted from old handleDelete — same backend call, just separated
   const doHideChat = useCallback(async (f: Friend) => {
     setFriends(prev => prev.filter(x => x.connection_id !== f.connection_id));
     setSwipedIds(prev => { const n = new Set(prev); n.delete(f.connection_id); return n; });
@@ -301,18 +284,15 @@ export default function ChatListScreen() {
     const targets = friends.filter(f => ids.includes(f.connection_id));
     setFriends(prev => prev.filter(f => !ids.includes(f.connection_id)));
     setSwipedIds(new Set()); closeAllExcept(); listKeyRef.current += 1;
-    // Bulk delete skips modal — it's already a deliberate multi-select action
+
     await Promise.all(targets.map(f => doHideChat(f)));
   }, [swipedIds, friends, doHideChat, closeAllExcept]);
 
-  // ── handleClear: just opens the modal ────────────────────────
-  // Actual work (doClearChat) runs only after user confirms inside ConfirmModal
   const handleClear = useCallback((f: Friend) => {
     if (!f.chat_id) return;
     setClearModal(f);
   }, []);
 
-  // Extracted from old handleClear — same backend call, just separated
   const doClearChat = useCallback(async (f: Friend) => {
     setFriends(prev => prev.filter(x => x.user_id !== f.user_id));
     listKeyRef.current += 1;
@@ -320,7 +300,7 @@ export default function ChatListScreen() {
       await callFn({ action: 'clear_chat', chatId: f.chat_id });
     } catch (e: any) {
       console.error('❌ clear_chat:', e?.message);
-      loadFriends(); // rollback
+      loadFriends(); 
     }
   }, [loadFriends]);
 
@@ -373,7 +353,6 @@ export default function ChatListScreen() {
         { icon:'settings', label:'Settings', onPress:() => router.push('/subScreens/Settings') },
       ]} />
 
-      {/* ── Delete Chat confirmation ─────────────────────────── */}
       <ConfirmModal
         visible={!!deleteModal}
         title="Delete Chat?"
@@ -384,13 +363,12 @@ export default function ChatListScreen() {
         icon="trash-outline"
         onConfirm={() => {
           const f = deleteModal!;
-          setDeleteModal(null);  // close first
-          doHideChat(f);         // action runs after modal closes via InteractionManager ✅
+          setDeleteModal(null);  
+          doHideChat(f);        
         }}
         onCancel={() => setDeleteModal(null)}
       />
 
-      {/* ── Clear Chat confirmation ──────────────────────────── */}
       <ConfirmModal
         visible={!!clearModal}
         title="Clear Chat?"
@@ -401,8 +379,8 @@ export default function ChatListScreen() {
         icon="chatbubble-ellipses-outline"
         onConfirm={() => {
           const f = clearModal!;
-          setClearModal(null);   // close first
-          doClearChat(f);        // action runs after modal closes via InteractionManager ✅
+          setClearModal(null);  
+          doClearChat(f);    
         }}
         onCancel={() => setClearModal(null)}
       />
@@ -419,7 +397,7 @@ const Header = ({ onSearch, onMenuPress }: { onSearch:()=>void; onMenuPress:()=>
       <Ionicons name="search-outline" size={20} color={C.text} style={{ right:5 }} />
     </TouchableOpacity>
     <TouchableOpacity onPress={onMenuPress} style={{ padding:8 }}>
-      <Ionicons name="ellipsis-vertical" size={20} color={C.text} style={{ left:17 }} />
+      <Ionicons name="ellipsis-vertical" size={20} color={C.text} style={{ left:13 }} />
     </TouchableOpacity>
   </View>
 );

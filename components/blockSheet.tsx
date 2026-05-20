@@ -137,21 +137,25 @@ export default ChatMenuSheet;
 
 // ─── Styles ───────────────────────────────────────────────────────
 const m = StyleSheet.create({
-  // Card anchored to top-right corner
-  // top: 52 = just below header (adjust if your header height differs)
+
+absoluteFill: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,  flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24, },
   card: {
     position:        'absolute',
-    top:             80,
+    top:             70,
     right:           32,
     backgroundColor: '#FFFFFF',
     borderRadius:    8,
     overflow:        'hidden',
     // Shadow
     shadowColor:     '#000',
-    shadowOpacity:   0.08,
-    shadowRadius:    12,
-    shadowOffset:    { width: 0, height: 4 },
-    elevation:       20,
+    shadowOpacity:   0.10,
+    shadowRadius:    15,
+    shadowOffset:    { width: 5, height: 4 },
+    elevation:       5,
   },
 
   item: {

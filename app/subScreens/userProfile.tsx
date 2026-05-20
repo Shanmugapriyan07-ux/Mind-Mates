@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, Text, Image, StyleSheet, TouchableOpacity,
-  ScrollView, StatusBar, Animated, ActivityIndicator, Pressable,
+  ScrollView, StatusBar, Animated as RNAnimated, ActivityIndicator, Pressable,
 } from 'react-native';
 import { SafeAreaView }                from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -60,6 +60,40 @@ const SKILL_ICONS: Record<string, string> = {
   'Athletics':       'timer-outline',
   'Startups':        'rocket-outline',
   'Content Creator': 'create-outline',
+   'Music': "musical-notes-outline",
+  'Dancing': "walk-outline",
+  'Writing': "pencil-outline",
+  'Sketching': "brush-outline",
+  'Cooking': "restaurant-outline",
+  'Travel': "airplane-outline",
+  'Fashion': "shirt-outline",
+  'Podcast': "mic-circle-outline",
+  'Gardening': "leaf-outline",
+  'Pets & Animals': "paw-outline",
+  'Chess': "grid-outline",
+  'Badminton': "tennisball-outline",
+  'Volleyball': "football-outline",
+  'Table Tennis': "tennisball-outline",
+  'Martial Arts': "fitness-outline",
+  'Calisthenics': "body-outline",
+  'Archery': "navigate-outline",
+  'Data Science': "analytics-outline",
+  'Cloud Computing': "cloud-outline",
+  'Blockchain': "link-outline",
+  'React Native': "phone-portrait-outline",
+  'DevOps': "server-outline",
+  '3D Printing': "cube-outline",
+  'Graphic Design': "color-wand-outline",
+  'Motion Design': "film-outline",
+  '3D Modeling': "cube-outline",
+  'Illustration': "brush-outline",
+  'Brand Design': "ribbon-outline",
+  'Marketing': "megaphone-outline",
+  'Trading': "swap-horizontal-outline",
+  'E-Commerce': "storefront-outline",
+  'Filmmaking': "videocam-outline",
+  'Music Production': "headset-outline",
+  'Skincare': "sparkles-outline",
 };
 const DEFAULT_ICON = 'flash-outline';
 
@@ -68,16 +102,16 @@ const parseSkills = (s: string | null): string[] =>
 
 // ── Skeleton ──────────────────────────────────────────────────────
 const SkeletonBox = ({ width, height, borderRadius = 8, style }: any) => {
-  const opacity = React.useRef(new Animated.Value(0.3)).current;
+  const opacity = React.useRef(new RNAnimated.Value(0.3)).current;
   useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(opacity, { toValue: 1,   duration: 800, useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 0.3, duration: 800, useNativeDriver: true }),
+    RNAnimated.loop(
+      RNAnimated.sequence([
+        RNAnimated.timing(opacity, { toValue: 1,   duration: 800, useNativeDriver: true }),
+        RNAnimated.timing(opacity, { toValue: 0.3, duration: 800, useNativeDriver: true }),
       ])
     ).start();
   }, []);
-  return <Animated.View style={[{ width, height, borderRadius, backgroundColor: '#E5E7EB', opacity }, style]} />;
+  return <RNAnimated.View style={[{ width, height, borderRadius, backgroundColor: '#E5E7EB', opacity }, style]} />;
 };
 
 const ProfileSkeleton = () => (

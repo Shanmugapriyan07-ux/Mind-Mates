@@ -12,37 +12,28 @@ import Toast                 from 'react-native-toast-message';
 import { Ionicons }          from '@expo/vector-icons';
 import { SafeAreaView }      from 'react-native-safe-area-context';
 import { saveDraft }         from '@/lib/profileDraft';
-// ✅ FIX: Use Cloudinary upload — NOT Supabase storage / Appwrite storage
-// Profile images go to Cloudinary for CDN performance
 import { uploadToCloudinary, compressForUpload, cdnProfileUrl } from '@/lib/cloudinaryUpload';
-
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const AVATAR_SIZE = SCREEN_WIDTH * 0.38;
-
 export default function ProfileImageScreen() {
   const { user }                   = useAuthh();
   const { updateProfile, profile } = useProfile();
-
   const [imageUri,       setImageUri]       = useState<string | null>(profile?.profileImage ?? null);
   const [uploading,      setUploading]      = useState(false);
   const [saving,         setSaving]         = useState(false);
   const [showPicker,     setShowPicker]     = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-
   const avatarScale = useRef(new Animated.Value(1)).current;
   const sheetAnim   = useRef(new Animated.Value(0)).current;
   const isMounted   = useRef(true);
-  const webFileRef  = useRef<File | null>(null);  // store web File for upload
-
+  const webFileRef  = useRef<File | null>(null); 
   useEffect(() => () => { isMounted.current = false; }, []);
-
   const handleAvatarPressIn  = () => Animated.spring(avatarScale, { toValue: 0.94, useNativeDriver: true, speed: 50, bounciness: 8 }).start();
   const handleAvatarPressOut = () => {
     Animated.spring(avatarScale, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 12 }).start();
     if (typeof document !== 'undefined') { triggerWebFilePicker(); return; }
     openSheet();
   };
-
   const triggerWebFilePicker = () => {
     const input = document.createElement('input');
     input.type  = 'file';
@@ -59,10 +50,8 @@ export default function ProfileImageScreen() {
     input.oncancel = () => document.body.removeChild(input);
     input.click();
   };
-
   const openSheet  = () => { setShowPicker(true); Animated.spring(sheetAnim, { toValue: 1, useNativeDriver: true, damping: 280, stiffness: 180 }).start(); };
   const closeSheet = () => { Animated.timing(sheetAnim, { toValue: 0, duration: 100, useNativeDriver: true }).start(() => setShowPicker(false)); };
-
   const processImage = async (uri: string) => {
     const result = await ImageManipulator.manipulateAsync(
       uri, [{ resize: { width: 1080 } }],
@@ -70,7 +59,6 @@ export default function ProfileImageScreen() {
     );
     return result.uri;
   };
-
   const pickFromGallery = useCallback(async () => {
     if (typeof document !== 'undefined') { triggerWebFilePicker(); closeSheet(); return; }
     closeSheet();
@@ -83,7 +71,6 @@ export default function ProfileImageScreen() {
     if (result.canceled || !result.assets?.[0]) return;
     setImageUri(await processImage(result.assets[0].uri));
   }, []);
-
   const takePhoto = useCallback(async () => {
     closeSheet();
     if (typeof document !== 'undefined') return;
@@ -93,53 +80,28 @@ export default function ProfileImageScreen() {
     if (result.canceled || !result.assets?.[0]) return;
     setImageUri(await processImage(result.assets[0].uri));
   }, []);
-
   const removePhoto = useCallback(() => { setImageUri(null); closeSheet(); }, []);
-
-  // ── FIXED: Upload to Cloudinary (not Appwrite/Supabase storage) ──────────
-  // TEACHING:
-  //   Old code used storage.createFile() with Appwrite ID/Permission/Role
-  //   These don't exist in Supabase → silent crash
-  //
-  //   New code: Cloudinary unsigned upload
-  //   1. Web: read File from webFileRef.current → upload via XHR
-  //   2. Native: pass file URI → Cloudinary handles it
-  //   3. Returns secureUrl → wrap with CDN transforms → save to profile ✅
   const uploadImage = useCallback(async (localUri: string): Promise<string | null> => {
     setUploading(true);
     setUploadProgress(0);
-
     try {
       let uploadUri = localUri;
-
-      // Web: use stored File object for better MIME type handling
       if (typeof document !== 'undefined' && webFileRef.current) {
-        // Create blob URL from stored File for Cloudinary uploader
         uploadUri = URL.createObjectURL(webFileRef.current);
       } else if (Platform.OS !== 'web') {
-        // Native: compress first
         uploadUri = await compressForUpload(localUri, 'profile');
       }
-
-      console.log('⬆️ Uploading to Cloudinary...');
       const result = await uploadToCloudinary(uploadUri, {
         type: 'image',
         onProgress: (pct: number) => setUploadProgress(pct),
-        uploadType: 'profile', // 512px, 70% quality
+        uploadType: 'profile', 
       });
-
-      // Apply CDN transforms: face detection, auto crop, WebP delivery
       const cdnUrl = cdnProfileUrl(result.secureUrl);
-      console.log('✅ Profile image URL:', cdnUrl.slice(0, 80));
-
-      // Clean up blob URL
       if (typeof document !== 'undefined' && uploadUri.startsWith('blob:')) {
         URL.revokeObjectURL(uploadUri);
         webFileRef.current = null;
       }
-
       return cdnUrl;
-
     } catch (err: any) {
       console.error('❌ Upload failed:', err?.message);
       Toast.show({ type: 'error', text1: 'Upload failed', text2: err?.message ?? 'Try again' });
@@ -148,20 +110,16 @@ export default function ProfileImageScreen() {
       setUploading(false);
     }
   }, []);
-
   const handleNext = useCallback(async () => {
     if (!user?.id || uploading || saving) return;
-
     if (!imageUri || imageUri === profile?.profileImage) {
       router.push('/(profileSetUp)/SkillSelect');
       return;
     }
-
     setSaving(true);
     try {
       const uploadedUrl = await uploadImage(imageUri);
       if (!uploadedUrl) { setSaving(false); return; }
-
       updateProfile({ profileImage: uploadedUrl });
       saveDraft(user.id, { profileImage: uploadedUrl, currentStep: 2 }).catch(() => {});
       setSaving(false);
@@ -171,15 +129,11 @@ export default function ProfileImageScreen() {
       if (isMounted.current) setSaving(false);
     }
   }, [user?.id, uploading, saving, imageUri, profile?.profileImage, uploadImage, updateProfile]);
-
   const handleSkip = useCallback(() => router.push('/(profileSetUp)/SkillSelect'), []);
-
   const initials = (profile?.fullName ?? user?.name ?? 'U')
     .split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2);
-
   const isBusy = uploading || saving;
   const sheetTranslate = sheetAnim.interpolate({ inputRange: [0,1], outputRange: [300,0] });
-
   return (
     <SafeAreaView style={s.container}>
       <View style={s.header}>
@@ -187,7 +141,6 @@ export default function ProfileImageScreen() {
         <Text style={s.title}>Add a photo</Text>
         <Text style={s.subtitle}>Help others recognize you. You can change this any time.</Text>
       </View>
-
       <View style={s.avatarSection}>
         <Animated.View style={{ transform: [{ scale: avatarScale }] }}>
           <TouchableOpacity activeOpacity={1} onPressIn={handleAvatarPressIn}
@@ -211,7 +164,6 @@ export default function ProfileImageScreen() {
         </Animated.View>
         <Text style={s.tapHint}>{imageUri ? 'Tap to change photo' : 'Tap to add photo'}</Text>
       </View>
-
       <View style={s.actions}>
         <TouchableOpacity style={[s.nextBtn, isBusy && s.nextBtnDisabled]}
           onPress={handleNext} disabled={isBusy} activeOpacity={0.85}>
@@ -224,7 +176,6 @@ export default function ProfileImageScreen() {
           <Text style={s.skipText}>Skip for now</Text>
         </TouchableOpacity>
       </View>
-
       <Modal visible={showPicker} transparent animationType="none" onRequestClose={closeSheet}>
         <Pressable style={s.sheetBackdrop} onPress={closeSheet} />
         <Animated.View style={[s.sheet, { transform: [{ translateY: sheetTranslate }] }]}>
@@ -232,12 +183,12 @@ export default function ProfileImageScreen() {
           <Text style={s.sheetTitle}>Profile photo</Text>
           {Platform.OS !== 'web' && (
             <TouchableOpacity style={s.sheetOption} onPress={takePhoto}>
-              <Ionicons name="camera" size={22} color="#374151" style={s.sheetIcon} />
+              <Ionicons name="camera" size={22} color="#131313" style={s.sheetIcon} />
               <Text style={s.sheetOptionText}>Take photo</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity style={s.sheetOption} onPress={pickFromGallery}>
-            <Ionicons name="images" size={22} color="#374151" style={s.sheetIcon} />
+            <Ionicons name="images" size={22} color="#131313" style={s.sheetIcon} />
             <Text style={s.sheetOptionText}>Choose from gallery</Text>
           </TouchableOpacity>
           {imageUri && (
@@ -254,7 +205,6 @@ export default function ProfileImageScreen() {
     </SafeAreaView>
   );
 }
-
 const s = StyleSheet.create({
   container:      { flex: 1, backgroundColor: '#FAFAFA', paddingHorizontal: 24 },
   header:         { marginTop: 20, marginBottom: 30 },

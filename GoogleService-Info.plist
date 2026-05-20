@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>ANDROID_CLIENT_ID</key>
-	<string>312878941418-sojp6vprjfjomou06mm7hvgppuubheeu.apps.googleusercontent.com</string>
+	<string>312878941418-7vqi6dg0ultq3onetpe0s5pvr8lt62ls.apps.googleusercontent.com</string>
 	<key>API_KEY</key>
 	<string>AIzaSyCzYemj83BLi6pl5SL03TzY4QR9jBWBs1E</string>
 	<key>GCM_SENDER_ID</key>
@@ -11,7 +11,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.Mindset.mindmates</string>
+	<string>com.mindset.mindmates</string>
 	<key>PROJECT_ID</key>
 	<string>mindmates-486707</string>
 	<key>STORAGE_BUCKET</key>
@@ -27,6 +27,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:312878941418:ios:0a38c44e074ead3d37c393</string>
+	<string>1:312878941418:ios:67add3d08699038a37c393</string>
 </dict>
 </plist>

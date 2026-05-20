@@ -1,35 +1,41 @@
+// config/googleAuth.ts
+let _GoogleSignin: any = null;
+let _statusCodes: any  = {};
+let _isConfigured      = false;
 
-let GoogleSignin: any = null;
-let statusCodes: any = {};
-
-// Only load native module in custom dev client / production builds
-// Expo Go will skip this and use a mock instead
 try {
-  const module = require('@react-native-google-signin/google-signin');
-  GoogleSignin = module.GoogleSignin;
-  statusCodes  = module.statusCodes;
+  const mod    = require('@react-native-google-signin/google-signin');
+  _GoogleSignin = mod.GoogleSignin;
+  _statusCodes  = mod.statusCodes;
 } catch {
-  console.warn('[GoogleAuth] Native module not available — running in Expo Go mock mode');
+  console.warn('[GoogleAuth] Native module unavailable');
 }
 
-let _isConfigured = false;
+export const GoogleSignin = _GoogleSignin;
+export const statusCodes  = _statusCodes;
 
 export function configureGoogleSignIn(): void {
-  if (!GoogleSignin) return; // Silent skip in Expo Go
-  if (_isConfigured)  return;
+  if (!_GoogleSignin || _isConfigured) return;
 
-  GoogleSignin.configure({
-    webClientId:              process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-    forceCodeForRefreshToken: true,
-    offlineAccess:            true,
-    scopes:                   ['profile', 'email'],
-  });
+  const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+  if (!webClientId?.trim()) {
+    console.error('[GoogleAuth] ❌ EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID missing!');
+    return;
+  }
 
-  _isConfigured = true;
-  console.info('[GoogleAuth] ✅ Configured');
+  try {
+    _GoogleSignin.configure({
+      webClientId,
+      offlineAccess:            true,
+      forceCodeForRefreshToken: true,
+      scopes:                   ['profile', 'email'],
+    });
+    _isConfigured = true;
+    console.info('[GoogleAuth] ✅ Configured:', webClientId.slice(0, 30) + '...');
+  } catch (err: any) {
+    console.error('[GoogleAuth] ❌ Configure failed:', err?.message);
+  }
 }
 
-export { GoogleSignin, statusCodes };
-export function isNativeGoogleAvailable(): boolean {
-  return !!GoogleSignin;
-}
+export const isGoogleReady  = () => !!_GoogleSignin && _isConfigured;
+export const isGoogleLinked = () => !!_GoogleSignin;
