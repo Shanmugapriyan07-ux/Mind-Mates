@@ -13,9 +13,6 @@ import { FETCH_CONFIG, STATIC_LINKS } from "@/config/appLinks";
 import { readCache, readStaleCache, writeCache } from "@/services/linkCache";
 import { fetchAllLinks } from "@/services/linkFetcher";
 import { log as logger } from "@/utils/logger";
-
-// ── Context ────────────────────────────────────────────────────
-
 const AppLinksContext = createContext({
   links: STATIC_LINKS,
   isLoading: false,
@@ -23,37 +20,24 @@ const AppLinksContext = createContext({
   refresh: async () => {},
   getLink: (key) => STATIC_LINKS[key] ?? "",
 });
-
-// ── Provider ───────────────────────────────────────────────────
-
 export function AppLinksProvider({ children }) {
-  const [links, setLinks] = useState(STATIC_LINKS); // instant render
+  const [links, setLinks] = useState(STATIC_LINKS);
   const [isLoading, setIsLoading] = useState(false);
   const [isStale, setIsStale] = useState(false);
-
-  const isFetching = useRef(false); // prevent concurrent fetches
+  const isFetching = useRef(false); 
   const lastFetchAt = useRef(0);
-
-  // ── Core fetch-and-update ──────────────────────────────────────
-
   const loadLinks = useCallback(async ({ forceRefresh = false } = {}) => {
-    // Guard: don't fetch concurrently
     if (isFetching.current) {
       logger.info("Fetch already in progress — skipping");
       return;
     }
-
-    // Guard: don't re-fetch if cache is still fresh
     const age = Date.now() - lastFetchAt.current;
     if (!forceRefresh && age < FETCH_CONFIG.TTL_MS) {
       logger.info(`Cache fresh (${Math.round(age / 1000)}s old) — skipping`);
       return;
     }
-
     isFetching.current = true;
-
     try {
-      // ── Step 1: serve stale cache immediately ─────────────────
       const cached = await readCache();
       if (cached) {
         setLinks({ ...STATIC_LINKS, ...cached.data });
@@ -63,8 +47,6 @@ export function AppLinksProvider({ children }) {
           return;
         }
       }
-
-      // ── Step 2: check network ─────────────────────────────────
       const net = await NetInfo.fetch();
       if (!net.isConnected) {
         logger.warn("Offline — using static/cached links");
@@ -73,46 +55,32 @@ export function AppLinksProvider({ children }) {
         setIsStale(true);
         return;
       }
-
-      // ── Step 3: fetch from Supabase ───────────────────────────
       setIsLoading(true);
       const fresh = await fetchAllLinks();
       lastFetchAt.current = Date.now();
-
       setLinks(fresh);
       setIsStale(false);
       await writeCache(fresh);
       logger.info("Links updated from network");
     } catch (err) {
-      // This should never happen (fetchAllLinks is internally safe)
-      // but we guard anyway
       logger.critical("AppLinksProvider unexpected error:", err);
     } finally {
       setIsLoading(false);
       isFetching.current = false;
     }
   }, []);
-
-  // ── Initial load on mount ──────────────────────────────────────
-
   useEffect(() => {
     loadLinks();
   }, [loadLinks]);
-
-  // ── Background refresh when app foregrounds ───────────────────
-
   useEffect(() => {
     const sub = AppState.addEventListener("change", (state) => {
       if (state === "active") {
         logger.info("App foregrounded — checking cache freshness");
-        loadLinks(); // no-ops if cache is still fresh
+        loadLinks();
       }
     });
     return () => sub.remove();
   }, [loadLinks]);
-
-  // ── Listen for network reconnection ───────────────────────────
-
   useEffect(() => {
     const unsub = NetInfo.addEventListener((state) => {
       if (state.isConnected && isStale) {
@@ -122,14 +90,10 @@ export function AppLinksProvider({ children }) {
     });
     return unsub;
   }, [loadLinks, isStale]);
-
-  // ── Safe getter with static fallback ──────────────────────────
-
   const getLink = useCallback(
     (key) => links[key] ?? STATIC_LINKS[key] ?? "",
     [links],
   );
-
   const value = {
     links,
     isLoading,
@@ -137,27 +101,15 @@ export function AppLinksProvider({ children }) {
     refresh: () => loadLinks({ forceRefresh: true }),
     getLink,
   };
-
   return (
     <AppLinksContext.Provider value={value}>
       {children}
     </AppLinksContext.Provider>
   );
 }
-
-// ── Consumer hook ──────────────────────────────────────────────
-
 export function useAppLinks() {
   return useContext(AppLinksContext);
 }
-
-/**
- * Convenience hook for a single link key.
- * Always returns a string — never undefined/null.
- *
- * Usage:
- *   const privacyUrl = useLink("PRIVACY_POLICY");
- */
 export function useLink(key) {
   const { getLink } = useAppLinks();
   return getLink(key);

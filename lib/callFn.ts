@@ -1,24 +1,17 @@
 import { supabase } from '@/lib/supabase';
-
 export const callFn = async (body: Record<string, any>): Promise<any> => {
   if (!body?.action) {
     throw new Error('callFn: missing action field');
   }
-
   const session = await supabase.auth.getSession();
   const accessToken = session.data?.session?.access_token;
-
   const invokeOptions: any = { body };
   if (accessToken) {
     invokeOptions.headers = { Authorization: `Bearer ${accessToken}` };
   }
-
-  // Pass plain object — SDK handles serialization ✅
   const { data, error } = await supabase.functions.invoke('mindmates', invokeOptions);
 
   if (error) {
-    // error.message for network/auth errors
-    // error.context?.body for edge fn error body
     let detail = error.message;
     try {
       const ctx = (error as any).context;
@@ -27,18 +20,13 @@ export const callFn = async (body: Record<string, any>): Promise<any> => {
         detail = parsed?.error ?? detail;
       }
     } catch {}
-    console.error(`[callFn] ${body.action} failed:`, detail);
     throw new Error(detail);
   }
-
   if (data?.error) {
-    console.error(`[callFn] ${body.action} error:`, data.error);
     throw new Error(data.error);
   }
-
   return data;
 };
-
 export default callFn;
 
 

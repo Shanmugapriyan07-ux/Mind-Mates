@@ -3,7 +3,6 @@ import { Platform }   from 'react-native';
 import { supabase }   from '@/lib/supabase';
 import { useAuthh }    from '@/Contexts/authContext';
 import Toast          from 'react-native-toast-message';
-
 export type ConnectStatus = 'none' | 'pending' | 'accepted' | 'rejected';
 const CACHE_KEY = (uid: string) => `conn_status_v3_${uid}`;
 export interface ConnectTarget {
@@ -28,13 +27,9 @@ const cacheDel = async (k: string) => {
     require('@react-native-async-storage/async-storage').default.removeItem(k).catch(() => {});
   } catch {}
 };
-
 const callFn = async (body: Record<string, any>): Promise<any> => {
-  console.log(`🔵 callFn: ${body.action}`, JSON.stringify(body));
   const { data, error } = await supabase.functions.invoke('mindmates', { body });
-
   if (error) {
-    // Try to read structured JSON from the error response body
     let parsed: Record<string, any> = {};
     try {
       if (error.context && typeof error.context.text === 'function') {
@@ -46,23 +41,17 @@ const callFn = async (body: Record<string, any>): Promise<any> => {
         parsed = error.context;
       }
     } catch {}
-
     const message = parsed.error ?? error.message ?? 'Function error';
     const err     = new Error(message) as any;
-
-    // Attach structured fields — key for 409 handling
     err.statusCode     = error.context?.status ?? parsed.statusCode ?? 500;
     err.alreadyExists  = parsed.alreadyExists  ?? false;
     err.existingStatus = parsed.status         ?? 'pending';
     err.connectionId   = parsed.connectionId   ?? null;
-
-    // Conflicts (409) are handled gracefully by the hook, so we log as info
     if (err.statusCode !== 409) {
       console.error(`🔴 callFn error [${err.statusCode}]:`, message, parsed);
     }
     throw err;
   }
-
   if (data?.error) {
     const err = new Error(data.error) as any;
     err.statusCode     = data.statusCode     ?? 400;
@@ -72,28 +61,21 @@ const callFn = async (body: Record<string, any>): Promise<any> => {
     console.error('🔴 callFn data.error:', data.error, data);
     throw err;
   }
-
-  console.log(`🟢 callFn success: ${body.action}`, data);
   return data;
 };
-
 export const useConnection = () => {
   const { user } = useAuthh();
   const [statusMap,  setStatusMap]  = useState<Record<string, ConnectStatus>>({});
   const [loadingMap, setLoadingMap] = useState<Record<string, boolean>>({});
-
-  // Restore cache on boot
   useEffect(() => {
     if (!user?.id) return;
     cacheGet(CACHE_KEY(user.id))
       .then(raw => { if (raw) setStatusMap(JSON.parse(raw)); })
       .catch(() => {});
   }, [user?.id]);
-
   const persist = useCallback((map: Record<string, ConnectStatus>) => {
     if (user?.id) cacheSet(CACHE_KEY(user.id), JSON.stringify(map));
   }, [user?.id]);
-
   const setStatus = useCallback((id: string, status: ConnectStatus) => {
     setStatusMap(prev => {
       const next = { ...prev, [id]: status };
@@ -101,40 +83,26 @@ export const useConnection = () => {
       return next;
     });
   }, [persist]);
-
   const getStatus = (id: string): ConnectStatus => statusMap[id] ?? 'none';
   const isLoading = (id: string): boolean        => loadingMap[id] ?? false;
-
   const sendRequest = useCallback(async (target: ConnectTarget) => {
     if (!user?.id) return;
     const tid = target.userId;
     if (statusMap[tid] === 'pending' || statusMap[tid] === 'accepted') return;
-
-    // Optimistic update
     setStatus(tid, 'pending');
     setLoadingMap(p => ({ ...p, [tid]: true }));
-
     try {
       const result = await callFn({ action: 'send_request', receiverId: tid });
-
-      // Store connectionId so cancelRequest can find it later
       if (result?.connectionId) {
         const raw   = await cacheGet(CACHE_KEY(user.id));
         const cache = raw ? JSON.parse(raw) : {};
         cache[`conn_${tid}`] = result.connectionId;
         cacheSet(CACHE_KEY(user.id), JSON.stringify(cache));
       }
-
-      console.log('✅ sendRequest success:', target.fullName);
-
     } catch (e: any) {
       if (e?.alreadyExists || e?.statusCode === 409) {
-        console.log('ℹ️ Connection already exists, syncing local state.');
-        // Don't show error — just update UI to reflect reality ✅
         const correctStatus = (e?.existingStatus as ConnectStatus) ?? 'pending';
         setStatus(tid, correctStatus);
-
-        // Store connectionId for future cancel
         if (e?.connectionId) {
           const raw   = await cacheGet(CACHE_KEY(user.id));
           const cache = raw ? JSON.parse(raw) : {};
@@ -142,7 +110,6 @@ export const useConnection = () => {
           cacheSet(CACHE_KEY(user.id), JSON.stringify(cache));
         }
       } else {
-        console.error('❌ sendRequest error:', e?.message);
         setStatus(tid, 'none');
         Toast.show({ type: 'error', text1: 'Failed to send request', text2: e?.message });
       }
@@ -155,10 +122,8 @@ export const useConnection = () => {
   ): Promise<string | null> => {
     if (!user?.id) return null;
     setStatus(fromUserId, 'accepted');
-    console.log('acceptRequest:', { connectionId, notifId, fromUserId });
     try {
       const result = await callFn({ action: 'accept_request', connectionId, notifId });
-      console.log('✅ acceptRequest success, chatId:', result?.chatId);
       return result?.chatId ?? null;
     } catch (e: any) {
       console.error('❌ acceptRequest:', e?.message);
@@ -166,8 +131,6 @@ export const useConnection = () => {
       throw e;
     }
   }, [user?.id, setStatus]);
-
-  // ── rejectRequest ─────────────────────────────────────────
   const rejectRequest = useCallback(async (
     connectionId: string, notifId: string, fromUserId: string,
   ) => {
@@ -179,8 +142,6 @@ export const useConnection = () => {
       setStatus(fromUserId, 'pending');
     }
   }, [user?.id, setStatus]);
-
-  // ── cancelRequest ─────────────────────────────────────────
   const cancelRequest = useCallback(async (targetId: string) => {
     if (!user?.id || statusMap[targetId] !== 'pending') return;
     setStatus(targetId, 'none');
@@ -202,26 +163,22 @@ export const useConnection = () => {
         supabase.from('connections').select('sender_id, status, id')
           .eq('receiver_id', user.id).in('sender_id', userIds),
       ]);
-
       const fresh: Record<string, ConnectStatus> = {};
       userIds.forEach(uid => { fresh[uid] = 'none'; });
       (sent ?? []).forEach((d: any) => { fresh[d.receiver_id] = d.status as ConnectStatus; });
       (recv ?? []).forEach((d: any) => { if (fresh[d.sender_id] === 'none') fresh[d.sender_id] = d.status as ConnectStatus; });
-
       setStatusMap(prev => {
         const merged = { ...prev, ...fresh };
         persist(merged);
         return merged;
       });
-    } catch (e: any) { console.error('❌ loadStatuses:', e?.message); }
+    } catch (e: any) { }
   }, [user?.id, persist]);
-
   const clearStatuses = useCallback(() => {
     if (!user?.id) return;
     setStatusMap({});
     cacheDel(CACHE_KEY(user.id));
   }, [user?.id]);
-
   return {
     getStatus, isLoading, setStatus,
     sendRequest, acceptRequest, rejectRequest,

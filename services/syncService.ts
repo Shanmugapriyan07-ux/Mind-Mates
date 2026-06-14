@@ -1,49 +1,32 @@
 
+import { supabase } from '@/lib/supabase';
+import { useUnreadStore } from '@/stores/useUnreadStore';
 import { AppState, AppStateStatus } from 'react-native';
-import { supabase }                 from '@/lib/supabase';
-import { useUnreadStore }           from '@/stores/useUnreadStore';
 import {
+  initBadgeService,
   updateAppIconBadge,
   updateAppIconBadgeImmediate,
-  initBadgeService,
 } from './badgeService';
-
-// ── Types ─────────────────────────────────────────────────────────
 interface UnreadCounts {
   chatUnread:    number;
   notifUnread:   number;
   perChatUnread: Record<string, number>;
 }
-
-// ── Internal state (module-level, not React state) ────────────────
 let activeUserId:      string | null         = null;
 let messageChannel:    any                   = null;
 let notifChannel:      any                   = null;
 let appStateSubscription: any                = null;
-let isSyncing:         boolean               = false;  // prevents parallel fetches
-
-// ── Initialize (call once after user logs in) ─────────────────────
+let isSyncing:         boolean               = false; 
 export const initSyncService = async (userId: string): Promise<void> => {
-  if (activeUserId === userId) return;  // already initialized for this user
-
-  // Clean up previous session first (e.g. user switched accounts)
+  if (activeUserId === userId) return;
   await destroySyncService();
-
   activeUserId = userId;
   await initBadgeService();
-
-  // Initial fetch — shows correct count before any realtime events arrive
   await fetchAndApplyCounts(userId);
-
-  // Subscribe to realtime changes
   subscribeToMessages(userId);
   subscribeToNotifications(userId);
-
-  // Handle foreground/background transitions
   setupAppStateListener(userId);
 };
-
-// ── Destroy (call on sign-out) ────────────────────────────────────
 export const destroySyncService = async (): Promise<void> => {
   if (messageChannel) {
     await supabase.removeChannel(messageChannel);
@@ -59,79 +42,53 @@ export const destroySyncService = async (): Promise<void> => {
   }
   activeUserId = null;
   isSyncing    = false;
-
-  // Clear badge + store on sign-out
   await updateAppIconBadgeImmediate(0);
   useUnreadStore.getState().resetAll();
 };
-
-// ══════════════════════════════════════════════════════════════════
-// BACKEND FETCH
-// ══════════════════════════════════════════════════════════════════
-
 const fetchAndApplyCounts = async (userId: string): Promise<void> => {
-  // Guard: prevent parallel fetches (realtime event storms)
   if (isSyncing) return;
   isSyncing = true;
-
   try {
     const counts = await fetchUnreadCounts(userId);
     applyCountsToStore(counts);
     updateAppIconBadge(counts.chatUnread + counts.notifUnread);
   } catch (e) {
     console.warn('[SyncService] fetchAndApplyCounts failed:', e);
-    // Non-fatal — last known count stays in store + badge
   } finally {
     isSyncing = false;
   }
 };
-
-// ── Supabase queries ──────────────────────────────────────────────
 const fetchUnreadCounts = async (userId: string): Promise<UnreadCounts> => {
-  // Run both queries in parallel — total time = slowest query (~30ms)
   const [chatResult, notifResult, perChatResult] = await Promise.all([
-
-    // Total unread messages
     supabase
       .from('messages')
-      .select('*', { count: 'exact', head: true })  // head=true: no rows returned, just count
+      .select('*', { count: 'exact', head: true })
       .eq('receiver_id', userId)
       .eq('is_read', false),
-
-    // Total unread notifications
     supabase
       .from('notifications')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .eq('is_read', false),
-
-    // Per-chat breakdown (for individual chat row dots)
-    // Limit 50 — we only need dots for active chats
     supabase
       .from('messages')
       .select('chat_id')
       .eq('receiver_id', userId)
       .eq('is_read', false)
       .limit(200),
-
   ]);
-
-  // Build per-chat map from flat rows
   const perChatUnread: Record<string, number> = {};
   if (perChatResult.data) {
     for (const row of perChatResult.data) {
       perChatUnread[row.chat_id] = (perChatUnread[row.chat_id] ?? 0) + 1;
     }
   }
-
   return {
     chatUnread:  chatResult.count  ?? 0,
     notifUnread: notifResult.count ?? 0,
     perChatUnread,
   };
 };
-
-// ── Apply to Zustand store ────────────────────────────────────────
 const applyCountsToStore = (counts: UnreadCounts): void => {
   useUnreadStore.getState().setAllCounts(
     counts.chatUnread,
@@ -139,32 +96,19 @@ const applyCountsToStore = (counts: UnreadCounts): void => {
     counts.perChatUnread,
   );
 };
-
-// ══════════════════════════════════════════════════════════════════
-// REALTIME SUBSCRIPTIONS
-// ══════════════════════════════════════════════════════════════════
-
-// ── Message subscription ──────────────────────────────────────────
-// Single channel for ALL of this user's messages.
-// One channel = one WebSocket multiplexed connection.
-// Supabase RLS ensures only this user's data is returned.
 const subscribeToMessages = (userId: string): void => {
-  // Unique channel name prevents "already subscribed" errors on re-init
   const topic = `messages:${userId}:${Date.now()}`;
-
   messageChannel = supabase
     .channel(topic)
     .on(
       'postgres_changes',
       {
-        event:  '*',                  // INSERT (new msg) + UPDATE (marked read)
+        event:  '*',               
         schema: 'public',
         table:  'messages',
         filter: `receiver_id=eq.${userId}`,
       },
       (_payload) => {
-        // Always re-fetch from backend — never trust the payload count
-        // Payload tells us WHAT changed; backend tells us THE TRUE COUNT
         if (activeUserId === userId) {
           fetchAndApplyCounts(userId);
         }
@@ -172,19 +116,14 @@ const subscribeToMessages = (userId: string): void => {
     )
     .subscribe((status) => {
       if (status === 'SUBSCRIBED') {
-        console.log('[SyncService] Message channel subscribed');
       }
       if (status === 'CHANNEL_ERROR') {
         console.warn('[SyncService] Message channel error — will retry');
-        // Supabase client auto-retries on disconnect
       }
     });
 };
-
-// ── Notification subscription ─────────────────────────────────────
 const subscribeToNotifications = (userId: string): void => {
   const topic = `notifications:${userId}:${Date.now()}`;
-
   notifChannel = supabase
     .channel(topic)
     .on(
@@ -203,21 +142,6 @@ const subscribeToNotifications = (userId: string): void => {
     )
     .subscribe();
 };
-
-// ══════════════════════════════════════════════════════════════════
-// APP STATE LISTENER
-// ══════════════════════════════════════════════════════════════════
-//
-// WHY THIS IS CRITICAL:
-//   Supabase Realtime WebSocket disconnects when app goes to background.
-//   While background: push notifications update the badge externally.
-//   When app returns to foreground: we re-fetch from backend to catch
-//   any missed events (messages received while WebSocket was dead).
-//
-//   Without this: user receives 5 messages while background,
-//   opens app, WebSocket reconnects, but store still shows old count.
-//   WITH this: app opens → immediate fresh fetch → store + badge correct.
-
 const setupAppStateListener = (userId: string): void => {
   let lastState = AppState.currentState;
 
@@ -237,17 +161,8 @@ const setupAppStateListener = (userId: string): void => {
     }
   );
 };
-
-// ══════════════════════════════════════════════════════════════════
-// PUBLIC API — for use in screen components
-// ══════════════════════════════════════════════════════════════════
-
-// Call when user opens a specific chat screen
 export const onChatOpened = async (chatId: string, userId: string): Promise<void> => {
-  // Optimistic local clear (instant UI response)
   useUnreadStore.getState().clearChatBadge(chatId);
-
-  // Mark as read in backend (triggers realtime → fresh count → badge update)
   await supabase
     .from('messages')
     .update({ is_read: true })

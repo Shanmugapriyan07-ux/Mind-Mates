@@ -1,33 +1,20 @@
-import { useEffect, useRef } from 'react';
-import { AppState }          from 'react-native';
-import { supabase }          from '@/lib/supabase';
-import { useAuthh }           from '@/Contexts/authContext';
+// hooks/usePresence.ts
+import { useEffect }       from 'react';
+import { useAuthh }        from '@/Contexts/authContext';
+import { presenceService } from '@/lib/presenceService';
 
+/**
+ * Call ONCE in root _layout.tsx only.
+ * Never destroys on navigation — presence survives screen changes.
+ * destroy() is called only on logout via authService.
+ */
 export const usePresence = () => {
   const { user } = useAuthh();
-  const timer = useRef<any>(null);
-
-  const beat = async (uid: string) => {
-    await supabase.from('users')
-      .update({ last_seen: new Date().toISOString() })
-      .eq('user_id', uid)
-      .match(() => {});
-  };
 
   useEffect(() => {
     if (!user?.id) return;
-    const uid = user.id;
-
-    beat(uid);
-    timer.current = setInterval(() => beat(uid), 30_000);
-
-    const sub = AppState.addEventListener('change', state => {
-      if (state === 'active') beat(uid);
-    });
-
-    return () => {
-      clearInterval(timer.current);
-      sub.remove();
-    };
+    presenceService.init(user.id);
+    // No cleanup — intentional
+    // destroy() called by logout flow only
   }, [user?.id]);
 };

@@ -1,43 +1,36 @@
-import images from "@/constants/images";
-import React, { useEffect, useRef } from "react";
-import { Animated, Image, StyleSheet, View } from "react-native";
-export default function AuthLoadingScreen(): React.JSX.Element {
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+// app/index.tsx (or _layout.tsx — wherever your root is)
+import React from 'react';
+import { View } from 'react-native';
+import { useStartup } from '../startup/useStartup';
+import AnimatedSplash from '../startup/animatedSplash';
+import RootLayout from './_layout'; // your actual app
 
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 0.4,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-      ]),
-    ).start();
-  }, []);
+export default function Index() {
+  const { phase, onSplashAnimationComplete, onContentReady } = useStartup();
+  const contentReadyFired = React.useRef(false);
+
+  const handleContentLayout = React.useCallback(() => {
+    if (!contentReadyFired.current) {
+      contentReadyFired.current = true;
+      onContentReady();
+    }
+  }, [onContentReady]);
+
+  if (phase === 'booting' || phase === 'preloading') {
+    return null;
+  }
 
   return (
-    <View style={ls.container}>
-      <Animated.View style={{ opacity: pulseAnim }}>
-        <Image source={images.splash} style={ls.logo} resizeMode="contain" />
-      </Animated.View>
+    <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
+      <View
+        style={{ flex: 1 }}
+        onLayout={handleContentLayout}
+      >
+        <RootLayout />
+      </View>
+      {phase === 'splash_animating' && (
+        <AnimatedSplash onComplete={onSplashAnimationComplete} />
+      )}
     </View>
   );
 }
-
-const ls = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#ffffff",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 20,
-  },
-  logo: { width: 80, height: 80 },
-  text: { color: "#fff", fontSize: 16, fontWeight: "600", opacity: 0.85 },
-});

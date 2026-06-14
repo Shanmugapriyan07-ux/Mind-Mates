@@ -1,9 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase, TABLES } from '@/lib/supabase';
-import { callFn }           from '@/lib/callFn';
-import { useAuthh }          from '@/Contexts/authContext';
-
-// ── Types ──────────────────────────────────────────────────────────
+import { useAuthh }           from '@/Contexts/authContext';
+import { callFn }             from '@/lib/callFn';
+import { supabase, TABLES }   from '@/lib/supabase';
+import { useCallback, useEffect, useRef, useState } from 'react';
+const secToMs = (ts: number) => (ts < 10_000_000_000 ? ts * 1000 : ts);
 export interface ChatMessage {
   $id:            string;
   chatId:         string;
@@ -21,14 +20,12 @@ export interface ChatMessage {
   _pending?:      boolean;
   _failed?:       boolean;
 }
-
 export interface ActionMessage {
   $id:        string;
   sender_id:  string;
   message:    string;
   created_at: number;
 }
-
 const rowToMsg = (r: any): ChatMessage => ({
   $id:           r.id,
   chatId:        r.chat_id,
@@ -44,41 +41,24 @@ const rowToMsg = (r: any): ChatMessage => ({
   createdAt:     r.created_at,
   deletedFor:    r.deleted_for    ?? [],
 });
-
 const MSG_COLS = [
   'id','chat_id','sender_id','message','type','status',
   'reactions','reply_to_id','reply_to_text','reply_to_sender',
   'edited','created_at','deleted_for',
 ].join(',');
-
-// ── findChat ────────────────────────────────────────────────────────
-// Finds chat by chat_key regardless of hidden_for.
-// Works because RLS chat_select only checks participants[], not hidden_for[].
-// This is intentional — a hidden chat must still be findable so it can
-// reappear when the user navigates back to it or a new message arrives.
+const MUTABLE_COLS = 'id,status,reactions,edited,message,deleted_for';
 export const findChat = async (myId: string, otherId: string) => {
   const chatKey = [myId, otherId].sort().join('_');
   const { data } = await supabase
-    .from(TABLES.chats)
-    .select('id')                 // RLS: participant check only, no hidden_for filter ✅
-    .eq('chat_key', chatKey)
-    .maybeSingle();
+    .from(TABLES.chats).select('id').eq('chat_key', chatKey).maybeSingle();
   return data ? { $id: data.id, ...data } : null;
 };
-
-// ── getChatId (edge fn fallback) ────────────────────────────────────
-// Use when findChat returns null (should not happen with fixed RLS,
-// but kept as a safety net for edge cases).
 export const getChatId = async (otherUserId: string): Promise<string | null> => {
   try {
     const result = await callFn({ action: 'get_chat_id', otherUserId });
     return result?.chatId ?? null;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 };
-
-// ── Retry helper ────────────────────────────────────────────────────
 const withRetry = async <T>(fn: () => Promise<T>, tries = 3): Promise<T> => {
   let last: any;
   for (let i = 0; i < tries; i++) {
@@ -89,33 +69,87 @@ const withRetry = async <T>(fn: () => Promise<T>, tries = 3): Promise<T> => {
   }
   throw last;
 };
-
-// ── useMessages ─────────────────────────────────────────────────────
+const pendingRegistry = new Map<string, string>();
+const makePendingKey  = (chatId: string, senderId: string, message: string) =>
+  `${chatId}|${senderId}|${message}`;
 export const useMessages = (chatId: string) => {
-  const { user }                     = useAuthh();
-  const [messages,    setMessages]   = useState<ChatMessage[]>([]);
-  const [loading,     setLoading]    = useState(true);
-  const [loadingOld,  setLoadingOld] = useState(false);
-  const [hasMore,     setHasMore]    = useState(false);
-  const oldestRef                    = useRef<number | null>(null);
-  const channelRef                   = useRef<any>(null);
-
+  const { user } = useAuthh();
+  const [messages,   setMessages]   = useState<ChatMessage[]>([]);
+  const [loading,    setLoading]    = useState(true);
+  const [loadingOld, setLoadingOld] = useState(false);
+  const [hasMore,    setHasMore]    = useState(false);
+  const oldestRef    = useRef<number | null>(null);
+  const channelRef   = useRef<any>(null);
+  const knownIdsRef  = useRef<Set<string>>(new Set());
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const needsSyncRef = useRef(false);
+  const syncMutableFields = useCallback((uid: string, currentChatId: string) => {
+    supabase
+      .from(TABLES.messages)
+      .select(MUTABLE_COLS)
+      .eq('chat_id', currentChatId)
+      .then(({ data: fresh }) => {
+        if (!fresh?.length) return;
+        const freshMap = new Map<string, any>(fresh.map((r: any) => [r.id, r]));
+        setMessages(prev => {
+          let dirty = false;
+          const next = prev
+            .map(m => {
+              const f = freshMap.get(m.$id);
+              if (!f) return m;
+              if (f.deleted_for?.includes(uid)) {
+                dirty = true;
+                knownIdsRef.current.delete(m.$id);
+                return null;
+              }
+              if (
+                f.status    === m.status    &&
+                f.reactions === m.reactions &&
+                f.edited    === m.edited    &&
+                f.message   === m.message   &&
+                (f.deleted_for?.length ?? 0) === (m.deletedFor?.length ?? 0)
+              ) return m;
+              dirty = true;
+              return {
+                ...m,
+                status:     f.status,
+                reactions:  f.reactions   ?? '[]',
+                edited:     f.edited      ?? false,
+                message:    f.message,
+                deletedFor: f.deleted_for ?? [],
+              };
+            })
+            .filter(Boolean) as ChatMessage[];
+          return dirty ? next : prev;
+        });
+      });
+  }, []);
+  const scheduleSyncMutableFields = useCallback((uid: string, currentChatId: string) => {
+    needsSyncRef.current = true;
+    if (syncTimerRef.current) return; // already scheduled
+    syncTimerRef.current = setTimeout(() => {
+      syncTimerRef.current = null;
+      needsSyncRef.current = false;
+      syncMutableFields(uid, currentChatId);
+    }, 300);
+  }, [syncMutableFields]);
   const loadMessages = useCallback(async () => {
     if (!chatId || !user?.id) return;
     setLoading(true);
     try {
-      const { data, error } = await withRetry(async () =>
-        supabase.from(TABLES.messages)
+      const { data, error } = await withRetry<{ data: any[] | null; error: any }>(() =>
+        supabase
+          .from(TABLES.messages)
           .select(MSG_COLS)
           .eq('chat_id', chatId)
-          // App-level soft-delete filter: rows where I'm in deleted_for are excluded.
-          // RLS also enforces this server-side for security.
           .not('deleted_for', 'cs', `{${user.id}}`)
           .order('created_at', { ascending: false } as any)
-          .limit(30)
+          .limit(30) as any
       );
       if (error) throw error;
       const msgs = (data ?? []).map(rowToMsg).reverse();
+      knownIdsRef.current = new Set(msgs.map(m => m.$id));
+
       setMessages(msgs);
       setHasMore((data?.length ?? 0) === 30);
       if (msgs.length) oldestRef.current = msgs[0].createdAt;
@@ -125,21 +159,23 @@ export const useMessages = (chatId: string) => {
       setLoading(false);
     }
   }, [chatId, user?.id]);
-
   const loadOlderMessages = useCallback(async () => {
     if (!chatId || !oldestRef.current || loadingOld || !user?.id) return;
     setLoadingOld(true);
     try {
-      const { data } = await withRetry(async () =>
-        supabase.from(TABLES.messages)
+      const { data } = await withRetry<{ data: any[] | null }>(() =>
+        supabase
+          .from(TABLES.messages)
           .select(MSG_COLS)
           .eq('chat_id', chatId)
           .not('deleted_for', 'cs', `{${user.id}}`)
           .lt('created_at', oldestRef.current!)
-          .order('created_at', { ascending: false } as any)
-          .limit(30)
+          .order('created_at', { ascending: false })
+          .limit(30) as any
       );
       const older = (data ?? []).map(rowToMsg).reverse();
+      older.forEach(m => knownIdsRef.current.add(m.$id));
+
       setMessages(prev => [...older, ...prev]);
       setHasMore((data?.length ?? 0) === 30);
       if (older.length) oldestRef.current = older[0].createdAt;
@@ -147,122 +183,224 @@ export const useMessages = (chatId: string) => {
       setLoadingOld(false);
     }
   }, [chatId, loadingOld, user?.id]);
-
-  // ── Realtime subscription ───────────────────────────────────────
-  // RULES (prevent all known crashes):
-  //   1. Unique topic: `msg-${chatId}-${Date.now()}`
-  //      → React Strict Mode runs effects twice. Same name returns cached
-  //        subscribed instance → .on() crashes. Unique name = new instance always.
-  //   2. ALL .on() before .subscribe() — Supabase requires this order.
-  //   3. Cleanup by reference, not by name.
-  //   4. Deps = [chatId, user?.id] only — adding callbacks causes extra runs.
-  //   5. On CHANNEL_ERROR/TIMED_OUT: re-fetch as fallback.
   useEffect(() => {
     if (!chatId || !user?.id) return;
     const uid = user.id;
-
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
     }
 
     loadMessages();
-
-    const topic   = `msg-${chatId}-${Date.now()}`;
-    const channel = supabase
-      .channel(topic)
-      .on(
-        'postgres_changes' as any,
-        { event: '*', schema: 'public', table: TABLES.messages, filter: `chat_id=eq.${chatId}` },
-        (payload: any) => {
-          const { eventType, new: n, old: o } = payload;
-
-          if (eventType === 'INSERT') {
-            const msg = rowToMsg(n);
-            if (msg.deletedFor.includes(uid)) return;
-            setMessages(prev => {
-              if (prev.some(m => m.$id === msg.$id)) return prev;
-              const base = prev.filter(m => !(m._pending && m.message === msg.message));
-              return [...base, msg];
-            });
-          }
-
-          if (eventType === 'UPDATE') {
-            const msg = rowToMsg(n);
-            if (msg.deletedFor.includes(uid)) {
-              setMessages(prev => prev.filter(m => m.$id !== msg.$id));
-            } else {
-              setMessages(prev => prev.map(m => m.$id === msg.$id ? msg : m));
-            }
-          }
-
-          if (eventType === 'DELETE') {
-            setMessages(prev => prev.filter(m => m.$id !== o.id));
-          }
+    const handlePayload = (payload: any) => {
+      const { eventType, new: n, old: o } = payload;
+      if (eventType === 'INSERT') {
+        if (!n?.id) return;
+        const msg = rowToMsg(n);
+        if (msg.deletedFor?.includes(uid)) return;
+        if (knownIdsRef.current.has(msg.$id)) {
+          setMessages(prev => {
+            const idx = prev.findIndex(m => m.$id === msg.$id && !m._pending);
+            if (idx === -1) return prev;
+            return prev;
+          });
+          return;
         }
+        const pKey   = makePendingKey(msg.chatId, msg.senderId, msg.message);
+        const tempId = pendingRegistry.get(pKey);
+        setMessages(prev => {
+          if (tempId) {
+            pendingRegistry.delete(pKey);
+            knownIdsRef.current.add(msg.$id);
+            const idx = prev.findIndex(m => m.$id === tempId);
+            if (idx !== -1) {
+              const next  = [...prev];
+              next[idx]   = { ...msg, _pending: false, _failed: false };
+              return next;
+            }
+            if (prev.some(m => m.$id === msg.$id)) return prev;
+            return [...prev, msg];
+          }
+          const pendingIdx = prev.findIndex(m =>
+            m._pending &&
+            m.message  === msg.message  &&
+            m.senderId === msg.senderId &&
+            Math.abs(secToMs(m.createdAt) - secToMs(msg.createdAt)) < 30_000
+          );
+          if (pendingIdx !== -1) {
+            knownIdsRef.current.add(msg.$id);
+            const next = [...prev];
+            next[pendingIdx] = { ...msg, _pending: false, _failed: false };
+            return next;
+          }
+          if (prev.some(m => m.$id === msg.$id)) return prev; 
+          knownIdsRef.current.add(msg.$id);
+          return [...prev, msg];
+        });
+
+        return;
+      }
+      if (eventType === 'UPDATE') {
+        if (!n?.id) {
+          scheduleSyncMutableFields(uid, chatId);
+          return;
+        }
+        const msg = rowToMsg(n);
+        if (msg.deletedFor?.includes(uid)) {
+          knownIdsRef.current.delete(msg.$id);
+          setMessages(prev => prev.filter(m => m.$id !== msg.$id));
+          return;
+        }
+        setMessages(prev => {
+          let idx = prev.findIndex(m => m.$id === msg.$id);
+          if (idx === -1) {
+            idx = prev.findIndex(m =>
+              !m._pending &&
+              m.message  === msg.message  &&
+              m.senderId === msg.senderId &&
+              Math.abs(secToMs(m.createdAt) - secToMs(msg.createdAt)) < 5_000
+            );
+          }
+          if (idx === -1) {
+            scheduleSyncMutableFields(uid, chatId);
+            return prev; 
+          }
+          const existing = prev[idx];
+          if (
+            existing.status                    === msg.status    &&
+            existing.reactions                 === msg.reactions &&
+            existing.edited                    === msg.edited    &&
+            existing.message                   === msg.message   &&
+            (existing.deletedFor?.length ?? 0) === (msg.deletedFor?.length ?? 0)
+          ) return prev; // same reference → React skips re-render
+
+          const next = [...prev];
+          next[idx]  = {
+            ...existing,
+            status:     msg.status,
+            reactions:  msg.reactions,
+            edited:     msg.edited,
+            message:    msg.message,
+            deletedFor: msg.deletedFor,
+            _pending:   false,
+            _failed:    false,
+          };
+          return next;
+        });
+
+        return;
+      }
+
+      // ════════════════════════════════════════════════════════════════════
+      // DELETE
+      // ════════════════════════════════════════════════════════════════════
+      if (eventType === 'DELETE') {
+        const deletedId = o?.id;
+        if (deletedId) {
+          knownIdsRef.current.delete(deletedId);
+          setMessages(prev => prev.filter(m => m.$id !== deletedId));
+        }
+      }
+    };
+
+    // ── Channel setup (Strategy 7) ─────────────────────────────────────────
+    // Use a stable channel name (no Date.now()) so Supabase can reuse the
+    // multiplexed WebSocket slot instead of creating a new one each render.
+    const channelName = `msg_${chatId}`;
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event:  '*',
+          schema: 'public',
+          table:  TABLES.messages,
+          filter: `chat_id=eq.${chatId}`,
+        },
+        handlePayload
       )
       .subscribe((status: string) => {
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.warn(`[Realtime] ${status} — reloading messages`);
-          loadMessages();
+          // Back-off reconnect — don't hammer the server
+          setTimeout(() => {
+            if (channelRef.current === channel) loadMessages();
+          }, 2_000);
         }
       });
 
     channelRef.current = channel;
+
     return () => {
+      if (syncTimerRef.current) {
+        clearTimeout(syncTimerRef.current);
+        syncTimerRef.current = null;
+      }
       supabase.removeChannel(channel);
       channelRef.current = null;
     };
-  }, [chatId, user?.id]);
+  }, [chatId, user?.id]); // intentionally excludes loadMessages / scheduleSyncMutableFields
 
-  // ── Send ─────────────────────────────────────────────────────────
+  // ─── Send message ──────────────────────────────────────────────────────────
   const sendMessage = useCallback(async (
     text: string,
-    opts?: { replyToId?: string|null; replyToText?: string|null; replyToSender?: string|null }
+    opts?: {
+      replyToId?:     string | null;
+      replyToText?:   string | null;
+      replyToSender?: string | null;
+    }
   ) => {
     if (!chatId || !user?.id || !text.trim()) return;
-    const tempId = `tmp_${Date.now()}`;
+    const uid    = user.id;
+    const tempId = `tmp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
+    // Register BEFORE adding to state (race-condition safe)
+    const pKey = makePendingKey(chatId, uid, text);
+    pendingRegistry.set(pKey, tempId);
+
+    // Optimistic bubble
     setMessages(prev => [...prev, {
-      $id: tempId, chatId, senderId: user.id, message: text,
-      type: 'text', status: 'sent', reactions: '[]',
-      createdAt: Math.floor(Date.now() / 1000),
-      deletedFor: [], _pending: true,
+      $id:           tempId,
+      chatId,
+      senderId:      uid,
+      message:       text,
+      type:          'text',
+      status:        'sent',
+      reactions:     '[]',
+      createdAt:     Math.floor(Date.now() / 1000),
+      deletedFor:    [],
+      _pending:      true,
       replyToId:     opts?.replyToId     ?? undefined,
       replyToText:   opts?.replyToText   ?? undefined,
       replyToSender: opts?.replyToSender ?? undefined,
     }]);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-console.log('🔑 Session exists:', !!session);
-console.log('🔑 Access token:', session?.access_token?.slice(0, 20));
-console.log('📦 Payload:', JSON.stringify({ 
-  action: 'send_message', 
-  chatId, 
-  message: text.slice(0, 20) 
-}));
-
-
-
-      // send_message edge fn also clears hidden_for=[] so chat reappears ✅
       await callFn({
-        action: 'send_message', chatId, message: text,
+        action:        'send_message',
+        chatId,
+        message:       text,
         replyToId:     opts?.replyToId     ?? null,
         replyToText:   opts?.replyToText   ?? null,
         replyToSender: opts?.replyToSender ?? null,
       });
+      // RT INSERT fires → registry match → tmp_ replaced with real row
     } catch (e: any) {
       console.error('[sendMessage] failed:', e?.message);
+      pendingRegistry.delete(pKey); // clean up so future sends don't mismatch
       setMessages(prev => prev.map(m =>
         m.$id === tempId ? { ...m, _pending: false, _failed: true } : m
       ));
     }
   }, [chatId, user?.id]);
 
+  // ─── Retry failed message ──────────────────────────────────────────────────
   const retryMessage = useCallback(async (msg: ChatMessage) => {
     setMessages(prev => prev.filter(m => m.$id !== msg.$id));
-    await sendMessage(msg.message);
+    await sendMessage(msg.message, {
+      replyToId:     msg.replyToId,
+      replyToText:   msg.replyToText,
+      replyToSender: msg.replyToSender,
+    });
   }, [sendMessage]);
 
   return {

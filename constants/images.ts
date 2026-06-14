@@ -3,4 +3,5 @@ export default {
   firstImage:  require("../assets/images/firstImage.png"),
   secondImage: require("../assets/images/secondImage.png"),
   thirdImage:  require("../assets/images/thirdImage.png"),
+  scan:        require("../assets/images/scan.png"),
 };

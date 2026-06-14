@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Asset } from 'expo-asset';
 import * as Font from 'expo-font';
 import { Image } from 'react-native';
+import { Asset } from 'expo-asset';
 
 // ── Type definitions ──────────────────────────────────────────────
 export interface PreloadResult {

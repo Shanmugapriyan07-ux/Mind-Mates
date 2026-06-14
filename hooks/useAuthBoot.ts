@@ -1,104 +1,109 @@
 // hooks/useAuthBoot.ts
-// Single auth listener. Called ONCE in _layout.tsx.
-// Replaces ALL of: AuthContext listener + premiumAuthService listener + authService listener
-//
-// WHY MULTIPLE LISTENERS CAUSE FLICKER:
-//   AuthContext.onAuthStateChange → updates state A → navigate
-//   authService.onAuthStateChange → updates state B → navigate
-//   Both fire within 10ms of each other = 2 navigations = flicker
-//
-// FIX: ONE listener here. Everything else is disabled/removed.
-
-import { useEffect, useRef }    from 'react';
-import { AppState, AppStateStatus } from 'react-native';
-import { supabase }             from '@/lib/supabase';
-import { useAuthStore }         from '@/stores/authStore';
-import { restoreSession }       from '@/services/authServices';
-import type { AuthUser }        from '@/stores/authStore';
-
-function mapUser(raw: any, isProfileComplete: boolean): AuthUser {
-  return {
-    id:                 raw.id,
-    email:              raw.email ?? null,
-    name:               raw.user_metadata?.full_name ?? raw.user_metadata?.name ?? null,
-    avatar:             raw.user_metadata?.avatar_url ?? null,
-    is_profileComplete: isProfileComplete,
-  };
-}
+import { useEffect, useRef }        from "react";
+import { AppState, AppStateStatus } from "react-native";
+import { supabase }                 from "@/lib/supabase";
+import { useAuthStore }             from "@/stores/authStore";
+import { restoreSession }           from "@/services/authServices";
+import { log }                      from "@/utils/logger";
 
 export function useAuthBoot(): void {
-  const booted   = useRef(false);
+  const booted = useRef(false);
 
   useEffect(() => {
-    if (booted.current) return; // Strict mode / double-mount guard
+    if (booted.current) return;
     booted.current = true;
 
-    // ── 1. Restore session on launch ──────────────────────────────────────────
-    restoreSession();
+    log.auth("[AuthBoot] restoring session…");
+    restoreSession().catch((err) => {
+      log.error("[AuthBoot] restoreSession threw:", err?.message);
+      useAuthStore.getState().setPhase("unauthenticated");
+    });
 
-    // ── 2. ONE Supabase listener — the ONLY auth state listener in the app ────
-    // All other auth listeners must be REMOVED from AuthContext, premiumAuthService, etc.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         const store = useAuthStore.getState();
+        log.auth("[AuthBoot] event:", event, "phase:", store.phase);
 
-        console.log('[AuthBoot] Supabase event:', event, {
-          phase:     store.phase,
-          hasSession: !!session,
-        });
-
-        // ── CRITICAL: Ignore events during transitional phases ────────────────
-        // During logging_out/deleting: we're handling signOut explicitly.
-        // Supabase will fire SIGNED_OUT — we do NOT want it to trigger navigation.
-        // Our finalizeSignOut() handles that after cleanup is complete.
-        if (store.phase === 'logging_out' || store.phase === 'deleting') {
-          console.log('[AuthBoot] Ignoring event during transitional phase');
+        // Always ignore events during intentional sign-out / delete flows
+        if (
+          store.phase === 'unauthenticated' ||
+          store.phase === 'logging_out'     ||
+          store.phase === 'deleting'
+        ) {
+          log.auth("[AuthBoot] ignoring — signed out phase");
           return;
         }
 
         switch (event) {
-          case 'SIGNED_OUT':
-            // Only handle if we didn't initiate it (e.g., token expired remotely)
-            if (store.phase === 'authenticated' || store.phase === 'profile_incomplete') {
-              console.log('[AuthBoot] External sign-out detected');
+
+          case "SIGNED_IN":
+            if (store.phase === "booting") {
+              // Only re-try restoreSession if we're still in boot phase
+              // (means restoreSession() above didn't resolve yet)
+              log.auth("[AuthBoot] SIGNED_IN during boot — retrying restore");
+              restoreSession().catch(() => store.setPhase("unauthenticated"));
+            }
+            // If phase is already 'authenticated' or 'profile_incomplete',
+            // signInWithGoogle() already handled this — do nothing.
+            break;
+
+          case "SIGNED_OUT":
+            // Only genuine external revocations reach here (token expired,
+            // revoked from another device, etc.) — our own logout() calls
+            // finalizeSignOut() before supabase.auth.signOut(), so by the time
+            // this event fires the phase is already 'logging_out' and the
+            // guard above catches it.
+            if (
+              store.phase === "authenticated" ||
+              store.phase === "profile_incomplete"
+            ) {
+              log.auth("[AuthBoot] external sign-out — finalizing");
               store.finalizeSignOut();
             }
             break;
 
-          case 'TOKEN_REFRESHED':
-            console.log('[AuthBoot] Token refreshed silently ✅');
-            // Update token in store
+          case "TOKEN_REFRESHED":
             if (session?.access_token) {
-              // No navigation — just update the token
-              useAuthStore.setState({ token: session.access_token });
+              // Update token in store without touching phase or user
+              useAuthStore.setState({ token: session.access_token } as any);
+            }
+            break;
+
+          // USER_UPDATED: profile changes from another session — re-sync user
+          case "USER_UPDATED":
+            if (session?.user && (
+              store.phase === "authenticated" ||
+              store.phase === "profile_incomplete"
+            )) {
+              restoreSession().catch(() => {});
             }
             break;
         }
-      }
+      },
     );
 
-    // ── 3. App foreground — verify session hasn't expired ────────────────────
-    let prevAppState: AppStateStatus = AppState.currentState;
-
-    const appStateSub = AppState.addEventListener('change', (next) => {
-      if (next === 'active' && prevAppState !== 'active') {
+    let prevState: AppStateStatus = AppState.currentState;
+    const appSub = AppState.addEventListener("change", (next) => {
+      if (next === "active" && prevState !== "active") {
         const store = useAuthStore.getState();
-
-        if (store.phase === 'authenticated' || store.phase === 'profile_incomplete') {
-          supabase.auth.getSession().then(({ data: { session } }) => {
-            if (!session) {
-              console.log('[AuthBoot] Session expired in background');
-              store.finalizeSignOut();
-            }
-          });
+        if (
+          store.phase === "authenticated" ||
+          store.phase === "profile_incomplete"
+        ) {
+          // Verify session is still valid on app resume
+          supabase.auth.getSession()
+            .then(({ data: { session } }) => {
+              if (!session) store.finalizeSignOut();
+            })
+            .catch(() => {});
         }
       }
-      prevAppState = next;
+      prevState = next;
     });
 
     return () => {
       subscription.unsubscribe();
-      appStateSub.remove();
+      appSub.remove();
     };
   }, []);
 }

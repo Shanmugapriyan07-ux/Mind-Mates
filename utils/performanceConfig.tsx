@@ -1,39 +1,5 @@
-// utils/performanceConfig.tsx
-//
-// ══════════════════════════════════════════════════════════════════
-// PERFORMANCE CONFIGURATION — Instagram-Level Optimizations
-// ══════════════════════════════════════════════════════════════════
-//
-// This file exports reusable FlatList configs, image cache helpers,
-// and lazy loading patterns used across the app.
-
 import React, { useCallback, useRef } from 'react';
 import { FlatListProps, InteractionManager } from 'react-native';
-
-// ══════════════════════════════════════════════════════════════════
-// FLATLIST PERFORMANCE CONFIGS
-// ══════════════════════════════════════════════════════════════════
-//
-// WHY THESE SPECIFIC VALUES:
-//
-// initialNumToRender=8: Render only what fits a phone screen (~6-8 items).
-//   More than this adds JS parse time before first paint.
-//
-// maxToRenderPerBatch=5: How many off-screen items render per JS frame.
-//   Higher = smoother fast-scroll but more JS work per frame.
-//   5 is the sweet spot for 60fps scroll.
-//
-// windowSize=5: The "virtual window" around the visible area.
-//   windowSize=5 means 2 screens above + 2 screens below are rendered.
-//   Lower = less memory. Higher = less blank flash on fast scroll.
-//   5 matches Instagram's behavior.
-//
-// removeClippedSubviews=true: Removes native views that are off-screen.
-//   Crucial on Android where RN keeps more native views in memory.
-//   Known iOS bug: can cause blank items — test carefully on iOS.
-//
-// updateCellsBatchingPeriod=50: How often RN processes new items (ms).
-//   50ms = 20 batches/second max. Lower = smoother, more CPU.
 
 export const CHAT_LIST_FLATLIST_CONFIG: Partial<FlatListProps<any>> = {
   initialNumToRender:       8,

@@ -1,5 +1,8 @@
+// components/GoogleSignInButton.tsx
 import icons from "@/constants/icons";
-import React, { memo, useCallback, useRef } from "react";
+import { useAuthStore } from "@/stores/authStore";
+import { ms, s, vs } from "@/utils/scale";
+import React, { memo, useCallback, useEffect, useRef } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -10,19 +13,47 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
-interface GooglesigninbuttonProps {
+
+interface GoogleSignInButtonProps {
   onPress: () => void;
   isLoading?: boolean;
   disabled?: boolean;
 }
-function Googlesigninbutton({
+function GoogleSignInButton({
   onPress,
   isLoading = false,
   disabled = false,
-}: GooglesigninbuttonProps) {
+}: GoogleSignInButtonProps) {
+  // Also read transitioning from store for the smooth handoff
+  const isTransitioning = useAuthStore((s: any) => s.isTransitioning ?? false);
+
+  // Either prop-driven loading OR store-driven transitioning = show spinner
+  const showSpinner = isLoading || isTransitioning;
+  const isDisabled = disabled || showSpinner;
+
   const scale = useRef(new Animated.Value(1)).current;
   const opacity = useRef(new Animated.Value(1)).current;
-  const isDisabled = disabled || isLoading;
+  // Separate animated value for the transitioning fade-out
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  // When transitioning starts, gently fade the button towards 0.5 opacity
+  // so it visually "dissolves" into the navigation — not a hard cutoff.
+  useEffect(() => {
+    if (isTransitioning) {
+      Animated.timing(fadeAnim, {
+        toValue: 1, // Keep fully opaque to prevent "ash" look
+        duration: 350,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [isTransitioning]);
+
   const handlePressIn = useCallback(() => {
     if (isDisabled) return;
     Animated.parallel([
@@ -55,6 +86,7 @@ function Googlesigninbutton({
       }),
     ]).start();
   }, [scale, opacity]);
+
   return (
     <TouchableWithoutFeedback
       onPress={isDisabled ? undefined : onPress}
@@ -63,44 +95,49 @@ function Googlesigninbutton({
       accessible
       accessibilityRole="button"
       accessibilityLabel="Continue with Google"
-      accessibilityState={{ disabled: isDisabled, busy: isLoading }}
+      accessibilityState={{ disabled: isDisabled, busy: showSpinner }}
     >
       <Animated.View
         style={[
           styles.button,
           isDisabled && styles.buttonDisabled,
-          { transform: [{ scale }], opacity },
+          {
+            transform: [{ scale }],
+            // Combine press opacity + transitioning fade
+            // When disabled, we'll rely on the existing opacity animations for visual feedback.
+            opacity: Animated.multiply(opacity, fadeAnim),
+          },
         ]}
       >
-        {/* Left: Google G or spinner */}
         <View style={styles.leftSection}>
-          {isLoading ? (
+          {showSpinner ? (
             <ActivityIndicator
-              size="small"
-              color="#5F6368"
+              size="small" // Keep size small
+              color="#6D4AFF" // Changed spinner color to match the default text color for visibility on white
               style={styles.spinner}
             />
           ) : (
-           <Image source={icons.google} style={{ width: 22, height: 22, left:17 }} />
+            <Image
+              source={icons.google}
+              style={{ width: s(22), height: s(22), left: s(17) }}
+            />
           )}
         </View>
 
-        {/* Center: label */}
         <Text
-          style={[styles.label, isLoading && styles.labelLoading]}
+          style={[styles.label, showSpinner && styles.labelLoading]} // Always use the default label style
           numberOfLines={1}
         >
-          {isLoading ? "Signing in…" : "Continue with Google"}
+          {showSpinner ? "Signing in…" : "Continue with Google"}
         </Text>
 
-        {/* Right: spacer to keep label centered */}
         <View style={styles.rightSection} />
       </Animated.View>
     </TouchableWithoutFeedback>
   );
 }
 
-export default Googlesigninbutton;
+export default memo(GoogleSignInButton);
 
 const styles = StyleSheet.create({
   button: {
@@ -111,64 +148,50 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     borderWidth: 1,
     borderColor: "#DADCE0",
-    height: 58,
-    paddingHorizontal: 12,
+    height: 60,
+    paddingHorizontal: s(12),
     width: "100%",
-    bottom:100,
+    bottom: vs(100),
     ...Platform.select({
-      android: { elevation: 1 },
+      android: { elevation: s(1) },
       ios: {
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
+        shadowOffset: { width: 0, height: s(1) },
         shadowOpacity: 0.15,
-        shadowRadius: 1.5,
+        shadowRadius: s(1.5),
       },
     }),
   },
   buttonDisabled: {
-    backgroundColor: "#F8F9FA",
-    borderColor: "#E8EAED",
+    backgroundColor: "#FFFFFF", 
+    borderColor: "#DADCE0",
   },
   leftSection: {
-    width: 36,
+    width: s(36),
     alignItems: "center",
     justifyContent: "center",
   },
   rightSection: {
-    width: 36,
-  },
-  gContainer: {
-    width: 22,
-    height: 22,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  gText: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#4285F4",
-    fontFamily: Platform.select({ ios: "Georgia", android: "serif" }),
-    lineHeight: 22,
-    includeFontPadding: false,
+    width: s(36),
   },
   spinner: {
-    width: 22,
-    height: 22,
+    width: s(22),
+    height: s(22),
+  },
+  labelLoading: {
+    color: "#6D4AFF",
   },
   label: {
     flex: 1,
     textAlign: "center",
-    fontSize: 19,
+    fontSize: ms(19),
     fontWeight: "600",
-    left:10,
+    left: s(10),
     color: "#3C4043",
-    letterSpacing: 0.15,
+    letterSpacing: s(0.15),
     fontFamily: Platform.select({
       ios: "System",
       android: "sans-serif-medium",
     }),
-  },
-  labelLoading: {
-    color: "#9AA0A6",
   },
 });

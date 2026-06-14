@@ -1,12 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import {
-    logout,
-    restoreSession,
-    signInWithGoogle,
-} from '../services/authServices';
-import { trySilentGoogleSignIn } from '@/services/googleAuthService';
-
 export interface AuthUser {
   id: string;
   email: string;
@@ -14,32 +7,23 @@ export interface AuthUser {
   avatar: string | null;
   provider: string;
 }
-
 export function useAuth() {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [status, setStatus] = useState('initializing'); // initializing | authenticated | unauthenticated
-  const [isSigningIn, setIsSigningIn] = useState(false);
+  const [status, setStatus] = useState('initializing');
+  const [isSigningIn] = useState(false);
   const [error, setError] = useState(null);
   const isMounted = useRef(true);
-
-  // ── Session restore + silent sign-in on mount ──────────────────────────────
   useEffect(() => {
     isMounted.current = true;
     initAuth();
-
     return () => {
       isMounted.current = false;
     };
   }, []);
-
-  // ── Real-time auth state listener ──────────────────────────────────────────
-  // Supabase fires this whenever session changes:
-  //   SIGNED_IN, SIGNED_OUT, TOKEN_REFRESHED, etc.
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         if (!isMounted.current) return;
-
         if (session?.user) {
           setUser(mapUser(session.user));
           setStatus('authenticated');
@@ -49,14 +33,10 @@ export function useAuth() {
         }
       }
     );
-
     return () => subscription.unsubscribe();
   }, []);
-
   async function initAuth() {
-    // 1. Check AsyncStorage for existing Supabase session (synchronous-feel restore)
     const { data: { session } } = await supabase.auth.getSession();
-
     if (session?.user) {
       if (isMounted.current) {
         setUser(mapUser(session.user));
@@ -64,33 +44,24 @@ export function useAuth() {
       }
       return;
     }
-
-    // 2. No Supabase session — try silent Google sign-in
-    // This auto-logs in users who previously authenticated
     const { data: { session: silentSession } } = await supabase.auth.getSession();
     if (silentSession?.user && isMounted.current) {
       setUser(mapUser(silentSession.user));
       setStatus('authenticated');
       return;
     }
-
-    // 3. No session anywhere — show login screen
     if (isMounted.current) {
       setStatus('unauthenticated');
     }
   }
-
   return {
     user,
-    status,           // 'initializing' | 'authenticated' | 'unauthenticated'
-    isSigningIn,      // true while Google picker + Supabase exchange in progress
+    status,         
+    isSigningIn,     
     error,
     clearError: () => setError(null),
   };
 }
-
-// ─── Normalize Supabase user object ───────────────────────────────────────────
-
 function mapUser(supabaseUser: any) {
   return {
     id: supabaseUser.id,

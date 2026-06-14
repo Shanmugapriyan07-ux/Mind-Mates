@@ -1,16 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import supabase, { TABLES } from "@/lib/supabase";
- 
-// global, survives logout
+
 const RETRY_KEY = 'profile_retry_queue';
 
 export const userKey = (userId: string) => ({
   profile: `user_${userId}_profile`,
 });
-
-// ─────────────────────────────────────────────────────────────────────────
-// TYPES
-// ─────────────────────────────────────────────────────────────────────────
 
 export type ProfilePayload = {
   user_id:            string;
@@ -36,10 +31,6 @@ type RetryItem = {
   attempts: number;
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
-// READ — instant from AsyncStorage using your userKey
-// ═══════════════════════════════════════════════════════════════════════════
-
 export const readProfileCache = async (
   userId: string
 ): Promise<CachedProfile | null> => {
@@ -53,10 +44,6 @@ export const readProfileCache = async (
     return null;
   }
 };
-
-// ═══════════════════════════════════════════════════════════════════════════
-// WRITE CACHE — instant (~5ms), called BEFORE navigate
-// ═══════════════════════════════════════════════════════════════════════════
 
 export const writeProfileCache = async (
   payload: ProfilePayload,
@@ -73,11 +60,6 @@ export const writeProfileCache = async (
     JSON.stringify(data)
   );
 };
-
-// ═══════════════════════════════════════════════════════════════════════════
-// SYNC TO APPWRITE — background, never blocks UI
-// ═══════════════════════════════════════════════════════════════════════════
-
 export const syncProfileToAppwrite = async (
   payload: ProfilePayload,
   existingDocId?: string | null
@@ -103,8 +85,6 @@ export const syncProfileToAppwrite = async (
       if (error) throw error;
       docId = data.id; // save returned id
     }
-
-    // ✅ Mark cache synced + store $id for future updates
     const raw = await AsyncStorage.getItem(userKey(payload.user_id).profile);
     if (raw) {
       const cached: CachedProfile = JSON.parse(raw);
@@ -113,21 +93,14 @@ export const syncProfileToAppwrite = async (
         JSON.stringify({ ...cached, _synced: true, $id: docId })
       );
     }
-
     await removeFromRetryQueue(payload.user_id);
-    console.log("✅ Appwrite synced:", docId);
   } catch (error) {
     console.warn("⚠️ Appwrite sync failed, queuing retry");
     await addToRetryQueue(payload, existingDocId ?? null);
     throw error;
   }
 };
-
-// ═══════════════════════════════════════════════════════════════════════════
-// RETRY QUEUE
-// ═══════════════════════════════════════════════════════════════════════════
-
-const addToRetryQueue = async (
+export const addToRetryQueue = async (
   payload: ProfilePayload,
   docId: string | null
 ): Promise<void> => {
@@ -140,7 +113,7 @@ const addToRetryQueue = async (
   } catch {}
 };
 
-const removeFromRetryQueue = async (userId: string): Promise<void> => {
+export const removeFromRetryQueue = async (userId: string): Promise<void> => {
   try {
     const raw = await AsyncStorage.getItem(RETRY_KEY);
     if (!raw) return;
@@ -151,26 +124,18 @@ const removeFromRetryQueue = async (userId: string): Promise<void> => {
     );
   } catch {}
 };
-
-// ── Call in _layout.tsx after isLoggedIn = true ────────────────────────────
 export const flushRetryQueue = async (): Promise<void> => {
   try {
     const raw = await AsyncStorage.getItem(RETRY_KEY);
     if (!raw) return;
     const queue: RetryItem[] = JSON.parse(raw);
     if (queue.length === 0) return;
-    console.log(`🔄 Flushing ${queue.length} pending sync(s)...`);
     for (const item of queue) {
       if (item.attempts >= 5) { await removeFromRetryQueue(item.payload.user_id); continue; }
       await syncProfileToAppwrite(item.payload, item.docId).catch(() => { item.attempts += 1; });
     }
   } catch {}
 };
-
-// ═══════════════════════════════════════════════════════════════════════════
-// MAIN — saveProfileCacheFirst (use in BasicInfo handleNext)
-// ═══════════════════════════════════════════════════════════════════════════
-
 export const saveProfileCacheFirst = async ({
   payload,
   existingDocId = null,
@@ -180,17 +145,12 @@ export const saveProfileCacheFirst = async ({
 }: {
   payload:         ProfilePayload;
   existingDocId?:  string | null;
-  onCacheSaved:    () => void;       // ← navigate here
+  onCacheSaved:    () => void;     
   onSyncComplete?: (docId?: string) => void;
   onSyncError?:    (err: unknown) => void;
 }): Promise<void> => {
-  // 1. Write AsyncStorage instantly
   await writeProfileCache(payload, existingDocId);
-
-  // 2. Unblock UI — navigate NOW
   onCacheSaved();
-
-  // 3. Background Appwrite sync
   syncProfileToAppwrite(payload, existingDocId)
     .then(async () => {
       const cached = await readProfileCache(payload.user_id);
@@ -198,21 +158,13 @@ export const saveProfileCacheFirst = async ({
     })
     .catch((err) => onSyncError?.(err));
 };
-
-// ═══════════════════════════════════════════════════════════════════════════
-// LOAD — cache-first then silent Appwrite refresh (use in profileContext)
-// ═══════════════════════════════════════════════════════════════════════════
-
 export const loadProfileCacheFirst = async (
   userId: string,
   onProfile: (profile: CachedProfile, fromCache: boolean) => void
 ): Promise<void> => {
-  // 1. Show cache instantly
   const cached = await readProfileCache(userId);
   if (cached) {
     onProfile(cached, true);
-
-    // 2. Refresh if unsynced or stale (> 10 min)
     const isStale = Date.now() - new Date(cached._cachedAt).getTime() > 10 * 60 * 1000;
     if (!cached._synced || isStale) {
       refreshFromAppwrite(userId)
@@ -221,13 +173,10 @@ export const loadProfileCacheFirst = async (
     }
     return;
   }
-
-  // 3. No cache — fetch from Appwrite
   const fresh = await refreshFromAppwrite(userId);
   if (fresh) onProfile({ ...fresh, _cachedAt: new Date().toISOString(), _synced: true }, false);
 };
-
-const refreshFromAppwrite = async (
+export const refreshFromAppwrite = async (
   userId: string
 ): Promise<(ProfilePayload & { $id: string }) | null> => {
   try {
@@ -250,7 +199,6 @@ const refreshFromAppwrite = async (
       profile_image:       doc.profile_image ?? null,
       is_profile_complete: doc.is_profile_complete ?? false,
     };
-    // Update cache with fresh data
     await AsyncStorage.setItem(
       userKey(userId).profile,
       JSON.stringify({ ...profile, _cachedAt: new Date().toISOString(), _synced: true })

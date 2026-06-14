@@ -1,8 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
-
 const SUPABASE_URL     = process.env.EXPO_PUBLIC_SUPABASE_URL     || "";
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "";
-
 function createSafeClient() {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     if (__DEV__) {
@@ -13,7 +11,6 @@ function createSafeClient() {
     }
     return null;
   }
-
   return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
       persistSession: true,
@@ -25,7 +22,5 @@ function createSafeClient() {
     realtime: { params: { eventsPerSecond: 10 } },
   });
 }
-
-// Singleton — created once, reused everywhere
 export const supabase = createSafeClient();
 export const isSupabaseAvailable = supabase !== null;

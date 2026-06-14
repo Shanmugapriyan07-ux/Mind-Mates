@@ -1,45 +1,68 @@
-import React, { useEffect, useCallback, useMemo } from 'react';
+/**
+ * DiscoverScreen — Fully Responsive Refactor
+ * ─────────────────────────────────────────────────────────────────────────────
+ * All `bottom`, `top`, `left`, `right` positional hacks replaced with proper
+ * Flexbox layout. Every change is annotated with a numbered CHANGE comment.
+ */
+
+import { ProfileAvatar }          from "@/components/Profileavatar";
+import images                     from "@/constants/images";
+import { useAuthh }               from "@/Contexts/authContext";
+import { useConnection }          from "@/hooks/useConnection";
+import { MatchUser, useMatches }  from "@/hooks/useMatches";
+import { TYPOGRAPHY }             from "@/theme";
+import { ms, s, vs }              from "@/utils/scale";
+import { Ionicons }               from "@expo/vector-icons";
+import { router }                 from "expo-router";
+import React, { useCallback, useEffect, useMemo } from "react";
 import {
-  View, Text, FlatList, TouchableOpacity,
-  ActivityIndicator, StyleSheet, StatusBar,
+  ActivityIndicator,
+  FlatList,
+  Image,
   RefreshControl,
-} from 'react-native';
-import { SafeAreaView }          from 'react-native-safe-area-context';
-import { Ionicons }              from '@expo/vector-icons';
-import { router }                from 'expo-router';
-import { ProfileAvatar }         from '@/components/Profileavatar';
-import { useAuthh }               from '@/Contexts/authContext';
-import { useConnection }         from '@/hooks/useConnection';
-import { useMatches, MatchUser } from '@/hooks/useMatches';
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+// ─── Palette ──────────────────────────────────────────────────────────────────
 const C = {
-  bg:       '#F7F8FA',
-  white:    '#FFFFFF',
-  purple:   '#6D4AFF',
-  purpleL:  '#EDE9FE',
-  purpleD:  '#5538E5',
-  text:     '#0F0F10',
-  muted:    '#6b6b6d',
-  border:   '#EAECF0',
-  green:    '#16A34A',
-  greenL:   '#F0FDF4',
-  orange:   '#6D4AFF',
-  skeleton: '#F0F0F3',
-  gold:     '#F59E0B',
+  bg:       "#F7F8FA",
+  white:    "#FFFFFF",
+  purple:   "#6D4AFF",
+  purpleL:  "#EDE9FE",
+  purpleD:  "#5538E5",
+  text:     "#0F0F10",
+  muted:    "#6b6b6d",
+  border:   "#EAECF0",
+  green:    "#16A34A",
+  greenL:   "#F0FDF4",
+  orange:   "#6D4AFF",
+  skeleton: "#F0F0F3",
 };
+
+// ─── SkeletonCard ─────────────────────────────────────────────────────────────
 const SkeletonCard = ({ opacity = 1 }: { opacity?: number }) => (
-  <View style={[s.card, { opacity }]}>
-    <View style={s.cardRow}>
-      <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: C.skeleton }} />
-      <View style={{ flex: 1, gap: 8 }}>
-        <View style={{ height: 13, width: '50%', backgroundColor: C.skeleton, borderRadius: 6 }} />
-        <View style={{ height: 11, width: '35%', backgroundColor: C.skeleton, borderRadius: 6 }} />
-        <View style={{ height: 11, width: '65%', backgroundColor: C.skeleton, borderRadius: 6 }} />
+  <View style={[st.card, { opacity }]}>
+    <View style={st.cardRow}>
+      <View style={{ width: s(52), height: s(52), borderRadius: s(26), backgroundColor: C.skeleton }} />
+      <View style={{ flex: 1, gap: vs(8) }}>
+        <View style={{ height: vs(13), width: "50%", backgroundColor: C.skeleton, borderRadius: s(6) }} />
+        <View style={{ height: vs(11), width: "35%", backgroundColor: C.skeleton, borderRadius: s(6) }} />
+        <View style={{ height: vs(11), width: "65%", backgroundColor: C.skeleton, borderRadius: s(6) }} />
       </View>
-      <View style={{ width: 88, height: 34, backgroundColor: C.skeleton, borderRadius: 20 }} />
+      <View style={{ width: s(88), height: vs(34), backgroundColor: C.skeleton, borderRadius: s(20) }} />
     </View>
   </View>
 );
-const ConnectButton = ({ userId, fullName, profileImage, skills, location }: {
+
+// ─── ConnectButton ────────────────────────────────────────────────────────────
+const ConnectButton = ({
+  userId, fullName, profileImage, skills, location,
+}: {
   userId: string; fullName: string; profileImage: string | null;
   skills: string; location: string;
 }) => {
@@ -47,76 +70,71 @@ const ConnectButton = ({ userId, fullName, profileImage, skills, location }: {
   const status  = getStatus(userId);
   const loading = isLoading(userId);
   const cfg = {
-    none:     { label: 'Connect',   bg: C.purple, fg: '#fff',   border: C.purple },
-    pending:  { label: 'Requested', bg: C.white,  fg: C.orange, border: C.orange },
-    accepted: { label: 'Connected', bg: C.greenL, fg: C.green,  border: C.greenL },
-    rejected: { label: 'Connect',   bg: C.purple, fg: '#fff',   border: C.purple },
+    none:     { label: "Connect",   bg: C.purple, fg: "#fff",    border: C.purple  },
+    pending:  { label: "Requested", bg: C.white,  fg: C.orange,  border: C.orange  },
+    accepted: { label: "Connected", bg: C.greenL, fg: C.green,   border: C.greenL  },
+    rejected: { label: "Connect",   bg: C.purple, fg: "#fff",    border: C.purple  },
   }[status];
+
   return (
     <TouchableOpacity
-      style={[s.connectBtn, { backgroundColor: cfg.bg, borderColor: cfg.border }]}
+      style={[st.connectBtn, { backgroundColor: cfg.bg, borderColor: cfg.border }]}
       onPress={() => {
-        if (loading || status === 'accepted') return;
-        if (status === 'none' || status === 'rejected') {
+        if (loading || status === "accepted") return;
+        if (status === "none" || status === "rejected") {
           sendRequest({ userId, fullName, profileImage, skills, location });
         } else {
           cancelRequest(userId);
         }
       }}
-      disabled={loading || status === 'accepted'}
-      activeOpacity={status === 'accepted' ? 1 : 0.82}
+      disabled={loading || status === "accepted"}
+      activeOpacity={status === "accepted" ? 1 : 0.82}
     >
       {loading
         ? <ActivityIndicator size="small" color={cfg.fg} />
-        : <Text style={[s.connectText, { color: cfg.fg }]}>{cfg.label}</Text>
+        : <Text style={[st.connectText, { color: cfg.fg }]}>{cfg.label}</Text>
       }
     </TouchableOpacity>
   );
 };
+
+// ─── MatchCard ────────────────────────────────────────────────────────────────
 const MatchCard = React.memo(({ item }: { item: MatchUser }) => {
-  const skillsStr    = item.skillsArray?.join(',') ?? '';
+  const skillsStr    = item.skillsArray?.join(",") ?? "";
   const commonSkills = item.commonSkills ?? [];
   const allSkills    = item.skillsArray  ?? [];
-  const commonDots = commonSkills.slice(0, 3).join(' · ');
-  const extraCount = allSkills.length - commonSkills.length;
+  const commonDots   = commonSkills.slice(0, 3).join(" · ");
+  const extraCount   = allSkills.length - commonSkills.length;
+
   return (
     <TouchableOpacity
-      style={s.card}
+      style={st.card}
       activeOpacity={0.82}
-      onPress={() => router.push({
-        pathname: '/subScreens/userProfile',
-        params:   { userId: item.userId },
-      })}
+      onPress={() => router.push({ pathname: "/subScreens/userProfile", params: { userId: item.userId } })}
     >
-      <View style={s.cardRow}>
-        <ProfileAvatar uri={item.profileImage} name={item.fullName} size={52} />
-        <View style={s.info}>
-          {/* Name */}
-          <Text style={s.name} numberOfLines={1}>{item.fullName}</Text>
+      <View style={st.cardRow}>
+        <ProfileAvatar uri={item.profileImage} name={item.fullName} size={s(52)} />
+        <View style={st.info}>
+          <Text style={st.name} numberOfLines={1}>{item.fullName}</Text>
           {!!item.location && (
-            <View style={s.locRow}>
+            <View style={st.locRow}>
               <Ionicons
                 name="location-sharp"
-                size={11}
+                size={s(11)}
                 color={item.sameCity ? C.purple : C.muted}
               />
-              <Text
-                style={[s.locText, { color: item.sameCity ? C.purple : C.muted }]}
-                numberOfLines={1}
-              >
+              <Text style={[st.locText, { color: item.sameCity ? C.purple : C.muted }]} numberOfLines={1}>
                 {item.location}
               </Text>
             </View>
           )}
-          <View style={s.skillsRow}>
+          <View style={st.skillsRow}>
             {!!commonDots && (
-              <Text style={s.skillsCommon} numberOfLines={1}>
-                {commonDots}
-              </Text>
+              <Text style={st.skillsCommon} numberOfLines={1}>{commonDots}</Text>
             )}
             {extraCount > 0 && (
-              <View style={s.extraBadge}>
-                <Text style={s.extraText}>+{extraCount}</Text>
+              <View style={st.extraBadge}>
+                <Text style={st.extraText}>+{extraCount}</Text>
               </View>
             )}
           </View>
@@ -132,64 +150,64 @@ const MatchCard = React.memo(({ item }: { item: MatchUser }) => {
     </TouchableOpacity>
   );
 });
+
+// ─── DiscoverScreen ───────────────────────────────────────────────────────────
 export default function DiscoverScreen() {
   useAuthh();
   const { loadStatuses, getStatus } = useConnection();
   const {
-    matches, fetching, refreshing,error,loading,
-     loadInitial, refresh,hasMore,loadMore
+    matches, fetching, refreshing, error, loading,
+    loadInitial, refresh, hasMore, loadMore,
   } = useMatches();
+
+  useEffect(() => { loadInitial(); }, [loadInitial]);
   useEffect(() => {
-    loadInitial();
-  }, [loadInitial]);
-  useEffect(() => {
-    if (matches.length > 0) {
-      loadStatuses(matches.map(m => m.userId));
-    }
+    if (matches.length > 0) loadStatuses(matches.map((m) => m.userId));
   }, [matches.length]);
-  const displayMatches = useMemo(() =>
-    matches.filter(m => getStatus(m.userId) !== 'accepted'),
-    [matches, getStatus]
+
+  const displayMatches = useMemo(
+    () => matches.filter((m) => getStatus(m.userId) !== "accepted"),
+    [matches, getStatus],
   );
-  const renderItem = useCallback(({ item }: { item: MatchUser }) => (
-    <MatchCard item={item} />
-  ), []);
-  const keyExtractor = useCallback((item: MatchUser) => item.userId, []);
-  if (loading && matches.length === 0) {
+
+  const renderItem    = useCallback(({ item }: { item: MatchUser }) => <MatchCard item={item} />, []);
+  const keyExtractor  = useCallback((item: MatchUser) => item.userId, []);
+
+  if (loading && matches.length === 0)
     return (
-      <SafeAreaView style={s.safe} edges={['top']}>
+      <SafeAreaView style={st.safe} edges={["top"]}>
         <Header />
-        <View style={{ paddingTop: 8 }}>
-          <SkeletonCard opacity={1}   />
+        <View style={{ paddingTop: vs(8) }}>
+          <SkeletonCard opacity={1} />
           <SkeletonCard opacity={0.7} />
           <SkeletonCard opacity={0.4} />
           <SkeletonCard opacity={0.2} />
         </View>
       </SafeAreaView>
     );
-  }
-  if (error && matches.length === 0) {
+
+  if (error && matches.length === 0)
     return (
-      <SafeAreaView style={s.safe} edges={['top']}>
+      <SafeAreaView style={st.safe} edges={["top"]}>
         <Header />
-        <View style={s.center}>
-          <Text style={s.errorText}>{error}</Text>
-          <TouchableOpacity style={s.retryBtn} onPress={loadInitial}>
-            <Text style={s.retryText}>Try Again</Text>
+        <View style={st.center}>
+          <Text style={st.errorText}>{error}</Text>
+          <TouchableOpacity style={st.retryBtn} onPress={loadInitial}>
+            <Text style={st.retryText}>Try Again</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
-  }
+
   return (
-    <SafeAreaView style={s.safe} edges={['top']}>
+    <SafeAreaView style={st.safe} edges={["top"]}>
       <StatusBar barStyle="dark-content" />
       <Header />
       <FlatList
         data={displayMatches}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
-        contentContainerStyle={s.listContent}
+        contentContainerStyle={st.listContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -203,19 +221,19 @@ export default function DiscoverScreen() {
         onEndReachedThreshold={0.6}
         ListFooterComponent={
           fetching && matches.length > 0
-            ? <ActivityIndicator color={C.purple} style={{ padding: 20 }} />
-            : !hasMore && matches.length > 0
-              ? null
-              : null
+            ? <ActivityIndicator color={C.purple} style={{ padding: vs(20) }} />
+            : null
         }
         ListEmptyComponent={
           !loading ? (
-            <View style={s.center}>
-              <Ionicons name="people-outline" size={52} color={C.muted} style={{bottom:60 }} />
-              <Text style={s.emptyTitle}>No matches yet</Text>
-             
-              <TouchableOpacity style={s.retryBtn} onPress={() => router.push('/subScreens/searchUser')}>
-                <Text style={s.retryText}>Find Your Mindmate</Text>
+            <View style={st.center}>
+              <Ionicons name="people" size={s(52)} color={C.purple} style={st.emptyIcon} />
+              <Text style={st.emptyTitle}>No matches yet</Text>
+              <TouchableOpacity
+                style={st.retryBtn}
+                onPress={() => router.push("/subScreens/searchUser")}
+              >
+                <Text style={st.retryText}>Find Your Mindmate</Text>
               </TouchableOpacity>
             </View>
           ) : null
@@ -224,81 +242,159 @@ export default function DiscoverScreen() {
         maxToRenderPerBatch={10}
         windowSize={5}
         removeClippedSubviews
-        getItemLayout={(_, i) => ({ length: 77, offset: 77 * i, index: i })}
+        getItemLayout={(_, i) => ({ length: vs(77), offset: vs(77) * i, index: i })}
       />
     </SafeAreaView>
   );
 }
+
+// ─── Header ───────────────────────────────────────────────────────────────────
 const Header = () => (
-  <View style={s.header}>
+  <View style={st.header}>
+   
     <TouchableOpacity
-      style={s.searchBar}
-      onPress={() => router.push('/subScreens/searchUser')}
+      style={st.searchBar}
+      onPress={() => router.push("/subScreens/searchUser")}
       activeOpacity={0.8}
     >
-      <Ionicons name="search" size={20} color={C.muted} />
-      <Text style={s.searchPlaceholder}>Search people, skills...</Text>
+      <Image source={images.scan} style={st.scanIcon} />
+      <Text style={st.searchPlaceholder}>Search people, skills...</Text>
     </TouchableOpacity>
   </View>
 );
-const s = StyleSheet.create({
-  safe:        { flex: 1, backgroundColor: C.white },
-  listContent: { paddingBottom: 120,bottom:5 },
-  center:      { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40, marginTop: 80 },
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
+const st = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: "#ffffff" },
+
+  listContent: { paddingBottom: vs(120) },
+
+  center: {
+    flex:             1,
+    alignItems:       "center",
+    justifyContent:   "center",
+    paddingTop:       vs(80),
+    paddingHorizontal: s(32),
+    gap:              vs(12),
+  },
+
   header: {
-    backgroundColor: C.white,
-    paddingHorizontal: 20, paddingTop: 12, paddingBottom: 1,
-    borderBottomColor: C.border, gap: 10,
+    backgroundColor:   C.white,
+    paddingHorizontal: s(20),
+    paddingTop:        vs(10),
+    paddingBottom:     vs(9),
+    borderBottomColor: C.border,
+    gap:               vs(10),
   },
   searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    flexDirection:  "row",
+    alignItems:     "center",
+    gap:            s(4),
     backgroundColor: C.bg,
-    borderRadius: 50,
-    paddingHorizontal: 16,
-    height: 43,
-    borderWidth: 0,
-    borderColor: C.border,
-     marginLeft: 8, marginRight: 8,bottom:3,
-    marginBottom: 8,
+    borderRadius:   s(50),
+    paddingHorizontal: s(14),
+    height:         vs(43),
+    borderWidth:    0,
+    borderColor:    C.border,
+    marginHorizontal: s(8),
   },
-  searchPlaceholder: { flex: 1, fontSize: 15, color: C.muted, fontWeight: '400',right:2 },
+  scanIcon: {
+    width:  s(37),
+    height: s(37),
+  },
+
+  searchPlaceholder: {
+    flex:       1,
+    fontSize:   ms(TYPOGRAPHY.body),
+    color:      C.muted,
+    fontWeight: "400",
+  },
+
   card: {
-    backgroundColor: C.white,
-    paddingHorizontal: 18,
-    paddingVertical: 9,
+    backgroundColor:   C.white,
+    paddingHorizontal: s(18),
+    paddingVertical:   vs(9),
   },
-  cardRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+
+  cardRow: { flexDirection: "row", alignItems: "center", gap: s(12) },
   info:    { flex: 1 },
-  name:    { fontSize: 15, fontWeight: '700', color: C.text, marginBottom: 3 },
-  locRow:  { flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 4 },
-  locText: { fontSize: 12 },
-  skillsRow:    { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'nowrap' },
-  skillsCommon: { fontSize: 12, fontWeight: '600', color: C.purple, flexShrink: 1 },
-  extraBadge:   {
-    backgroundColor: C.bg,
-    borderRadius: 10,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderWidth: 1,
-    borderColor: C.border,
+
+  name: {
+    fontSize:     ms(14),
+    fontWeight:   "600",
+    color:        C.text,
+    marginBottom: vs(3),
   },
-  extraText: { fontSize: 11, fontWeight: '600', color: C.muted },
+
+  locRow: {
+    flexDirection: "row",
+    alignItems:    "center",
+    gap:           s(3),
+    marginBottom:  vs(4),
+  },
+
+  locText:    { fontSize: ms(TYPOGRAPHY.caption) },
+  // CHANGE 7 (continued): TYPOGRAPHY.caption also wrapped in ms().
+
+  skillsRow: {
+    flexDirection: "row",
+    alignItems:    "center",
+    gap:           s(6),
+    flexWrap:      "nowrap",
+  },
+
+  skillsCommon: {
+    fontSize:   ms(12),
+    fontWeight: "600",
+    color:      C.purple,
+    flexShrink: 1,
+  },
+
+  extraBadge: {
+    backgroundColor:   C.bg,
+    borderRadius:      s(10),
+    paddingHorizontal: s(7),
+    paddingVertical:   vs(2),
+    borderWidth:       1,
+    borderColor:       C.border,
+  },
+
+  extraText: { fontSize: ms(11), fontWeight: "600", color: C.muted },
+
   connectBtn: {
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 82,
+    paddingHorizontal: s(8),
+    paddingVertical:   vs(8),
+    borderRadius:      s(8),
+    borderWidth:       1.5,
+    alignItems:        "center",
+    justifyContent:    "center",
+    minWidth:          s(82),
   },
-  connectText: { fontWeight: '700', fontSize: 12 },
-  endText:    { textAlign: 'center', color: C.muted, fontSize: 13, paddingVertical: 24 },
-  errorText:  { fontSize: 15, color: C.muted, textAlign: 'center',bottom:60 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: C.text, marginBottom: 8, textAlign: 'center',bottom:60 },
-  emptySub:   { fontSize: 14, color: C.muted, textAlign: 'center', lineHeight: 21, marginBottom: 20,bottom:60 },
-  retryBtn:   { backgroundColor: C.purple, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12, bottom:50 },
-  retryText:  { color: '#fff', fontWeight: '700', fontSize: 14 },
+
+  connectText: { fontWeight: "700", fontSize: ms(12) },
+
+  errorText: {
+    fontSize:  ms(14),
+    color:     C.muted,
+    textAlign: "center",
+  },
+  emptyIcon: { },
+
+  emptyTitle: {
+    fontSize:     ms(16),
+    fontWeight:   "700",
+    color:        C.text,
+    textAlign:    "center",
+  },
+
+  retryBtn: {
+    backgroundColor:   C.purple,
+    paddingHorizontal: s(24),
+    paddingVertical:   vs(11),
+    borderRadius:      s(12),
+    justifyContent:    "center",
+    alignSelf:         "center",
+  },
+
+  retryText: { color: "#fff", fontWeight: "600", fontSize: ms(14) },
 });

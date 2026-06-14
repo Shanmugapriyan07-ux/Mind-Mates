@@ -9,8 +9,6 @@ import {
   compressForUpload,
   cdnProfileUrl,
 } from '@/lib/cloudinaryUpload';
-
-// Web canvas compression (600px, 78%)
 const compressOnWeb = (blob: Blob): Promise<Blob> =>
   new Promise((resolve, reject) => {
     const img = new window.Image();
@@ -33,19 +31,14 @@ const compressOnWeb = (blob: Blob): Promise<Blob> =>
 export const useProfileImage = () => {
   const { user }                   = useAuthh();
   const { profile, updateProfile } = useProfile();
-
   const [imageUri,  setImageUri]  = useState<string | null>(profile?.profileImage ?? null);
   const [uploading, setUploading] = useState(false);
   const [progress,  setProgress]  = useState(0);
   const [error,     setError]     = useState<string | null>(null);
-
   const webBlobRef   = useRef<Blob | null>(null);
   const prevImageRef = useRef<string | null>(profile?.profileImage ?? null);
-
-  // ── Pick from gallery ─────────────────────────────────────────
   const pickFromGallery = useCallback(async () => {
     setError(null);
-
     if (typeof document !== 'undefined') {
       const input    = document.createElement('input');
       input.type     = 'file';
@@ -60,10 +53,8 @@ export const useProfileImage = () => {
       input.click();
       return;
     }
-
     const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!granted) { setError('Photo library permission denied'); return; }
-
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes:    ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -71,76 +62,56 @@ export const useProfileImage = () => {
       quality:       1,
     });
     if (result.canceled || !result.assets?.[0]) return;
-
     const compressed = await compressForUpload(result.assets[0].uri, 'profile');
     setImageUri(compressed);
   }, []);
-
-  // ── Take photo ────────────────────────────────────────────────
   const takePhoto = useCallback(async () => {
     setError(null);
     if (typeof document !== 'undefined') return;
-
     const { granted } = await ImagePicker.requestCameraPermissionsAsync();
     if (!granted) { setError('Camera permission denied'); return; }
-
     const result = await ImagePicker.launchCameraAsync({
       allowsEditing: true,
       aspect:        [1, 1],
       quality:       1,
     });
     if (result.canceled || !result.assets?.[0]) return;
-
     const compressed = await compressForUpload(result.assets[0].uri, 'profile');
     setImageUri(compressed);
   }, []);
-
-  // ── Upload and save ───────────────────────────────────────────
   const uploadAndSave = useCallback(async (): Promise<boolean> => {
     if (!user?.id || !imageUri) return false;
-    if (imageUri === profile?.profileImage) return true; // no change
-
+    if (imageUri === profile?.profileImage) return true;
     const localUri = imageUri;
     const prevUri  = prevImageRef.current;
-
-    // Optimistic: show local image immediately
     updateProfile({ profileImage: localUri });
     clearAvatarCache(localUri);
-
     setUploading(true);
     setProgress(0);
     setError(null);
-
     try {
       const result = await uploadProfileToCloudinary(
         localUri,
         user.id,
         (pct) => setProgress(pct),
       );
-
       const cdnUrl = cdnProfileUrl(result.secureUrl);
       console.log('[profile] CDN URL:', cdnUrl.slice(0, 100));
-
-      // Save to Supabase
       const { error: dbErr } = await supabase
         .from('users')
         .update({ profile_image: cdnUrl })
         .eq('user_id', user.id);
       if (dbErr) throw new Error(`DB save failed: ${dbErr.message}`);
-
       updateProfile({ profileImage: cdnUrl });
       setImageUri(cdnUrl);
       prevImageRef.current = cdnUrl;
       setProgress(100);
-
       if (typeof document !== 'undefined' && localUri.startsWith('blob:')) {
         URL.revokeObjectURL(localUri);
         webBlobRef.current = null;
       }
       return true;
-
     } catch (e: any) {
-      console.error('[profile upload] failed:', e?.message);
       setError(e?.message ?? 'Upload failed — please try again');
       updateProfile({ profileImage: prevUri });
       setImageUri(prevUri);
@@ -150,8 +121,6 @@ export const useProfileImage = () => {
       setUploading(false);
     }
   }, [user?.id, imageUri, profile?.profileImage, updateProfile]);
-
-  // ── Remove photo ──────────────────────────────────────────────
   const removePhoto = useCallback(async () => {
     const oldUri = profile?.profileImage;
     if (oldUri) clearAvatarCache(oldUri);
@@ -159,24 +128,18 @@ export const useProfileImage = () => {
     webBlobRef.current   = null;
     prevImageRef.current = null;
     updateProfile({ profileImage: null });
-
     if (!user?.id) return;
-
-    // Clear in DB
     const { error: dbErr } = await supabase
       .from('users')
       .update({ profile_image: null })
       .eq('user_id', user.id);
     if (dbErr) console.warn('[removePhoto DB]', dbErr.message);
-
-    // Best-effort Cloudinary cleanup (signed delete)
     const safeId   = user.id.replace(/[^a-zA-Z0-9_-]/g, '_');
     const publicId = `mindmates/profiles/profile_${safeId}`;
     supabase.functions.invoke('mindmates', {
       body: { action: 'delete_cloudinary_image', publicId, resourceType: 'image' },
     }).catch((e: { message: any; }) => console.warn('[removePhoto Cloudinary]', e?.message));
   }, [profile?.profileImage, user?.id, updateProfile]);
-
   return {
     imageUri, setImageUri,
     uploading, progress, error,

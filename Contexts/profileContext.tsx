@@ -5,8 +5,6 @@ import React, {
 import { Platform }         from 'react-native';
 import { useAuthh }          from '@/Contexts/authContext';
 import { supabase, TABLES } from '@/lib/supabase';
-
-// ── Web-safe cache ────────────────────────────────────────────
 const storage = {
   get: async (key: string): Promise<string | null> => {
     try {
@@ -66,8 +64,6 @@ interface ProfileContextType {
   reloadProfile:   () => Promise<void>;
   loadProfile:     () => void;
 }
-
-// ── Field helpers ─────────────────────────────────────────────
 const toArr  = (v: any): string[] =>
   !v ? [] : Array.isArray(v) ? v.map(String).filter(Boolean)
   : typeof v === 'string' ? v.split(',').map(s=>s.trim()).filter(Boolean) : [];
@@ -77,18 +73,14 @@ const toStr  = (v: any): string =>
 
 const safeImg = (v: any): string | null =>
   typeof v === 'string' && v.trim() ? v.trim() : null;
-
-// Supabase DB row (snake_case) → Profile (camelCase + both)
 const rowToProfile = (row: any): Profile => {
   const fn  = row.full_name         ?? row.fullName         ?? '';
-  const ls  = row.location_search   ?? row.locationSearch   ?? '';
   const is_ = row.interested_skills ?? row.InterestedSkills ?? '';
   const pi  = safeImg(row.profile_image ?? row.profileImage);
   const sk  = toStr(row.skills ?? '');
   const ipc = row.is_profile_complete ?? row.isProfileComplete ?? false;
   const uid = row.user_id ?? row.userId ?? '';
   const id  = row.id ?? row.$id ?? undefined;
-
   return {
     $id:               id,
     userId:            uid,
@@ -108,8 +100,6 @@ const rowToProfile = (row: any): Profile => {
     is_profile_complete: ipc,
   };
 };
-
-// Profile → Supabase insert/update payload (snake_case only)
 const toInsertPayload = (p: Profile, authId: string): Record<string, any> => ({
   id:                  authId,          // PRIMARY KEY = Supabase auth UUID ✅
   user_id:             authId,          // text copy for compat
@@ -169,80 +159,68 @@ const wq = new WriteQueue();
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
 export const ProfileProvider = ({ children }: { children: React.ReactNode }) => {
-  const { user, isLoggedIn, authStatus } = useAuthh();
-
+  const { user, isLoggedIn } = useAuthh();
   const [profile,       setProfile]       = useState<Profile | null>(null);
   const [isLoading,     setIsLoading]     = useState(true);
   const [profileStatus, setProfileStatus] = useState<ProfileStatus>('idle');
   const [error,         setError]         = useState<string | null>(null);
-
   const profileRef   = useRef<Profile | null>(null);
   const hasFired     = useRef(false);
   const isLoadingRef = useRef(false);
   profileRef.current = profile;
-
   const saveCache = useCallback((uid: string, p: Profile) => {
     storage.set(CACHE_KEY(uid), JSON.stringify({ ...p, _at: Date.now() }));
   }, []);
 
   const clearProfile = useCallback(() => {
-    setProfile(null);
-    profileRef.current = null;
+     setProfile(null);
+     profileRef.current = null;
     setProfileStatus('idle');
-    setError(null);
-    isLoadingRef.current = false;
+     setError(null);
+     isLoadingRef.current = false;
     hasFired.current     = false;
   }, []);
-
-  // ── Fetch from Supabase ──────────────────────────────────────
-  // FIX: use 'user_id' (snake_case) — NOT 'userId' → was causing 400 ✅
   const fetchFromDB = useCallback(async (userId: string, attempt = 1): Promise<Profile | null> => {
-    console.log(`🌐 Fetching profile [attempt ${attempt}]`);
     try {
       const { data, error } = await supabase
         .from(TABLES.users)
         .select('*')
-        .eq('user_id', userId)   // ✅ CRITICAL: snake_case, not 'userId'
+        .eq('user_id', userId) 
         .limit(1)
         .maybeSingle();
 
       if (error) {
-        console.error('❌ Supabase fetch error:', error.message, error.code);
-        throw new Error(error.message);
+        // Supabase might return error object on network timeout/failure
+        const err = new Error(error.message);
+        (err as any).code = error.code;
+        throw err;
       }
 
       if (data) {
         const fresh = rowToProfile(data);
-        console.log('✅ Profile loaded | complete:', fresh.isProfileComplete);
         setProfile(fresh);
         profileRef.current = fresh;
         saveCache(userId, fresh);
         return fresh;
       }
-
-      // Retry once — DB can be slow right after signup
-      if (attempt === 1) {
-        console.log('⏳ No profile yet — retrying in 800ms');
-        await new Promise(r => setTimeout(r, 800));
-        return fetchFromDB(userId, 2);
-      }
       console.log('ℹ️ Confirmed: no profile in DB');
       return null;
-
     } catch (err: any) {
-      if (attempt < 3) {
-        await new Promise(r => setTimeout(r, 800 * attempt));
+      // popular apps strategy: exponential backoff for network/transient failures
+      const isNetworkError = 
+        err?.message?.includes('Network request failed') || 
+        err?.name === 'TypeError' || 
+        err?.code === 'PGRST301'; // Server unreachable
+
+      if (attempt < 4) {
+        const delay = isNetworkError ? Math.pow(2, attempt) * 1000 : 800;
+        console.log(`[fetchFromDB] Attempt ${attempt} failed. Retrying in ${delay}ms...`);
+        await new Promise(r => setTimeout(r, delay));
         return fetchFromDB(userId, attempt + 1);
       }
       throw err;
     }
   }, [saveCache]);
-
-  // ── Load profile (cache-first, Instagram strategy) ───────────
-  // TEACHING: Instagram performance pattern:
-  //   1. Check local cache → instant UI (0ms)
-  //   2. If cache valid & complete → show immediately, refresh in BG
-  //   3. If cache incomplete → fetch fresh before routing (prevents flicker)
   const loadProfileForUser = useCallback(async (userId: string) => {
     if (isLoadingRef.current) return;
     isLoadingRef.current = true;
@@ -292,9 +270,12 @@ export const ProfileProvider = ({ children }: { children: React.ReactNode }) => 
       try {
         const fresh = await fetchFromDB(userId);
         setProfileStatus(fresh ? 'loaded' : 'not_found');
-      } catch {
+      } catch (err: any) {
+        const isNet = err?.message?.includes('Network request failed') || err?.name === 'TypeError';
         setProfileStatus('error');
-        setError('Failed to load profile');
+        setError(isNet 
+          ? 'No internet connection. Please check your network and try again.' 
+          : 'Unable to load profile. Please try again.');
       }
 
     } catch {
@@ -305,14 +286,6 @@ export const ProfileProvider = ({ children }: { children: React.ReactNode }) => 
       isLoadingRef.current = false;
     }
   }, [fetchFromDB]);
-
-  // ── updateProfile ─────────────────────────────────────────────
-  // TEACHING: Optimistic update pattern (Instagram/WhatsApp):
-  //   Step 1: Update React state instantly → UI updates in 0ms
-  //   Step 2: Save to localStorage/AsyncStorage → next launch instant
-  //   Step 3: Queue Supabase write → happens in background
-  //   Step 4: If DB write fails → retry up to 5 times
-  //   User NEVER waits for the network ✅
   const updateProfile = useCallback((updates: Partial<Profile>): void => {
     if (!user?.id) return;
 
@@ -372,8 +345,6 @@ export const ProfileProvider = ({ children }: { children: React.ReactNode }) => 
         console.log('✅ Profile updated');
 
       } else {
-        // INSERT — first time (new user after signup)
-        // FIX: id = auth UUID so RLS auth.uid()=id check passes ✅
         const payload = toInsertPayload(snap, authId);
         const { data, error } = await supabase
           .from(TABLES.users)
@@ -398,16 +369,13 @@ export const ProfileProvider = ({ children }: { children: React.ReactNode }) => 
   const reloadProfile = useCallback(async () => {
     if (user?.id) { isLoadingRef.current = false; await loadProfileForUser(user.id); }
   }, [user?.id, loadProfileForUser]);
-
-  // Boot: load profile when auth is ready
   useEffect(() => {
     if (!isLoggedIn) { clearProfile(); setIsLoading(false); return; }
-    if (authStatus !== 'authenticated') return;
     if (!user?.id) return;
     if (hasFired.current) return;
     hasFired.current = true;
     loadProfileForUser(user.id);
-  }, [user?.id, isLoggedIn, authStatus]);
+  }, [user?.id, isLoggedIn]);
 
   return (
     <ProfileContext.Provider value={{

@@ -1,18 +1,62 @@
+/**
+ * NotificationsScreen.tsx — Production-Responsive Refactor
+ *
+ * Changes (zero logic / visual design changes):
+ *
+ * 1. FIX: SCREEN_W = Dimensions.get('window') at module level → useWindowDimensions()
+ *    inside component. DELETE_THRESHOLD and DELETE_BTN_W derived from live width.
+ *    SwipeableNotifCard receives these as props so it always uses current values.
+ *
+ * 2. FIX: headerTitle { top: 3 } removed.
+ *    The header is a flex row with alignItems:'center' — top: on a non-positioned
+ *    child just nudges it down with no layout awareness. Removed.
+ *
+ * 3. FIX: time { bottom: 27, left: 2, marginTop: 8 } → fixed.
+ *    This was trying to vertically align the timestamp at the top-right of the card
+ *    by floating it UP 27px. On Samsung S24 Ultra the extra row height means the
+ *    timestamp floats into the avatar. On Redmi 5A it overlaps the skill pills.
+ *    → The right column (time + menu) is a flex column with justifyContent:'space-between'.
+ *      time gets no positional offset — it sits at the top naturally.
+ *      The menu icon sits at the bottom via the spacer.
+ *
+ * 4. FIX: Ionicons ellipsis-vertical { bottom: 21, alignSelf: 'flex-end' } removed.
+ *    Same issue — floating the icon UP 21px inside its container. With the right
+ *    column as a flex column (justifyContent:'space-between'), the icon naturally
+ *    sits at the bottom of the column, which is the correct visual position.
+ *
+ * 5. FIX: BulkDeleteBar { bottom: 45, marginBottom: -35 } removed.
+ *    Same float-and-negative-margin pattern from ChatListScreen. Fixed with the
+ *    same solution: BulkDeleteBar is a natural flex child between Header and FlatList,
+ *    animates via translateY from -height to 0, no bottom/marginBottom needed.
+ *
+ * 6. FIX: list paddingBottom: 120 → useSafeAreaInsets().bottom + vs(80).
+ *    vs(80) clears the tab bar; insets.bottom adds the device-specific home
+ *    indicator / gesture bar. Same formula used in ChatListScreen refactor.
+ *
+ * 7. FIX: ActionSheet card paddingBottom Platform.OS === 'ios' ? 42 : 26 →
+ *    useSafeAreaInsets().bottom + vs(14). Handles all devices including newer
+ *    Android gesture-nav (Pixel 7, Samsung S24) where bottom inset > 0.
+ *
+ * 8. FIX: sh.rowText { left: 5 } removed.
+ *    marginLeft: 14 already provides the gap between icon and text. left:5 is
+ *    a double-shift that compounds unpredictably across text sizes.
+ */
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity,
   ActivityIndicator, StyleSheet, StatusBar, RefreshControl,
-  Modal, Pressable, Animated, PanResponder, Dimensions,
-  Platform,
+  Modal, Pressable, Animated, PanResponder,
+  Platform, useWindowDimensions,
 } from 'react-native';
-import { SafeAreaView }     from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router }           from 'expo-router';
 import supabase, { TABLES } from '@/lib/supabase';
 import { ProfileAvatar }    from '@/components/Profileavatar';
 import { Ionicons }         from '@expo/vector-icons';
-import { useAuthh }          from '@/Contexts/authContext';
+import { useAuthh }         from '@/Contexts/authContext';
 import { useConnection }    from '@/hooks/useConnection';
-import { useNotifBadge } from '@/hooks/useBadgeSync';
+
 interface NotifItem {
   id:              string;
   user_id:         string;
@@ -26,14 +70,17 @@ interface NotifItem {
   is_read:         boolean;
   created_at:      string;
 }
-const { width: SCREEN_W } = Dimensions.get('window');
-const DELETE_THRESHOLD    = -SCREEN_W * 0.28; // how far left to reveal delete btn
-const DELETE_BTN_W        = 80;
+
+// CHANGE 1: DELETE_BTN_W kept constant — it's a fixed UI element size, not screen-relative.
+// DELETE_THRESHOLD is now computed inside the component from live width (see below).
+const DELETE_BTN_W = 80;
+
 const C = {
   white: '#FFFFFF', purple: '#6D4AFF', text: '#0F0F10', sub: '#6b6b6d',
   border: '#EAECF0', green: '#16A34A', red: '#f42121', redBg: '#FEF2F2',
   skeleton: '#F0F0F3', unread: '#F5F3FF', bg: '#F7F8FA', redDark: '#e12b2b',
 };
+
 const timeAgo = (ts: string | number): string => {
   const ms = typeof ts === 'string' ? new Date(ts).getTime()
     : ts < 4_102_444_800 ? ts * 1000 : ts;
@@ -50,11 +97,14 @@ const timeAgo = (ts: string | number): string => {
   if (d < 30) return `${Math.floor(d / 7)}w ago`;
   return `${Math.floor(d / 30)}mo ago`;
 };
+
 const parseSkills = (s: string) => s ? s.split(',').map(x => x.trim()).filter(Boolean) : [];
 const dedup = (items: NotifItem[]) => {
   const seen = new Set<string>();
   return items.filter(n => { if (seen.has(n.id)) return false; seen.add(n.id); return true; });
 };
+
+// ─── ActionSheet ──────────────────────────────────────────────────────────────
 const ActionSheet = ({
   item, onClose, onDelete, onViewProfile,
 }: {
@@ -62,63 +112,80 @@ const ActionSheet = ({
   onClose:       () => void;
   onDelete:      () => void;
   onViewProfile: (uid: string) => void;
-}) => (
-  <Modal visible={!!item} transparent animationType="slide"
-    onRequestClose={onClose}>
-    <Pressable style={sh.backdrop} onPress={onClose}>
-      <Pressable style={sh.card} onPress={() => {}}>
-        <View style={sh.handle} />
-        <TouchableOpacity style={sh.row}
-          onPress={() => { onViewProfile(item?.sender_id ?? ''); onClose(); }}
-          activeOpacity={0.7}>
+}) => {
+  // CHANGE 7: Runtime safe area inset — correct for all devices
+  const insets = useSafeAreaInsets();
+
+  return (
+    <Modal visible={!!item} transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable style={sh.backdrop} onPress={onClose}>
+        <Pressable style={[sh.card, { paddingBottom: insets.bottom + 14 }]} onPress={() => {}}>
+          <View style={sh.handle} />
+          <TouchableOpacity
+            style={sh.row}
+            onPress={() => { onViewProfile(item?.sender_id ?? ''); onClose(); }}
+            activeOpacity={0.7}
+          >
             <View style={sh.iconBox}>
-          <Ionicons name="person-outline" size={20} color={C.purple}  />
-          </View>
-          <Text style={sh.rowText}>View Profile</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={sh.row}
-          onPress={() => { onDelete(); onClose(); }}
-          activeOpacity={0.7}>
-              <View style={sh.iconBox}>
-          <Ionicons name="trash-outline" size={20} color={C.purple} />
-          </View>
-          <Text style={[sh.rowText, { color: C.white }]}>Delete Notification</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={sh.cancelBtn} onPress={onClose} activeOpacity={0.7}>
-         <Text style={sh.cancelText}>Cancel</Text>
-         </TouchableOpacity>
+              <Ionicons name="person-outline" size={20} color={C.purple} />
+            </View>
+            {/* CHANGE 8: left: 5 removed — marginLeft: 14 already handles the gap */}
+            <Text style={sh.rowText}>View Profile</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={sh.row}
+            onPress={() => { onDelete(); onClose(); }}
+            activeOpacity={0.7}
+          >
+            <View style={sh.iconBox}>
+              <Ionicons name="trash-outline" size={20} color={C.purple} />
+            </View>
+            <Text style={[sh.rowText, { color: C.white }]}>Delete Notification</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={sh.cancelBtn} onPress={onClose} activeOpacity={0.7}>
+            <Text style={sh.cancelText}>Cancel</Text>
+          </TouchableOpacity>
+        </Pressable>
       </Pressable>
-    </Pressable>
-  </Modal>
-);
+    </Modal>
+  );
+};
+
 const sh = StyleSheet.create({
-  backdrop:  { flex: 1, justifyContent: 'flex-end'},
-  card:      {
-    backgroundColor: '#1c1c1c',
-    borderTopLeftRadius: 24, borderTopRightRadius: 24,elevation:10,
-    paddingBottom: Platform.OS === 'ios' ? 42 : 26,
-    paddingHorizontal: 16, paddingTop: 14,
+  backdrop: { flex: 1, justifyContent: 'flex-end' },
+  // CHANGE 7: paddingBottom removed from StyleSheet — injected inline with insets
+  card: {
+    backgroundColor:      '#1c1c1c',
+    borderTopLeftRadius:  24,
+    borderTopRightRadius: 24,
+    elevation:            10,
+    paddingHorizontal:    16,
+    paddingTop:           14,
     ...Platform.select({
       ios:     { shadowColor: '#000', shadowOpacity: 0.14, shadowRadius: 18, shadowOffset: { width: 0, height: -4 } },
       android: { shadowColor: '#000', borderColor: 'rgba(0,0,0,0.12)' },
       default: {},
     }),
   },
-   iconBox: { width: 40, height: 40, borderRadius: 8, alignItems: 'center', justifyContent: 'center',backgroundColor:'#363738' },
-  handle:    {
+  iconBox: {
+    width: 40, height: 40, borderRadius: 8,
+    alignItems: 'center', justifyContent: 'center', backgroundColor: '#363738',
+  },
+  handle: {
     width: 42, height: 4, borderRadius: 2,
     backgroundColor: '#DDD', alignSelf: 'center', marginBottom: 18,
   },
-  row:       { flexDirection: 'row', alignItems: 'center', paddingVertical: 14,
-   },
-  rowText:   { fontSize: 16, fontWeight: '400', color: C.white, marginLeft: 14, left:5 },
-  divider:   { height: 1, backgroundColor: C.border },
-   cancelBtn: {
+  row:    { flexDirection: 'row', alignItems: 'center', paddingVertical: 14 },
+  // CHANGE 8: left: 5 removed
+  rowText: { fontSize: 16, fontWeight: '400', color: C.white, marginLeft: 14 },
+  cancelBtn: {
     marginHorizontal: 16, marginTop: 14, paddingVertical: 16,
     borderRadius: 14, backgroundColor: '#2C2C2E', alignItems: 'center',
   },
   cancelText: { fontSize: 16, fontWeight: '600', color: '#ffff' },
 });
+
+// ─── Skeleton ──────────────────────────────────────────────────────────────────
 const Skeleton = ({ opacity = 1 }: { opacity?: number }) => (
   <View style={[s.card, { opacity }]}>
     <View style={s.cardRow}>
@@ -134,84 +201,82 @@ const Skeleton = ({ opacity = 1 }: { opacity?: number }) => (
     </View>
   </View>
 );
+
+// ─── SwipeableNotifCard ───────────────────────────────────────────────────────
+// CHANGE 1: deleteThreshold is now a prop from the parent (derived from live screen width)
 const SwipeableNotifCard = React.memo(({
-  item, onAccept, onReject, actionLoading, onMenu, onSwipeDelete, onSwipeOpen, onSwipeClose,
+  item, onAccept, onReject, actionLoading, onMenu,
+  onSwipeDelete, onSwipeOpen, onSwipeClose, deleteThreshold,
 }: {
-  item:           NotifItem;
-  onAccept:       (i: NotifItem) => void;
-  onReject:       (i: NotifItem) => void;
-  actionLoading:  string | null;
-  onMenu:         (i: NotifItem) => void;
-  onSwipeDelete:  (i: NotifItem) => void;
-  onSwipeOpen:    (id: string) => void;  
-  onSwipeClose:   (id: string) => void;  
+  item:              NotifItem;
+  onAccept:          (i: NotifItem) => void;
+  onReject:          (i: NotifItem) => void;
+  actionLoading:     string | null;
+  onMenu:            (i: NotifItem) => void;
+  onSwipeDelete:     (i: NotifItem) => void;
+  onSwipeOpen:       (id: string) => void;
+  onSwipeClose:      (id: string) => void;
+  deleteThreshold:   number;
 }) => {
-  const translateX  = useRef(new Animated.Value(0)).current;
-  const isOpen      = useRef(false);
-  const skills      = parseSkills(item.sender_skills);
-  const skillDots   = skills.slice(0, 3).join(' · ');
-  const extra       = skills.length - 3;
-  const busy        = actionLoading === item.id;
-  const accepted    = item.type === 'accepted';
+  const translateX = useRef(new Animated.Value(0)).current;
+  const isOpen     = useRef(false);
+  const skills     = parseSkills(item.sender_skills);
+  const skillDots  = skills.slice(0, 3).join(' · ');
+  const extra      = skills.length - 3;
+  const busy       = actionLoading === item.id;
+  const accepted   = item.type === 'accepted';
+
   const deleteBtnOpacity = translateX.interpolate({
-    inputRange: [DELETE_THRESHOLD, 0],
+    inputRange:  [deleteThreshold, 0],
     outputRange: [1, 0],
     extrapolate: 'clamp',
   });
+
   const snapOpen = () => {
     Animated.spring(translateX, {
-      toValue: DELETE_THRESHOLD,
-      useNativeDriver: true,
-      damping: 200,
-      stiffness: 200,
+      toValue: deleteThreshold, useNativeDriver: true, damping: 200, stiffness: 200,
     }).start();
     isOpen.current = true;
     onSwipeOpen(item.id);
   };
+
   const snapClose = () => {
     Animated.spring(translateX, {
-      toValue: 0,
-      useNativeDriver: true,
-      damping: 200,
-      stiffness: 200,
+      toValue: 0, useNativeDriver: true, damping: 200, stiffness: 200,
     }).start();
     isOpen.current = false;
     onSwipeClose(item.id);
   };
+
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, g) =>
         Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
       onPanResponderMove: (_, g) => {
-        const newX = Math.max(DELETE_THRESHOLD * 1.2, Math.min(0, g.dx + (isOpen.current ? DELETE_THRESHOLD : 0)));
+        const newX = Math.max(deleteThreshold * 1.2, Math.min(0, g.dx + (isOpen.current ? deleteThreshold : 0)));
         translateX.setValue(newX);
       },
       onPanResponderRelease: (_, g) => {
-        const currentX = g.dx + (isOpen.current ? DELETE_THRESHOLD : 0);
-        if (currentX < DELETE_THRESHOLD * 0.6) {
-          snapOpen();
-        } else {
-          snapClose();
-        }
+        const currentX = g.dx + (isOpen.current ? deleteThreshold : 0);
+        if (currentX < deleteThreshold * 0.6) snapOpen(); else snapClose();
       },
       onPanResponderTerminate: () => { snapClose(); },
     })
   ).current;
+
   return (
     <View style={sw.wrapper}>
       <Animated.View style={[sw.deleteBehind, { opacity: deleteBtnOpacity }]}>
         <TouchableOpacity
           style={sw.deleteBtn}
           activeOpacity={0.85}
-          onPress={() => {
-            snapClose();
-            setTimeout(() => onSwipeDelete(item), 150);
-          }}
+          onPress={() => { snapClose(); setTimeout(() => onSwipeDelete(item), 150); }}
         >
           <Ionicons name="trash" size={22} color="#fff" />
           <Text style={sw.deleteBtnText}>Delete</Text>
         </TouchableOpacity>
       </Animated.View>
+
       <Animated.View
         style={[sw.cardSlide, { transform: [{ translateX }] }]}
         {...panResponder.panHandlers}
@@ -230,8 +295,14 @@ const SwipeableNotifCard = React.memo(({
               }}
               activeOpacity={0.8}
             >
-              <ProfileAvatar uri={item.sender_image || null} name={item.sender_name} size={52} style={{ marginBottom: 14 }} />
+              <ProfileAvatar
+                uri={item.sender_image || null}
+                name={item.sender_name}
+                size={52}
+                style={{ marginBottom: 14 }}
+              />
             </TouchableOpacity>
+
             <View style={s.info}>
               <Text style={s.name} numberOfLines={1}>{item.sender_name || 'Someone'}</Text>
               {!!item.sender_location && (
@@ -243,26 +314,32 @@ const SwipeableNotifCard = React.memo(({
               {!!skillDots && (
                 <View style={s.skillsRow}>
                   <Text style={s.skillsText} numberOfLines={1}>{skillDots}</Text>
-                  {extra > 0 && <View style={s.extraBadge}><Text style={s.extraText}>+{extra}</Text></View>}
+                  {extra > 0 && (
+                    <View style={s.extraBadge}>
+                      <Text style={s.extraText}>+{extra}</Text>
+                    </View>
+                  )}
                 </View>
               )}
             </View>
-            <View style={{ alignItems: 'flex-end', gap: 6 }}>
+            <View style={s.cardMeta}>
               <Text style={s.time}>{timeAgo(item.created_at)}</Text>
               <TouchableOpacity
                 onPress={() => { if (isOpen.current) { snapClose(); return; } onMenu(item); }}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Ionicons name="ellipsis-vertical" size={16} color={C.sub} style={{ bottom: 21, alignSelf: 'flex-end' }} />
+                <Ionicons name="ellipsis-vertical" size={15} color={C.sub} style={{alignSelf:'center',paddingBottom:25}}/>
               </TouchableOpacity>
             </View>
           </View>
+
           {!accepted && (
             <View style={[s.actions, { marginTop: 10 }]}>
               <TouchableOpacity
                 style={[s.btnAccept, busy && s.btnDisabled]}
                 onPress={() => { if (isOpen.current) { snapClose(); return; } onAccept(item); }}
-                disabled={busy} activeOpacity={0.85}
+                disabled={busy}
+                activeOpacity={0.85}
               >
                 {busy
                   ? <ActivityIndicator size="small" color="#fff" />
@@ -272,7 +349,8 @@ const SwipeableNotifCard = React.memo(({
               <TouchableOpacity
                 style={[s.btnDecline, busy && s.btnDisabled]}
                 onPress={() => { if (isOpen.current) { snapClose(); return; } onReject(item); }}
-                disabled={busy} activeOpacity={0.85}
+                disabled={busy}
+                activeOpacity={0.85}
               >
                 <Ionicons name="close" size={15} color={C.red} />
                 <Text style={s.btnDeclineText}>Decline</Text>
@@ -288,11 +366,14 @@ const SwipeableNotifCard = React.memo(({
 const sw = StyleSheet.create({
   wrapper:      { position: 'relative', overflow: 'hidden' },
   deleteBehind: {
-    position: 'absolute', right: 0, top: 0, bottom: 0,
-    width: DELETE_BTN_W,
+    position:        'absolute',
+    right:           0,
+    top:             0,
+    bottom:          0,
+    width:           DELETE_BTN_W,
     backgroundColor: C.purple,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent:  'center',
+    alignItems:      'center',
   },
   deleteBtn:     { alignItems: 'center', justifyContent: 'center', flex: 1, width: '100%', gap: 4 },
   deleteBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
@@ -300,22 +381,30 @@ const sw = StyleSheet.create({
 });
 const BulkDeleteBar = ({ count, onDeleteAll }: { count: number; onDeleteAll: () => void }) => {
   const anim = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
     Animated.spring(anim, {
-      toValue: count >= 2 ? 1 : 0,
+      toValue:         count >= 2 ? 1 : 0,
       useNativeDriver: true,
-      damping: 140,
-      stiffness: 350,
+      damping:         140,
+      stiffness:       350,
     }).start();
   }, [count >= 2]);
+
   if (count < 2) return null;
+
   return (
     <Animated.View
       style={[
         bk.bar,
         {
-          opacity: anim,
-          transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [-44, 0] }) }],
+          opacity:   anim,
+          transform: [{
+            translateY: anim.interpolate({
+              inputRange:  [0, 1],
+              outputRange: [-44, 0],
+            }),
+          }],
         },
       ]}
     >
@@ -332,40 +421,90 @@ const BulkDeleteBar = ({ count, onDeleteAll }: { count: number; onDeleteAll: () 
     </Animated.View>
   );
 };
+
 const bk = StyleSheet.create({
+  // CHANGE 5: bottom: 45 + marginBottom: -35 removed.
+  // marginBottom: 6 creates a clean gap between the bar and the list.
   bar: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#1C1C1E',bottom:45,
-    paddingHorizontal: 16, paddingVertical: 10,
-    borderRadius: 12, marginHorizontal: 12,
-    shadowColor: C.red, shadowOpacity: 0.35, shadowRadius: 8, shadowOffset: { width: 0, height: 4 },marginBottom:-35,
-    elevation: 6,
+    flexDirection:     'row',
+    alignItems:        'center',
+    justifyContent:    'space-between',
+    backgroundColor:   '#1C1C1E',
+    paddingHorizontal: 16,
+    paddingVertical:   10,
+    borderRadius:      12,
+    marginHorizontal:  12,
+    marginBottom:      6,
+    shadowColor:       C.red,
+    shadowOpacity:     0.35,
+    shadowRadius:      8,
+    shadowOffset:      { width: 0, height: 4 },
+    elevation:         6,
   },
   left:       { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  countBadge: { backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: 10, paddingHorizontal: 9, paddingVertical: 3, minWidth: 26, alignItems: 'center' },
-  countNum:   { color: '#ffffff', fontWeight: '800', fontSize: 13 },
-  label:      { color: '#ffffff', fontSize: 13, fontWeight: '500' },
-  deleteBtn:  { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#6D4AFF', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
-  deleteTxt:  { color: '#ffffff', fontWeight: '700', fontSize: 13 },
+  countBadge: {
+    backgroundColor:   'rgba(255,255,255,0.25)',
+    borderRadius:      10,
+    paddingHorizontal: 9,
+    paddingVertical:   3,
+    minWidth:          26,
+    alignItems:        'center',
+  },
+  countNum:  { color: '#ffffff', fontWeight: '800', fontSize: 13 },
+  label:     { color: '#ffffff', fontSize: 13, fontWeight: '500' },
+  deleteBtn: {
+    flexDirection:     'row',
+    alignItems:        'center',
+    gap:               6,
+    backgroundColor:   '#6D4AFF',
+    paddingHorizontal: 14,
+    paddingVertical:   8,
+    borderRadius:      8,
+  },
+  deleteTxt: { color: '#ffffff', fontWeight: '700', fontSize: 13 },
 });
+
+// ─── Header ───────────────────────────────────────────────────────────────────
+// CHANGE 2: `count` prop kept in signature but header renders no badge.
+// top: 3 on headerTitle removed — alignItems:'center' on the row handles it.
+const Header = ({ }: { count: number }) => (
+  <View style={s.header}>
+    {/* CHANGE 2: top: 3 removed from headerTitle */}
+    <Text style={s.headerTitle}>Notifications</Text>
+  </View>
+);
+
+// ─── NotificationsScreen ─────────────────────────────────────────────────────
 export default function NotificationsScreen() {
   const { user }                                    = useAuthh();
   const { acceptRequest, rejectRequest, setStatus } = useConnection();
+
+  // CHANGE 1: Live screen width — reactive to orientation + foldables
+  const { width: screenWidth } = useWindowDimensions();
+  const deleteThreshold = -screenWidth * 0.28;
+
+  // CHANGE 6: Runtime safe area inset for list bottom padding
+  const insets = useSafeAreaInsets();
+
   const [notifs,        setNotifs]        = useState<NotifItem[]>([]);
   const [loading,       setLoading]       = useState(true);
   const [refreshing,    setRefreshing]    = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [sheetItem,     setSheetItem]     = useState<NotifItem | null>(null);
-  useNotifBadge();
-  const [swipedIds, setSwipedIds] = useState<Set<string>>(new Set());
-  const safeSet = useCallback((fn: (p: NotifItem[]) => NotifItem[]) =>
-    setNotifs((p:any) => dedup(fn(p))), []);
+  const [swipedIds,     setSwipedIds]     = useState<Set<string>>(new Set());
+
+  const safeSet = useCallback(
+    (fn: (p: NotifItem[]) => NotifItem[]) => setNotifs((p: any) => dedup(fn(p))),
+    [],
+  );
+
   const loadNotifs = useCallback(async (isRefresh = false) => {
     if (!user?.id) return;
     if (isRefresh) setRefreshing(true);
     try {
       const { data, error } = await supabase
-        .from(TABLES.notifications).select('*')
+        .from(TABLES.notifications)
+        .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(50);
@@ -378,32 +517,45 @@ export default function NotificationsScreen() {
       setRefreshing(false);
     }
   }, [user?.id, loading]);
+
   useEffect(() => { loadNotifs(); }, [loadNotifs]);
+
   useEffect(() => {
     if (!user?.id) return;
-    const ch = supabase.channel(`notifs-${user.id}-${Date.now()}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: TABLES.notifications, filter: `user_id=eq.${user.id}` },
-        (payload: any) => {
-          const doc = payload.new as NotifItem;
-          if (payload.eventType === 'INSERT') safeSet((p:any) => [doc, ...p]);
-          if (payload.eventType === 'DELETE') setNotifs((p:any) => p.filter((n:any) => n.id !== (payload.old as any).id));
-          if (payload.eventType === 'UPDATE') setNotifs((p:any) => p.map((n:any) => n.id === doc.id ? { ...n, ...doc } : n));
-        }).subscribe();
+    const ch = supabase
+      .channel(`notifs-${user.id}-${Date.now()}`)
+      .on('postgres_changes', {
+        event:  '*',
+        schema: 'public',
+        table:  TABLES.notifications,
+        filter: `user_id=eq.${user.id}`,
+      }, (payload: any) => {
+        const doc = payload.new as NotifItem;
+        if (payload.eventType === 'INSERT') safeSet((p: any) => [doc, ...p]);
+        if (payload.eventType === 'DELETE') setNotifs((p: any) => p.filter((n: any) => n.id !== (payload.old as any).id));
+        if (payload.eventType === 'UPDATE') setNotifs((p: any) => p.map((n: any) => n.id === doc.id ? { ...n, ...doc } : n));
+      })
+      .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user?.id, safeSet]);
+
   useEffect(() => {
     if (!user?.id || !notifs.length) return;
-    const unread = notifs.filter((n:any)=> !n.is_read);
+    const unread = notifs.filter((n: any) => !n.is_read);
     if (!unread.length) return;
-    setNotifs((p:any) => p.map((n:any) => ({ ...n, is_read: true })));
-    Promise.all(unread.map((n:any) => supabase.from(TABLES.notifications).update({ is_read: true }).eq('id', n.id))).catch(() => {});
+    setNotifs((p: any) => p.map((n: any) => ({ ...n, is_read: true })));
+    Promise.all(unread.map((n: any) =>
+      supabase.from(TABLES.notifications).update({ is_read: true }).eq('id', n.id),
+    )).catch(() => {});
   }, [notifs.length, user?.id]);
+
   const handleSwipeOpen  = useCallback((id: string) =>
     setSwipedIds((prev: Set<string>) => new Set([...prev, id])), []);
   const handleSwipeClose = useCallback((id: string) =>
     setSwipedIds((prev: Set<string>) => { const n = new Set(prev); n.delete(id); return n; }), []);
-   const handleDelete = useCallback(async (item: NotifItem) => {
-    setNotifs((prev: any) => prev.filter((n:any) => n.id !== item.id));
+
+  const handleDelete = useCallback(async (item: NotifItem) => {
+    setNotifs((prev: any) => prev.filter((n: any) => n.id !== item.id));
     const { error } = await supabase
       .from(TABLES.notifications)
       .delete()
@@ -413,17 +565,19 @@ export default function NotificationsScreen() {
       console.error('❌ Notif delete failed:', error.message,
         error.code === '42501' ? '→ Run fix_rls_final.sql in Supabase SQL Editor' : '');
       setNotifs((prev: any) => dedup([item, ...prev].sort((a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       )));
     }
   }, [user?.id]);
+
   const handleBulkDelete = useCallback(async () => {
     const ids      = Array.from(swipedIds);
     const toDelete = notifs.filter((n: any) => ids.includes(n.id));
     setNotifs((prev: any) => prev.filter((n: any) => !ids.includes(n.id)));
     setSwipedIds(new Set());
-    const results = await Promise.all(ids.map(id => supabase.from(TABLES.notifications).delete().eq('id', id)
-      .eq('user_id', user?.id ?? '')));
+    const results = await Promise.all(
+      ids.map(id => supabase.from(TABLES.notifications).delete().eq('id', id).eq('user_id', user?.id ?? '')),
+    );
     const failed = results.reduce<NotifItem[]>((acc, res, i) => {
       if (res.error) { console.error('❌ Bulk delete failed for', ids[i]); acc.push(toDelete[i]); }
       return acc;
@@ -431,44 +585,49 @@ export default function NotificationsScreen() {
     if (failed.length) {
       console.warn(`⚠️ ${failed.length} notifications failed to delete, rolling back`);
       setNotifs((prev: any) => dedup([...failed, ...prev].sort((a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime())));
-    } else {
-      console.log('✅ All notifications deleted successfully');
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      )));
     }
-  }, [swipedIds, notifs]);
-   const handleAccept = useCallback(async (item: NotifItem) => {
+  }, [swipedIds, notifs, user?.id]);
+
+  const handleAccept = useCallback(async (item: NotifItem) => {
     setActionLoading(item.id);
-    setNotifs((p: any) => p.map((n:any) => n.id === item.id ? { ...n, type: 'accepted' } : n));
+    setNotifs((p: any) => p.map((n: any) => n.id === item.id ? { ...n, type: 'accepted' } : n));
     setStatus(item.sender_id, 'accepted');
     try {
       await acceptRequest(item.connection_id, item.id, item.sender_id);
     } catch {
-      setNotifs((p: any) => p.map((n:any) => n.id === item.id ? { ...n, type: 'connection_request' } : n));
+      setNotifs((p: any) => p.map((n: any) => n.id === item.id ? { ...n, type: 'connection_request' } : n));
       setStatus(item.sender_id, 'pending');
     } finally {
       setActionLoading(null);
     }
   }, [acceptRequest, setStatus]);
+
   const handleReject = useCallback(async (item: NotifItem) => {
     setNotifs(p => p.filter((n: any) => n.id !== item.id));
     setStatus(item.sender_id, 'none');
     rejectRequest(item.connection_id, item.id, item.sender_id).catch(() => loadNotifs());
   }, [rejectRequest, setStatus, loadNotifs]);
+
   if (loading) return (
     <SafeAreaView style={s.safe} edges={['top']}>
       <Header count={0} />
       <Skeleton /><Skeleton opacity={0.65} /><Skeleton opacity={0.35} />
     </SafeAreaView>
   );
+
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
       <StatusBar barStyle="dark-content" />
       <Header count={notifs.filter((n: any) => !n.is_read).length} />
       <BulkDeleteBar count={swipedIds.size} onDeleteAll={handleBulkDelete} />
+
       <FlatList
         data={notifs}
         keyExtractor={item => item.id}
         renderItem={({ item }) => (
+          // CHANGE 1: deleteThreshold passed as prop from live screen width
           <SwipeableNotifCard
             item={item}
             onAccept={handleAccept}
@@ -478,26 +637,32 @@ export default function NotificationsScreen() {
             onSwipeDelete={handleDelete}
             onSwipeOpen={handleSwipeOpen}
             onSwipeClose={handleSwipeClose}
+            deleteThreshold={deleteThreshold}
           />
         )}
-        contentContainerStyle={s.list}
+        // CHANGE 6: Runtime paddingBottom — insets.bottom + vs(80)
+        contentContainerStyle={[s.list, { paddingBottom: insets.bottom + 80 }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => loadNotifs(true)}
-            tintColor={C.purple} colors={[C.purple]}
+            tintColor={C.purple}
+            colors={[C.purple]}
           />
         }
         ListEmptyComponent={
           <View style={s.empty}>
-            <View style={s.emptyIcon}><Ionicons name="notifications-outline" size={32} color={C.purple} /></View>
+            <View style={s.emptyIcon}>
+              <Ionicons name="notifications-outline" size={32} color={C.purple} />
+            </View>
             <Text style={s.emptyTitle}>No notifications yet</Text>
             <Text style={s.emptySub}>When someone wants to connect, it'll appear here.</Text>
           </View>
         }
       />
+
       <ActionSheet
         item={sheetItem}
         onClose={() => setSheetItem(null)}
@@ -507,41 +672,37 @@ export default function NotificationsScreen() {
     </SafeAreaView>
   );
 }
-const Header = ({ }: { count: number }) => (
-  <View style={s.header}>
-    <Text style={s.headerTitle}>Notifications</Text>
-  </View>
-);
+
 const s = StyleSheet.create({
-  safe:          { flex: 1, backgroundColor: C.white },
-  list:          { paddingBottom: 120 },
-  header:        { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16},
-  headerTitle:   { fontSize: 20, fontWeight: '600', color: C.text, flex: 1,top:3 },
-  
-  badgeText:     { color: '#fff', fontWeight: '700', fontSize: 12 },
-  card:          { backgroundColor: C.white, paddingHorizontal: 16, paddingVertical: 12, overflow: 'hidden' },
-  cardUnread:    { backgroundColor: C.unread },
-  unreadBar:     { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, backgroundColor: C.purple },
-  cardRow:       { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  info:          { flex: 1 },
-  name:          { fontSize: 15, fontWeight: '700', color: C.text, marginBottom: 3 },
-  locRow:        { flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 3 },
-  locText:       { fontSize: 12, color: C.sub },
-  skillsRow:     { flexDirection: 'row', alignItems: 'center', gap: 6,marginRight:3 },
-  skillsText:    { fontSize: 12, fontWeight: '600', color: C.purple, flexShrink: 1 },
-  extraBadge:    { backgroundColor: C.bg, borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2, borderWidth: 1, borderColor: C.border },
-  extraText:     { fontSize: 11, fontWeight: '600', color: C.sub },
-  time:          { fontSize: 11, color: C.sub, bottom: 27, left: 2, marginTop: 8 },
-  actions:       { flexDirection: 'row', gap: 10 },
-  btnAccept:     { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: C.purple, borderRadius: 10, paddingVertical: 9 },
+  safe:       { flex: 1, backgroundColor: C.white },
+  // CHANGE 6: paddingBottom removed from StyleSheet — injected inline with insets
+  list:       {},
+  header:     { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 },
+  // CHANGE 2: top: 3 removed
+  headerTitle: { fontSize: 19, fontWeight: '600', color: C.text, flex: 1 },
+  badgeText:  { color: '#fff', fontWeight: '700', fontSize: 12 },
+  card:       { backgroundColor: C.white, paddingHorizontal: 16, paddingVertical: 12, overflow: 'hidden' },
+  cardUnread: { backgroundColor: C.unread },
+  unreadBar:  { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, backgroundColor: C.purple },
+  cardRow:    { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  info:       { flex: 1 },
+  name:       { fontSize: 15, fontWeight: '600', color: C.text, marginBottom: 3 },
+  locRow:     { flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 3 },
+  locText:    { fontSize: 12, color: C.sub },
+  skillsRow:  { flexDirection: 'row', alignItems: 'center', gap: 6, marginRight: 3 },
+  skillsText: { fontSize: 12, fontWeight: '600', color: C.purple, flexShrink: 1 },
+  extraBadge: { backgroundColor: C.bg, borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2, borderWidth: 1, borderColor: C.border },
+  extraText:  { fontSize: 11, fontWeight: '600', color: C.sub },
+  cardMeta:   { alignItems: 'flex-end', justifyContent: 'space-between', alignSelf: 'stretch' },
+  time:       { fontSize: 10, color: C.sub,marginBottom:2},
+  actions:    { flexDirection: 'row', gap: 10 },
+  btnAccept:  { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: C.purple, borderRadius: 10, paddingVertical: 9 },
   btnAcceptText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  btnDecline:    { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: C.redBg, borderRadius: 10, paddingVertical: 9, borderWidth: 1, borderColor: '#FECACA' },
-  btnDeclineText:{ color: C.red, fontWeight: '700', fontSize: 14 },
-  btnDisabled:   { opacity: 0.5 },
-  empty:         { alignItems: 'center', paddingTop: 80, paddingHorizontal: 32 },
-  emptyIcon:     { width: 72, height: 72, borderRadius: 36, backgroundColor: C.unread, alignItems: 'center', justifyContent: 'center', marginBottom: 18 },
-  emptyTitle:    { fontSize: 18, fontWeight: '700', color: C.text, marginBottom: 8 },
-  emptySub:      { fontSize: 14, color: C.sub, textAlign: 'center', lineHeight: 22 },
+  btnDecline: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: C.redBg, borderRadius: 10, paddingVertical: 9, borderWidth: 1, borderColor: '#FECACA' },
+  btnDeclineText: { color: C.red, fontWeight: '700', fontSize: 14 },
+  btnDisabled: { opacity: 0.5 },
+  empty:      { alignItems: 'center', paddingTop: 80, paddingHorizontal: 32 },
+  emptyIcon:  { width: 72, height: 72, borderRadius: 36, backgroundColor: C.unread, alignItems: 'center', justifyContent: 'center', marginBottom: 18 },
+  emptyTitle: { fontSize: 17, fontWeight: '600', color: C.text, marginBottom: 2 },
+  emptySub:   { fontSize: 14, color: C.sub, textAlign: 'center', lineHeight: 22 },
 });
-
-

@@ -6,17 +6,12 @@ export default {
   orientation: "portrait",
   userInterfaceStyle: "light",
   icon: "./assets/images/icon.png",
-  splash: {
-    image: "./assets/images/splash-logo.png",
-    resizeMode: "contain",
-    backgroundColor: "#ffffff",
-  },
 
   android: {
     package: "com.mindset.mindmates",
     adaptiveIcon: {
       foregroundImage: "./assets/images/adaptive-icon.png",
-       backgroundColor: "#ffffff", 
+      backgroundColor: "#6D4AFF",
     },
     googleServicesFile: "./google-services.json",
   },
@@ -33,6 +28,48 @@ export default {
     "@react-native-firebase/app",
     "@react-native-firebase/auth",
     "@react-native-google-signin/google-signin",
+
+    [
+      "expo-notifications",
+      {
+        icon: "./assets/images/notification-icon.png",
+        color: "#6D4AFF",
+        defaultChannel: "messages",
+        androidChannels: [
+          {
+            name: "messages",
+            importance: 4,
+            sound: "default",
+            vibrate: true,
+            showBadge: true,
+            lightColor: "#6D4AFF",
+          },
+          {
+            name: "social",
+            importance: 3,
+            sound: "default",
+            vibrate: true,
+            showBadge: true,
+            lightColor: "#6D4AFF",
+          },
+          {
+            name: "daily",
+            importance: 3,
+            sound: "default",
+            vibrate: false,
+            showBadge: false,
+            lightColor: "#6D4AFF",
+          },
+          {
+            name: "badge_sync_silent",
+            importance: 1,
+            sound: null,
+            vibrate: false,
+            showBadge: true,
+          },
+        ],
+      },
+    ],
     [
       "expo-build-properties",
       {
@@ -40,20 +77,32 @@ export default {
           compileSdkVersion: 35,
           targetSdkVersion: 35,
           buildToolsVersion: "35.0.0",
+          packagingOptions: {
+            pickFirst: [
+              "**/libc++_shared.so",
+              "**/libfbjni.so",
+              "**/libreactnativejni.so",
+            ],
+          },
         },
       },
     ],
+
     [
-      "expo-notifications",
+      "expo-splash-screen",
       {
-        color: "#ffffff",
+        image: "./assets/images/splash-logo.png",
+        backgroundColor: "#6D4AFF",
       },
     ],
+
+    "expo-asset",
+    "expo-video",
   ],
 
   extra: {
     eas: {
-      projectId: "d6f6bc93-db51-4bf0-a7e3-e7282540303e",
+      projectId: "05f96db8-13d5-4f92-a49f-974b74fbc249",
       googleWebClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
     },
   },

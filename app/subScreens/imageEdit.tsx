@@ -1,16 +1,17 @@
 import { useAuthh } from "@/Contexts/authContext";
 import { useProfile } from "@/Contexts/profileContext";
 import { useProfileImage } from "@/hooks/useProfileImage";
+import { ms, s, vs } from "@/utils/scale";
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useRef } from "react";
 import {
   ActivityIndicator,
+  Animated,
   Dimensions,
   Image,
   Platform,
-  Animated,
   StatusBar,
   StyleSheet,
   Text,
@@ -21,14 +22,18 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
+
 const { width: W } = Dimensions.get("window");
+// original: W * 0.78 — ratio kept, scales automatically with device width
 const IMAGE_SIZE = W * 0.78;
+
 export default function ImageEditScreen() {
   const { user } = useAuthh();
   const { profile } = useProfile();
   const insets = useSafeAreaInsets();
   const { userId: viewedUserId } = useLocalSearchParams<{ userId?: string }>();
   const isOwnProfile = !viewedUserId || viewedUserId === user?.id;
+
   const {
     imageUri,
     uploading,
@@ -38,9 +43,11 @@ export default function ImageEditScreen() {
     uploadAndSave,
     removePhoto,
   } = useProfileImage();
+
   const backdropOpacity = useRef(new Animated.Value(0)).current;
   const imageScale = useRef(new Animated.Value(0.88)).current;
   const sheetY = useRef(new Animated.Value(220)).current;
+
   useEffect(() => {
     Animated.parallel([
       Animated.timing(backdropOpacity, {
@@ -96,28 +103,25 @@ export default function ImageEditScreen() {
     isOwnProfile && !!imageUri && imageUri !== profile?.profileImage;
   const isBusy = uploading;
 
-  // ── Save ──────────────────────────────────────────────────────────────────
   const handleSave = () => {
     if (!hasNewImage) {
       dismiss();
       return;
     }
-    uploadAndSave(); 
-    dismiss(); 
+    uploadAndSave();
+    dismiss();
   };
-
-  // ── Remove ────────────────────────────────────────────────────────────────
   const handleRemove = async () => {
     await removePhoto();
     dismiss();
   };
 
   return (
-    <View style={s.root}>
+    <View style={st.root}>
       <StatusBar barStyle="light-content" />
 
-      {/* ── Backdrop ──────────────────────────────────────────────────────── */}
-      <Animated.View style={[s.backdrop, { opacity: backdropOpacity }]}>
+      {/* Backdrop */}
+      <Animated.View style={[st.backdrop, { opacity: backdropOpacity }]}>
         {Platform.OS === "ios" ? (
           <BlurView
             intensity={90}
@@ -125,122 +129,108 @@ export default function ImageEditScreen() {
             style={StyleSheet.absoluteFill}
           />
         ) : (
-          <View style={[StyleSheet.absoluteFill, s.androidBlur]} />
+          <View style={[StyleSheet.absoluteFill, st.androidBlur]} />
         )}
       </Animated.View>
 
-      {/* ── Close button ──────────────────────────────────────────────────── */}
-      <SafeAreaView style={s.topBar} edges={["top"]}>
+      {/* Top bar — original: paddingHorizontal 20, paddingTop 8 */}
+      <SafeAreaView style={st.topBar} edges={["top"]}>
         <TouchableOpacity
-          style={s.closeBtn}
+          style={st.closeBtn}
           onPress={dismiss}
           disabled={isBusy}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
-          <Text style={s.closeBtnText}>✕</Text>
+          <Text style={st.closeBtnText}>✕</Text>
         </TouchableOpacity>
-
-        {/* Save button top-right — own profile only, only when new image picked */}
         {isOwnProfile && hasNewImage && (
           <TouchableOpacity
-            style={s.saveTopBtn}
+            style={st.saveTopBtn}
             onPress={handleSave}
             disabled={isBusy}
           >
             {isBusy ? (
               <ActivityIndicator color="#ededff" size="small" />
             ) : (
-              <Text style={s.saveTopBtnText}>Save</Text>
+              <Text style={st.saveTopBtnText}>Save</Text>
             )}
           </TouchableOpacity>
         )}
       </SafeAreaView>
 
-      {/* ── Profile image — centered, large ───────────────────────────────── */}
-      <View style={s.imageSection}>
-        <Animated.View style={[{ transform: [{ scale: imageScale }] }]}>
+      {/* Image */}
+      <View style={st.imageSection}>
+        <Animated.View style={{ transform: [{ scale: imageScale }] }}>
           {displayImage ? (
             <Image
               source={{ uri: displayImage }}
-              style={s.image}
+              style={st.image}
               resizeMode="cover"
             />
           ) : (
-            <View style={s.initialsCircle}>
-              <Text style={s.initials}>{initials}</Text>
+            <View style={st.initialsCircle}>
+              <Text style={st.initials}>{initials}</Text>
             </View>
           )}
-
-          {/* Upload progress overlay */}
           {uploading && (
-            <View style={s.uploadOverlay}>
+            <View style={st.uploadOverlay}>
               <ActivityIndicator color="#fff" size="large" />
-              <Text style={s.uploadPercent}>{progress}%</Text>
+              <Text style={st.uploadPercent}>
+                {Math.min(Math.round(progress), 100)}%
+              </Text>
             </View>
           )}
         </Animated.View>
-
-        {/* Name under image */}
-        {profile?.fullName ? (
-          <Text style={s.name}>{profile.fullName}</Text>
-        ) : null}
-
-        {/* Error */}
-        {!!error && <Text style={s.errorText}>{error}</Text>}
+        {!!error && <Text style={st.errorText}>{error}</Text>}
       </View>
 
-      {/* ── Action sheet — OWN PROFILE ONLY ───────────────────────────────── */}
+      {/* Bottom sheet */}
       {isOwnProfile && (
         <Animated.View
           style={[
-            s.sheet,
-            { paddingBottom: insets.bottom + 12 },
+            st.sheet,
+            { paddingBottom: insets.bottom + vs(12) },
             { transform: [{ translateY: sheetY }] },
           ]}
         >
-          {/* Edit Photo */}
           <TouchableOpacity
-            style={[s.sheetBtn, s.sheetBtnEdit]}
-            onPress={Platform.OS === "web" ? pickFromGallery : pickFromGallery}
+            style={[st.sheetBtn, st.sheetBtnEdit]}
+            onPress={pickFromGallery}
             disabled={isBusy}
             activeOpacity={0.75}
           >
-            <View style={s.sheetBtnIcon}>
-              <Text style={s.sheetBtnIconText}>
-                {" "}
-                <Ionicons
-                  name="create-outline"
-                  size={24}
-                  color="#6D4AFF"
-                  style={{ alignSelf: "center",right:5 }}
-                />
-              </Text>
+            <View style={st.sheetBtnIcon}>
+              <Ionicons
+                name="create-outline"
+                size={s(24)}
+                color="#ffffff"
+                style={{ alignSelf: "center" }}
+              />
             </View>
-            <View style={s.sheetBtnContent}>
-              <Text style={s.sheetBtnTitle}>Edit Photo</Text>
-              <Text style={s.sheetBtnSub}>Choose from gallery</Text>
+            <View style={st.sheetBtnContent}>
+              <Text style={st.sheetBtnTitle}>Edit Photo</Text>
+              <Text style={st.sheetBtnSub}>Choose from gallery</Text>
             </View>
-            <Text style={s.sheetBtnArrow}>›</Text>
+            <Text style={st.sheetBtnArrow}>›</Text>
           </TouchableOpacity>
 
-          <View style={s.divider} />
+          <View style={st.divider} />
+
           {!!imageUri && (
             <TouchableOpacity
-              style={[s.sheetBtn, s.sheetBtnDelete]}
+              style={[st.sheetBtn, st.sheetBtnDelete]}
               onPress={handleRemove}
               disabled={isBusy}
               activeOpacity={0.75}
             >
-              <View style={[s.sheetBtnIcon, s.sheetBtnIconRed]}>
-                <Text style={s.sheetBtnIconText}>
-                  <Ionicons name="remove" size={24} color="#ca3535" />
-                </Text>
+              <View style={[st.sheetBtnIcon, st.sheetBtnIconRed]}>
+                <Ionicons name="remove" size={s(24)} color="#ffffff" />
               </View>
-              <View style={s.sheetBtnContent}>
-                <Text style={[s.sheetBtnTitle, s.sheetBtnTitleRed]}>
+              <View style={st.sheetBtnContent}>
+                <Text style={[st.sheetBtnTitle, st.sheetBtnTitleRed]}>
                   Delete Photo
                 </Text>
-                <Text style={s.sheetBtnSub}>Remove your profile picture</Text>
+                <Text style={st.sheetBtnSub}>Remove your profile picture</Text>
               </View>
             </TouchableOpacity>
           )}
@@ -250,16 +240,12 @@ export default function ImageEditScreen() {
   );
 }
 
-const SHEET_RADIUS = 24;
+const SHEET_RADIUS = s(24);
 
-const s = StyleSheet.create({
+const st = StyleSheet.create({
   root: { flex: 1, backgroundColor: "transparent" },
-
-  // Backdrop
   backdrop: { ...StyleSheet.absoluteFillObject, zIndex: 0 },
-  androidBlur: { backgroundColor: "rgba(0,0,0,0.88)" },
-
-  // Top bar
+  androidBlur: { backgroundColor: "rgb(255,255,255)" },
   topBar: {
     position: "absolute",
     top: 0,
@@ -269,48 +255,46 @@ const s = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingHorizontal: s(20),
+    paddingTop: vs(8),
   },
   closeBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: "rgba(255,255,255,0.18)",
+    width: s(38),
+    height: s(38),
+    borderRadius: s(19),
+    backgroundColor: "#ececec",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 15,
+    marginTop: vs(15),
   },
   closeBtnText: {
     color: "#6D4AFF",
-    fontSize: 17,
+    fontSize: ms(14),
     fontWeight: "600",
-    lineHeight: 20,
+    lineHeight: ms(20),
   },
   saveTopBtn: {
-    paddingHorizontal: 18,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.98)",
-    marginTop: 15,
+    paddingHorizontal: s(18),
+    paddingVertical: vs(8),
+    borderRadius: s(20),
+    backgroundColor: "#ececec",
+    marginTop: vs(15),
   },
-  saveTopBtnText: { color: "#6D4AFF", fontSize: 15, fontWeight: "700" },
+  saveTopBtnText: { color: "#6D4AFF", fontSize: ms(14), fontWeight: "600" },
 
-  // Image section
   imageSection: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     zIndex: 2,
   },
-
   image: {
     width: IMAGE_SIZE,
     height: IMAGE_SIZE,
     borderRadius: IMAGE_SIZE / 2,
-    borderWidth: 3,
+    borderWidth: s(3),
     borderColor: "#6D4AFF",
-    marginBottom: 25,
+    marginBottom: vs(25),
   },
   initialsCircle: {
     width: IMAGE_SIZE,
@@ -319,85 +303,90 @@ const s = StyleSheet.create({
     backgroundColor: "#6D4AFF",
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 3,
+    borderWidth: s(3),
     borderColor: "rgba(255,255,255,0.2)",
   },
+  // original: fontSize IMAGE_SIZE * 0.32 — ratio kept
   initials: { fontSize: IMAGE_SIZE * 0.32, fontWeight: "700", color: "#fff" },
+
   uploadOverlay: {
     ...StyleSheet.absoluteFillObject,
     borderRadius: IMAGE_SIZE / 2,
-    backgroundColor: "rgba(0,0,0,0.55)",
+    backgroundColor: "rgba(255,255,255,0.55)",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: vs(8),
   },
-  uploadPercent: { color: "#6D4AFF", fontSize: 18, fontWeight: "700" },
-  name: {
-    marginTop: 5,
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#6D4AFF",
-    letterSpacing: 0.3,
-    marginBottom: 40,
-  },
-  errorText: {
-    marginTop: 10,
-    color: "#FCA5A5",
-    fontSize: 13,
-    textAlign: "center",
-    paddingHorizontal: 32,
-  },
+  // original: fontSize 18, fontWeight 700
+  uploadPercent: { color: "#6D4AFF", fontSize: ms(18), fontWeight: "700" },
 
-  // Action sheet
+  // original: marginTop 10, fontSize 13
+  errorText: {
+    marginTop: vs(10),
+    color: "#FCA5A5",
+    fontSize: ms(13),
+    textAlign: "center",
+    paddingHorizontal: s(32),
+  },
   sheet: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
     zIndex: 10,
-    backgroundColor: "#1C1C1E",
+    backgroundColor: "#ffffff",
     borderTopLeftRadius: SHEET_RADIUS,
     borderTopRightRadius: SHEET_RADIUS,
-    paddingTop: 12,
-    paddingHorizontal: 16,
+    paddingTop: vs(12),
+    paddingHorizontal: s(16),
+    elevation: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: s(2), height: vs(4) },
+    shadowOpacity: 0.8,
+    shadowRadius: s(8),
   },
 
+  // original: paddingVertical 14, paddingHorizontal 4, borderRadius 14
   sheetBtn: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 4,
-    borderRadius: 14,
+    paddingVertical: vs(14),
+    paddingHorizontal: s(4),
+    borderRadius: s(14),
   },
   sheetBtnEdit: {},
   sheetBtnDelete: {},
 
+  // original: width 44, height 44, borderRadius 12, marginRight 14
   sheetBtnIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.18)",
+    width: s(44),
+    height: s(44),
+    borderRadius: s(12),
+    backgroundColor: "#6D4AFF",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 14,
+    marginRight: s(13),
   },
-  sheetBtnIconRed: { backgroundColor: "rgba(255,255,255,0.18)" },
-  sheetBtnIconText: { fontSize: 20 },
+  sheetBtnIconRed: { backgroundColor: "#6D4AFF" },
 
   sheetBtnContent: { flex: 1 },
+
+  // original: fontSize 16, fontWeight 600, marginBottom 2
   sheetBtnTitle: {
-    fontSize: 16,
+    fontSize: ms(15),
     fontWeight: "600",
-    color: "#F9FAFB",
-    marginBottom: 2,
+    color: "#000000",
+    marginBottom: vs(2),
   },
-  sheetBtnTitleRed: { color: "#ffffff" },
-  sheetBtnSub: { fontSize: 12, color: "#6B7280" },
-  sheetBtnArrow: { fontSize: 22, color: "#4B5563", marginLeft: 8 },
+  sheetBtnTitleRed: { color: "#ed4e4e" },
+  // original: fontSize 12
+  sheetBtnSub: { fontSize: ms(12), color: "#6B7280" },
+  // original: fontSize 22, marginLeft 8
+  sheetBtnArrow: { fontSize: ms(20), color: "#4B5563", marginLeft: s(8) },
 
   divider: {
     height: 1,
-    backgroundColor: "rgba(37, 36, 36, 0.07)",
-    marginVertical: 2,
+    backgroundColor: "rgba(37,36,36,0.07)",
+    marginVertical: vs(2),
   },
 });

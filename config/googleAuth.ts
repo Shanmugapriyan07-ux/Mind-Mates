@@ -1,8 +1,6 @@
-// config/googleAuth.ts
 let _GoogleSignin: any = null;
 let _statusCodes: any  = {};
 let _isConfigured      = false;
-
 try {
   const mod    = require('@react-native-google-signin/google-signin');
   _GoogleSignin = mod.GoogleSignin;
@@ -10,19 +8,14 @@ try {
 } catch {
   console.warn('[GoogleAuth] Native module unavailable');
 }
-
 export const GoogleSignin = _GoogleSignin;
 export const statusCodes  = _statusCodes;
-
 export function configureGoogleSignIn(): void {
   if (!_GoogleSignin || _isConfigured) return;
-
   const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
   if (!webClientId?.trim()) {
-    console.error('[GoogleAuth] ❌ EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID missing!');
     return;
   }
-
   try {
     _GoogleSignin.configure({
       webClientId,
@@ -36,6 +29,5 @@ export function configureGoogleSignIn(): void {
     console.error('[GoogleAuth] ❌ Configure failed:', err?.message);
   }
 }
-
 export const isGoogleReady  = () => !!_GoogleSignin && _isConfigured;
 export const isGoogleLinked = () => !!_GoogleSignin;

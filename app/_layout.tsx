@@ -1,208 +1,230 @@
+import {
+  hideLogoutLoader,
+  LogoutLoadingModal,
+} from "@/components/logoutLoadingModel";
 import { configureGoogleSignIn } from "@/config/googleAuth";
 import { AppLinksProvider } from "@/Contexts/AppLinksContexts";
-import { AuthProvider, useAuthh } from "@/Contexts/authContext";
-import { ProfileProvider, useProfile } from "@/Contexts/profileContext";
-import { useAppReady } from "@/hooks/Useappready";
+import { AuthProvider } from "@/Contexts/authContext";
+import { ProfileProvider } from "@/Contexts/profileContext";
 import { useAuthBoot } from "@/hooks/useAuthBoot";
-import { useBadgeSync } from "@/hooks/useBadgeSync";
-import { useRouteGuard } from "@/hooks/useRouteGuard";
+import { usePresence } from "@/hooks/usePresence";
+import { useRealtimeManager } from "@/hooks/useRealtimeManager";
 import GlobalProvider from "@/lib/GlobalProvider";
+import { NotificationProvider } from "@/providers/notificationProvider";
+import {
+  handleColdStartNotification,
+  navigateFromNotification,
+  NotificationData,
+  registerNavRef,
+} from "@/services/deepLinkService";
 import AnimatedSplash from "@/startup/animatedSplash";
 import "@/startup/startupMachine";
 import { useStartup } from "@/startup/useStartup";
-import { selPhase, useAuthStore } from "@/stores/authStore";
+import {
+  selIsProfileComplete,
+  selPhase,
+  useAuthStore,
+} from "@/stores/authStore";
 import { log } from "@/utils/logger";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { activateKeepAwakeAsync } from "expo-keep-awake";
-import { SplashScreen, Stack, useRouter, useSegments } from "expo-router";
-import { useCallback, useEffect, useRef } from "react";
+import * as Notifications from "expo-notifications";
+import {
+  SplashScreen,
+  Stack,
+  useNavigationContainerRef,
+  useRouter,
+  useSegments,
+} from "expo-router";
+import React, { useCallback, useEffect, useRef } from "react";
 import { InteractionManager, Platform, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { PaperProvider } from "react-native-paper";
-import {
+import { StyleSheet } from "react-native";
+import Animated, {
   Easing,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import Animated from "react-native-reanimated";
 
-const CONTENT_FADE_MS = 280;
+const CONTENT_FADE_MS = 220;
+const STORAGE_KEY_ONBOARDING = "hso";
 
-SplashScreen.preventAutoHideAsync().catch((e) =>
-  console.error("Failed to prevent splash screen auto-hide:", e),
-);
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
-// ─── Inner nav component ──────────────────────────────────────────
-// onContentReady is passed here and called once the navigator mounts.
-// This is the correct place — it signals that the first screen frame
-// is ready, so the startup machine can begin the transition.
-function RootLayoutNav({
-  startupPhase,
-  onAnimationComplete,
-  onContentReady,         // ← moved here from AuthProvider
-}: {
-  startupPhase:        string;
+let _profileCompleting = false;
+export function setProfileCompleting(v: boolean) {
+  _profileCompleting = v;
+}
+
+// ─── resolveTarget ────────────────────────────────────────────────────────
+function resolveTarget(
+  phase: string,
+  isProfileComplete: boolean,
+  seg: string | undefined,
+): string | null {
+  switch (phase) {
+    case "booting":
+    case "reading_storage":
+    case "logging_out":
+    case "deleting":
+      return null;
+
+    case "unauthenticated":
+      return seg === "(auth)" ? null : "/(auth)/onBoarding";
+
+    case "profile_incomplete":
+      if (isProfileComplete) return null;
+      if (seg === "(profileSetUp)") return null;
+      return "/(profileSetUp)/BasicInfo";
+
+    case "authenticated":
+      if (seg === "(profileSetUp)") return "/(tabs)/home";
+      return seg === "(tabs)" || seg === "subScreens" ? null : "/(tabs)/home";
+
+    case "logging_out":
+    case "deleting":
+      // Initiate navigation immediately to prevent the "blink" stay on current screen
+      return "/(auth)/onBoarding";
+
+    default:
+      return null;
+  }
+}
+// ─── Module-level guard — never resets, survives all remounts ───────────────
+
+// ─── RootLayoutNav ────────────────────────────────────────────────────────
+interface RootLayoutNavProps {
+  startupPhase: string;
   onAnimationComplete: () => void;
-  onContentReady:      () => void;   // ← correct prop location
-}) {
-  const { isLoggedIn, authStatus, deleteType, user } = useAuthh();
-  const { profile, profileStatus } = useProfile();
-  const segments  = useSegments();
-  const router    = useRouter();
+  onContentReady: () => void;
+}
 
-  useBadgeSync(
-    user?.id ?? null,
-    (chatId) =>
-      router.push({ pathname: "/subScreens/chatScreen", params: { chatId } }),
-    () => router.push("/(tabs)/chat"),
-  );
-
-  const hasRouted    = useRef(false);
-  const prevLoggedIn = useRef(false);
-  const rafRef       = useRef<number | null>(null);
-  const authPhase    = useAuthStore(selPhase);
-
+function RootLayoutNav({ startupPhase, onAnimationComplete, onContentReady }: RootLayoutNavProps) {
+  usePresence();
+  useRealtimeManager();
   useAuthBoot();
-  useRouteGuard();
 
-  // ── Signal content ready on first mount ──────────────────────
-  // Called once when this component mounts — meaning React has
-  // finished the first render pass and the navigator is alive.
-  // The startup machine uses this to know the app is ready to show.
+  const router            = useRouter();
+  const segments          = useSegments();
+  const phase             = useAuthStore(selPhase);
+  const isProfileComplete = useAuthStore(selIsProfileComplete);
+  const lastTarget        = useRef<string>('');
+  const navTimer          = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
-    // Small delay ensures the first screen has actually painted
     const t = setTimeout(() => onContentReady(), 50);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // ← intentionally empty: run once on mount only
-
-  useEffect(
-    () => () => {
-      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
-    },
-    [],
-  );
-
-  useEffect(() => {
-    if (authPhase !== "booting") {
-      SplashScreen.hideAsync().catch(() => {});
-    }
-  }, [authPhase]);
-
-  useEffect(() => {
-    if (authStatus === "loading") return;
-    const authSettled   = !isLoggedIn;
-    const profileSettled =
-      profileStatus !== "idle" && profileStatus !== "loading";
-    if (authSettled || profileSettled) SplashScreen.hideAsync();
-  }, [authStatus, isLoggedIn, profileStatus]);
-
-  useEffect(() => {
-    const timer = setTimeout(
-      () => SplashScreen.hideAsync().catch(() => {}),
-      6000,
-    );
-    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
-    if (isLoggedIn && !prevLoggedIn.current) hasRouted.current = false;
-    prevLoggedIn.current = isLoggedIn;
-  }, [isLoggedIn]);
-
-  const safeReplace = (path: string) => {
-    if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
-    log.nav(`Routing to: ${path}`);
-    if (Platform.OS !== "web") {
-      rafRef.current = requestAnimationFrame(() => {
-        router.replace(path as any);
-        rafRef.current = null;
-      });
-    } else {
-      router.replace(path as any);
-    }
-  };
+    const t = setTimeout(() => SplashScreen.hideAsync().catch(() => {}), 6_000);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => {
-    if (authStatus === "loading") return;
-    const inAuth  = segments[0] === "(auth)";
-    const inTabs  = segments[0] === "(tabs)";
-    const inSetup = segments[0] === "(profileSetUp)";
-    const inSub   = segments[0] === "subScreens";
-    const inCb    = segments[0] === "auth" || segments[0] === "auth-callback";
-
-    log.nav("Routing check:", {
-      isLoggedIn, authStatus, profileStatus,
-      isComplete: profile?.isProfileComplete,
-      deleteType, segments: segments[0],
-    });
-
-    if (!isLoggedIn) {
-      hasRouted.current = false;
-      if (inAuth || inCb) return;
-      return;
+    const isAuthSegment = segments[0] === '(auth)';
+    const isExiting = phase === 'unauthenticated' || phase === 'logging_out' || phase === 'deleting';
+    if (isAuthSegment && isExiting) {
+      const t = setTimeout(() => hideLogoutLoader(), 300);
+      return () => clearTimeout(t);
     }
+  }, [segments, phase]);
 
-    if (profileStatus === "idle" || profileStatus === "loading") return;
-    if (hasRouted.current) return;
-
-    if (profileStatus === "not_found") {
-      hasRouted.current = true;
-      if (!inSetup) safeReplace("/(profileSetUp)/BasicInfo");
-      return;
+  useEffect(() => {
+    if (phase === 'authenticated' || phase === 'profile_incomplete') {
+      AsyncStorage.setItem(STORAGE_KEY_ONBOARDING, '1').catch(() => {});
     }
+  }, [phase]);
 
-    if (profileStatus === "error") return;
+  useEffect(() => () => { if (navTimer.current) clearTimeout(navTimer.current); }, []);
 
-    const isComplete = profile?.isProfileComplete === true;
-    hasRouted.current = true;
+  useEffect(() => {
+    const isHome = segments[0] === '(tabs)';
+    if (phase === 'booting' || (phase === 'authenticated' && isHome)) {
+      lastTarget.current = '';
+    }
+  }, [phase, segments]);
 
-    if (isComplete) {
-      if (!inTabs && !inSub) safeReplace("/(tabs)/home");
+  useEffect(() => {
+    if (_profileCompleting) return;
+    const seg    = segments[0] as string | undefined;
+    const target = resolveTarget(phase, isProfileComplete, seg);
+    if (!target) return;
+    if (target === lastTarget.current) return;
+    lastTarget.current = target;
+    log.nav(`[Layout] "${phase}" → "${target}"`);
+
+    const isLoggingIn  = phase === 'authenticated' || phase === 'profile_incomplete';
+    const isLoggingOut = phase === 'unauthenticated' || phase === 'logging_out' || phase === 'deleting';
+
+    const doNavigate = () => {
+      try {
+        if (isLoggingOut) {
+          try { if (router.canDismiss()) router.dismissAll(); } catch {}
+          setTimeout(() => { try { router.replace(target as any); } catch {} }, 50);
+        } else {
+          router.replace(target as any);
+        }
+      } catch {
+        if (navTimer.current) clearTimeout(navTimer.current);
+        navTimer.current = setTimeout(() => {
+          try { router.replace(target as any); } catch {}
+        }, 300);
+      }
+    };
+
+    if (Platform.OS === 'web' || isLoggingIn || isLoggingOut) {
+      doNavigate();
+      setTimeout(() => useAuthStore.getState().setTransitioning(false), 800);
     } else {
-      if (!inSetup) safeReplace("/(profileSetUp)/BasicInfo");
+      if (navTimer.current) clearTimeout(navTimer.current);
+      navTimer.current = setTimeout(() => {
+        InteractionManager.runAfterInteractions(doNavigate);
+      }, 0);
     }
-  }, [
-    isLoggedIn, authStatus, profileStatus,
-    profile?.isProfileComplete, deleteType,
-  ]);
+  }, [phase, isProfileComplete, segments]);
 
+  const showSplash =
+    startupPhase === 'booting' ||
+    startupPhase === 'preloading' ||
+    startupPhase === 'splash_animating';
+
+  // ✅ Stack lives HERE inside RootLayoutNav — this is what expo-router needs
+  // RootLayout wraps providers around this, navRef is hoisted up via registerNavRef
   return (
     <>
-      <Stack screenOptions={{ headerShown: false, animation: "none" }}>
+      <Stack
+        screenOptions={{
+          headerShown:    false,
+          animation:      'none',
+          freezeOnBlur:   true,
+          gestureEnabled: false,
+        }}
+      >
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="(profileSetUp)" />
         <Stack.Screen name="subScreens" />
-        <Stack.Screen name="auth-callback" />
       </Stack>
 
-      {startupPhase === "booting" ||
-      startupPhase === "preloading" ||
-      startupPhase === "splash_animating" ? (
-        <AnimatedSplash
-          visible={startupPhase === "splash_animating"}
-          onComplete={onAnimationComplete}
-        />
-      ) : null}
+      {/* Splash overlays on top of Stack — only visible during boot */}
+      {showSplash && <AnimatedSplash onComplete={onAnimationComplete} />}
     </>
   );
 }
 
-// ─── Root Layout ──────────────────────────────────────────────────
-export default function RootLayout() {
-  const {
-    phase,
-    preloadData,
-    onSplashAnimationComplete,
-    onContentReady,
-  } = useStartup();
+let _notifSub: Notifications.Subscription | null = null;
 
+export default function RootLayout() {
+  const { phase, preloadData, onSplashAnimationComplete, onContentReady } = useStartup();
+  const navRef         = useNavigationContainerRef();
   const contentOpacity = useSharedValue(0);
 
   useEffect(() => {
-    if (phase === "transitioning" || phase === "ready") {
+    if (phase === 'transitioning' || phase === 'done') {
       contentOpacity.value = withTiming(1, {
         duration: CONTENT_FADE_MS,
         easing:   Easing.out(Easing.ease),
@@ -210,79 +232,85 @@ export default function RootLayout() {
     }
   }, [phase]);
 
-  const contentStyle = useAnimatedStyle(
-    () =>
-      ({
-        opacity:       contentOpacity.value,
-        pointerEvents: contentOpacity.value < 0.1 ? "none" : "auto",
-      }) as any,
-  );
+  const contentStyle = useAnimatedStyle(() => ({
+    flex:          1,
+    opacity:       contentOpacity.value,
+    pointerEvents: (contentOpacity.value < 0.05 ? 'none' : 'auto') as any,
+  }));
 
-  // Wrap in useCallback so reference is stable
-  const handleContentReady = useCallback(() => {
-    onContentReady();
-  }, [onContentReady]);
+  const handleContentReady = useCallback(() => onContentReady(), [onContentReady]);
 
   useEffect(() => {
-    if (__DEV__) {
-      const task = InteractionManager.runAfterInteractions(() => {
-        setTimeout(async () => {
-          try {
-            await activateKeepAwakeAsync();
-          } catch (err: any) {
-            console.log("[KeepAwake] Deferred activation failed:", err.message);
-          }
-        }, 500);
-      });
-      return () => task.cancel();
-    }
+    if (!__DEV__) return;
+    const task = InteractionManager.runAfterInteractions(() => {
+      if (Platform.OS !== 'web') {
+        setTimeout(async () => { try { await activateKeepAwakeAsync(); } catch {} }, 500);
+      }
+    });
+    return () => task.cancel();
+  }, []);
+
+  useEffect(() => { try { configureGoogleSignIn(); } catch {} }, []);
+
+  useEffect(() => {
+    // Register navRef so deepLinkService can check isReady()
+    registerNavRef(navRef);
+    // Check if app was cold-started from a notification
+    handleColdStartNotification();
+
+    // Single listener — never duplicated thanks to _notifSub guard
+    if (_notifSub) return;
+    _notifSub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data as unknown as NotificationData;
+
+      // Filter internal badge notifications
+      if (!data?.url || data?.type === 'badge_sync') {
+        console.log('[Layout] ignoring internal notif:', data?.type);
+        return;
+      }
+
+      console.log('[Layout] notification tapped:', JSON.stringify(data));
+      navigateFromNotification(data);
+    });
+    // No cleanup — listener must survive for entire app session
   }, []);
 
   useEffect(() => {
-    try {
-      configureGoogleSignIn();
-    } catch (e) {
-      console.error("[CRITICAL] Google Sign-In Init Failed:", e);
-    }
-  }, []);
-
-  useEffect(() => {
-    const globalAny  = globalThis as any;
-    const errorUtils = globalAny.ErrorUtils || globalAny.global?.ErrorUtils;
-    if (errorUtils && typeof errorUtils.getGlobalHandler === "function") {
-      const defaultHandler = errorUtils.getGlobalHandler();
-      errorUtils.setGlobalHandler((error: any, isFatal: boolean) => {
-        log.error(`Global JS Error [Fatal: ${isFatal}]:`, error);
+    const g = globalThis as any;
+    const errorUtils = g.ErrorUtils || g.global?.ErrorUtils;
+    if (errorUtils?.getGlobalHandler) {
+      const def = errorUtils.getGlobalHandler();
+      errorUtils.setGlobalHandler((err: any, fatal: boolean) => {
+        log.error(`Global JS Error [Fatal: ${fatal}]:`, err);
         SplashScreen.hideAsync().catch(() => {});
-        defaultHandler(error, isFatal);
+        def(err, fatal);
       });
     }
-    log.info("RootLayout Mounted - JS Engine Active");
+    log.info('RootLayout mounted');
   }, []);
-
 
   return (
-    <View
-      style={{ flex: 1, backgroundColor: "black" }}
-      onLayout={() =>
-        console.log("[DEBUG] GestureHandlerRootView Layout complete")
-      }
-    >
+    <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <AppLinksProvider>
           <SafeAreaProvider>
             <PaperProvider>
               <GlobalProvider>
-                <AuthProvider
-                  initialSession={(preloadData as any)?.sessionData ?? null}
-                >
+                <AuthProvider initialSession={(preloadData as any)?.sessionData ?? null}>
                   <ProfileProvider>
-                    <Animated.View style={[{ flex: 1 }, contentStyle]}>
-                      <RootLayoutNav
-                        startupPhase={phase}
-                        onAnimationComplete={onSplashAnimationComplete}
-                        onContentReady={handleContentReady}
-                      />
+                    {/*
+                      Animated.View wraps RootLayoutNav which contains the Stack.
+                      This is the correct layering — providers wrap the navigator,
+                      not the other way around.
+                    */}
+                    <Animated.View style={[StyleSheet.absoluteFill, contentStyle]}>
+                      <NotificationProvider>
+                        <RootLayoutNav
+                          startupPhase={phase}
+                          onAnimationComplete={onSplashAnimationComplete}
+                          onContentReady={handleContentReady}
+                        />
+                      </NotificationProvider>
                     </Animated.View>
                   </ProfileProvider>
                 </AuthProvider>
@@ -291,6 +319,7 @@ export default function RootLayout() {
           </SafeAreaProvider>
         </AppLinksProvider>
       </GestureHandlerRootView>
+      <LogoutLoadingModal />
     </View>
   );
 }
