@@ -227,9 +227,6 @@ export default function SkillSelection() {
 
   // CHANGE 4: Runtime safe area bottom inset
   const insets = useSafeAreaInsets();
-
-  // CHANGE 1+5: CARD_SIZE computed from live width, same ratio as original
-  // Original: (width - 52) / 2  →  now: (width - s(52)) / 2 from live width
   const CARD_SIZE = (width - s(52)) / 2;
 
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -254,46 +251,50 @@ export default function SkillSelection() {
       : sk.category === activeCategory,
   );
 
+  
   const handleContinue = useCallback(async () => {
-    if (!user?.id || saving) return;
-    const names = Array.from(selectedIds)
-      .map((id) => SKILLS.find((s) => s.id === id)?.name ?? "")
-      .filter(Boolean);
-    if (!names.length) return;
+  if (!user?.id || saving) return;
 
-    setSaving(true);
-    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  const names = Array.from(selectedIds)
+    .map((id) => SKILLS.find((s) => s.id === id)?.name ?? '')
+    .filter(Boolean);
 
-    try {
-      setProfileCompleting(true);
-      updateProfile({ skills: names.join(","), skillsArray: names, isProfileComplete: true });
-      useAuthStore.getState().markProfileComplete();
+  if (!names.length) return;
 
-      await Promise.all([
-        supabase
-          .from(TABLES.users)
-          .update({
-            skills:              names.join(","),
-            is_profile_complete: true,
-            profile_image:       profile?.profileImage ?? null,
-          })
-          .eq("user_id", user.id)
-          .then(({ error }) => {
-            if (error) console.warn("[SkillSelection] DB write failed:", error.message);
-          }),
-        new Promise<void>((resolve) => setTimeout(resolve, 400)),
-      ]);
+  setSaving(true);
+  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
+  try {
+    const { error } = await supabase
+      .from(TABLES.users)
+      .update({
+        skills:              names.join(','),
+        is_profile_complete: true,
+        profile_image:       profile?.profileImage ?? null,
+      })
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.warn('[SkillSelection] DB write failed:', error.message);
+      setSaving(false);
+      return;
+    }
+    updateProfile({
+      skills:            names.join(','),
+      skillsArray:       names,
+      isProfileComplete: true,
+    });
+    setProfileCompleting(true);
+    useAuthStore.getState().markProfileComplete();
       router.dismissAll();
       router.replace("/home");
-      setTimeout(() => setProfileCompleting(false), 500);
-    } catch (e: any) {
-      console.warn("[SkillSelection] unexpected error:", e?.message);
-      setSaving(false);
-    }
-  }, [user?.id, saving, selectedIds, profile?.profileImage, updateProfile]);
+    setTimeout(() => setProfileCompleting(false), 500);
 
-  // CHANGE 5: Pass live CARD_SIZE as prop into the memo'd SkillCard
+  } catch (e: any) {
+    console.warn('[SkillSelection] unexpected error:', e?.message);
+    setSaving(false);
+  }
+}, [user?.id, saving, selectedIds, profile?.profileImage, updateProfile]);
   const renderSkill: ListRenderItem<Skill> = useCallback(
     ({ item }: { item: Skill }) => (
       <SkillCard
@@ -312,7 +313,7 @@ export default function SkillSelection() {
 
       <View style={st.header}>
         <View style={st.searchWrap}>
-          <Ionicons name="search" size={s(20)} color="#575757" style={{ marginRight: s(8) }} />
+          <Ionicons name="search" size={s(20)} color="#575757" style={{ marginRight: s(3) }} />
           <TextInput
             style={st.searchInput}
             placeholder="Search skills..."
@@ -325,15 +326,7 @@ export default function SkillSelection() {
         </View>
 
         {!searchQuery.trim() && (
-          /*
-            CHANGE 3: width: "106%" removed.
-            The header has paddingHorizontal: s(20). The tabs ScrollView used
-            "106%" to bleed past that padding so tabs aren't clipped at the right edge.
-            The correct fix: negative marginHorizontal cancels the parent padding,
-            and tabsContent's paddingHorizontal restores the visual inset.
-            This is the standard pattern used in React Navigation's top tab bar
-            and Expo's category filters.
-          */
+         
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -378,13 +371,6 @@ export default function SkillSelection() {
           </View>
         }
       />
-
-      {/*
-        CHANGE 4: paddingBottom uses runtime inset.
-        vs(28) was not enough for iPhone home indicator (~34px) and excessive
-        on Android button-nav devices (where inset is 0).
-        insets.bottom + vs(12) is the correct universal formula.
-      */}
       <View style={[st.bottomArea, { paddingBottom: insets.bottom + vs(12) }]}>
         <Text style={[st.countText, selectedIds.size > 0 && st.countActive]}>
           {selectedIds.size === 0
@@ -431,27 +417,20 @@ const st = StyleSheet.create({
     borderRadius:      s(50),
     paddingHorizontal: s(16),
     marginBottom:      vs(10),
-    marginTop:         vs(9),
+    marginTop:         vs(5),
   },
 
   searchInput: {
     flex:            1,
-    paddingVertical: vs(13),
+    paddingVertical: vs(12),
     color:           "#1c1b1b",
-    fontSize:        TYPOGRAPHY.bodyMd,
+    fontSize:      TYPOGRAPHY.body,
   },
-
-  // CHANGE 3: width: "106%" removed.
-  // marginHorizontal: -s(20) cancels the header's paddingHorizontal so the
-  // ScrollView fills the full screen width. tabsContent padding restores inset.
   tabs: {
     marginBottom:     vs(2),
     paddingVertical:  vs(4),
     marginHorizontal: -s(20),
   },
-
-  // CHANGE 3: paddingHorizontal added so first tab starts at same visual position
-  // as before, and last tab has room to breathe before the screen edge.
   tabsContent: {
     gap:               s(8),
     paddingHorizontal: s(20),
@@ -479,15 +458,12 @@ const st = StyleSheet.create({
   tabTextInactive: { fontSize: TYPOGRAPHY.body, fontWeight: "500", color: "#888" },
 
   gridContent: {
-    paddingHorizontal: s(16),
+    paddingHorizontal: s(14),
     paddingBottom:     vs(12),
-    // CHANGE 2: top: vs(5) was on row — moved here as paddingTop so the grid
-    // has breathing room from the header without using position offsets on rows.
     paddingTop:        vs(5),
+    marginLeft: vs(4),
+    marginRight: vs(4)
   },
-
-  // CHANGE 2: top: vs(5) removed — this was a positional offset on every row
-  // that shifted cards down without moving the wrapper, causing visual drift.
   row: {
     justifyContent: "space-between",
     marginBottom:   vs(10),
@@ -501,16 +477,16 @@ const st = StyleSheet.create({
   cardInner: {
     backgroundColor: "#fff",
     borderRadius:    s(20),
-    padding:         s(22),
-    paddingTop:      vs(12),
+    padding:         s(20),
+    paddingTop:      vs(10),
     minHeight:       vs(120),
   },
 
   card: {
     borderRadius: s(20),
     padding:      s(22),
-    paddingTop:   vs(14),
-    minHeight:    vs(125),
+    paddingTop:   vs(12),
+    minHeight:    vs(123),
     position:     "relative",
   },
 
@@ -548,7 +524,7 @@ const st = StyleSheet.create({
 
   skillName: {
     fontSize:      ms(13),
-    fontWeight:    "800",
+    fontWeight:    "700",
     color:         "#1a1a2e",
     letterSpacing: -0.2,
   },
@@ -574,7 +550,7 @@ const st = StyleSheet.create({
 
   continueBtn: {
     borderRadius:    s(50),
-    paddingVertical: vs(17),
+    paddingVertical: vs(16),
     alignItems:      "center",
     justifyContent:  "center",
   },
@@ -583,7 +559,7 @@ const st = StyleSheet.create({
   continueBtnText: {
     color:         "#fff",
     fontSize:      ms(16),
-    fontWeight:    "800",
+    fontWeight:    "700",
     letterSpacing: 0.3,
   },
 });

@@ -1,38 +1,8 @@
-/**
- * Google.tsx (Welcome screen) — Production-Responsive Refactor
- *
- * Problems fixed vs original:
- *
- * 1. topHalf fixed height vs(340) → flex proportion via useWindowDimensions
- * 2. spacer minHeight: vs(130) conflicting with flex:1 → minHeight removed,
- *    spacer remains flex:1 but a guaranteed paddingTop on bottomHalf gives
- *    breathing room so text never kisses the panel edge on small screens.
- * 3. authSection top: SPACING.sm → removed; gap between spacer and button
- *    achieved by marginBottom on the auth section itself.
- * 4. legalText bottom: SPACING.xxl → removed entirely; sits in natural flex
- *    column flow inside bottomGroup. The parent's paddingBottom handles edge.
- * 5. versionText had no bottom anchor — now it's the last natural element,
- *    always visible above paddingBottom of the container.
- * 6. Image width: "100%" stays (it already fills correctly) but height is
- *    now derived from screen height proportion so it doesn't overflow the panel.
- *
- * Layout contract for bottomHalf:
- *   ┌─────────────────────┐
- *   │ textBlock           │ ← fixed at top
- *   ├─────────────────────┤
- *   │ spacer (flex: 1)    │ ← absorbs all extra space
- *   ├─────────────────────┤
- *   │ authSection         │ ← Google sign-in button
- *   ├─────────────────────┤
- *   │ bottomGroup         │ ← legal + version text
- *   └─────────────────────┘
- *   paddingBottom on bottomHalf keeps everything off the bottom edge.
- */
-
 import Googlesigninbutton from "@/components/Googlesigninbutton";
 import images from "@/constants/images";
 import { useAppLinks } from "@/Contexts/AppLinksContexts";
 import { useOpenLink } from "@/hooks/useOpenLink";
+
 import { signInWithGoogle } from "@/services/authServices";
 import {
   selIsSigningIn,
@@ -51,9 +21,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-// How much of the screen height the purple image panel occupies.
-// 0.42 produces ~310px on a 740px phone and ~480px on a tablet — both correct.
 const IMAGE_PANEL_FLEX = 0.42;
 
 const Welcome = () => {
@@ -69,11 +36,8 @@ const Welcome = () => {
 
   const contentOpacity = useRef(new Animated.Value(0)).current;
   const contentTranslate = useRef(new Animated.Value(24)).current;
-
-  // CHANGE 2: Image height is proportional to the panel height, not a fixed vs(245).
-  // Capped at 90% of panel height so it never bleeds on small screens.
   const topPanelHeight = height * IMAGE_PANEL_FLEX;
-  const splashImageHeight = Math.min(topPanelHeight * 0.82, 280);
+  const splashImageHeight = Math.min(topPanelHeight * 0.80, 280);
 
   useEffect(() => {
     const task = InteractionManager.runAfterInteractions(() => {
@@ -120,31 +84,22 @@ const Welcome = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/*
-        CHANGE 3: height is now a runtime proportion of screen height.
-        Injected as inline style so useWindowDimensions updates propagate.
-        overflow:hidden prevents splash from bleeding on very short screens.
-      */}
+
       <View style={[styles.topHalf, { height: topPanelHeight }]}>
         <Image
           source={images.splash}
           style={[
             styles.image,
             {
-              // CHANGE 4: Height is proportional to panel height, not vs(245).
-              // width:"100%" stays — it already fills the panel correctly.
+        
               height: splashImageHeight,
-              // CHANGE 5: top: vs(8) removed — parent's alignItems:center handles vertical centring.
-            },
+            }
           ]}
           resizeMode="contain"
         />
       </View>
 
-      {/*
-        bottomHalf: no justifyContent — spacer pattern handles distribution.
-        paddingBottom replaces all bottom: SPACING.xxl hacks below.
-      */}
+      
       <View style={styles.bottomHalf}>
 
         <Animated.View
@@ -161,19 +116,7 @@ const Welcome = () => {
             Sign in with your Google account to get started
           </Text>
         </Animated.View>
-
-        {/*
-          CHANGE 6: spacer minHeight:vs(130) removed.
-          flex:1 alone is correct — it fills all available space between
-          the subtitle and the auth button, adapting to every screen height.
-        */}
         <View style={styles.spacer} />
-
-        {/*
-          CHANGE 7: top: SPACING.sm removed.
-          marginBottom creates a clean gap between the button and the legal text
-          purely via layout flow — zero positioning hacks.
-        */}
         <Animated.View
           style={[styles.authSection, { opacity: contentOpacity }]}
         >
@@ -183,13 +126,6 @@ const Welcome = () => {
             disabled={isSigningIn || isTransitioning}
           />
         </Animated.View>
-
-        {/*
-          CHANGE 8: bottom: SPACING.xxl on legalText removed.
-          bottomGroup sits in natural flow; paddingBottom on bottomHalf
-          keeps it off the screen edge on all devices including iPhones with
-          home indicators and Androids with gesture bars.
-        */}
         <Animated.View
           style={[styles.bottomGroup, { opacity: contentOpacity }]}
         >
@@ -223,7 +159,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // CHANGE 9: No height here — injected inline from useWindowDimensions.
   topHalf: {
     backgroundColor: "#6D4AFF",
     justifyContent: "center",
@@ -231,10 +166,8 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
 
-  // CHANGE 10: top: vs(8) removed — parent centres it.
   image: {
     width: "100%",
-    // height injected inline
   },
 
   bottomHalf: {
@@ -242,8 +175,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#000000",
     paddingTop: vs(28),
     paddingHorizontal: s(28),
-    // CHANGE 11: paddingBottom is the single source of truth for bottom spacing.
-    // Replaces all the individual bottom: SPACING.* hacks throughout children.
     paddingBottom: vs(36),
     alignItems: "center",
   },
@@ -270,13 +201,9 @@ const styles = StyleSheet.create({
     marginLeft: s(10),
     marginRight: s(10),
   },
-
-  // CHANGE 12: minHeight: vs(130) removed — flex:1 is the only rule needed.
   spacer: {
     flex: 1,
   },
-
-  // CHANGE 13: top: SPACING.sm removed. marginBottom handles gap to bottomGroup.
   authSection: {
     width: "100%",
     alignItems: "center",

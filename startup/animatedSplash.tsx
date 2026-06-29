@@ -1,4 +1,3 @@
-// startup/animatedSplash.tsx
 import images from "@/constants/images";
 import { SPACING } from "@/theme/Spacing";
 import { TYPOGRAPHY } from "@/theme/typography";

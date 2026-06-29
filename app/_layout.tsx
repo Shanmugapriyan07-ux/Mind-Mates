@@ -1,5 +1,4 @@
 import {
-  hideLogoutLoader,
   LogoutLoadingModal,
 } from "@/components/logoutLoadingModel";
 import { configureGoogleSignIn } from "@/config/googleAuth";
@@ -37,10 +36,9 @@ import {
   useSegments,
 } from "expo-router";
 import React, { useCallback, useEffect, useRef } from "react";
-import { InteractionManager, Platform, View } from "react-native";
+import { InteractionManager, Platform, StyleSheet, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { PaperProvider } from "react-native-paper";
-import { StyleSheet } from "react-native";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -50,6 +48,7 @@ import Animated, {
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 const CONTENT_FADE_MS = 220;
+const SPLASH_BG = "#6D4AFF";
 const STORAGE_KEY_ONBOARDING = "hso";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -58,8 +57,6 @@ let _profileCompleting = false;
 export function setProfileCompleting(v: boolean) {
   _profileCompleting = v;
 }
-
-// ─── resolveTarget ────────────────────────────────────────────────────────
 function resolveTarget(
   phase: string,
   isProfileComplete: boolean,
@@ -68,10 +65,11 @@ function resolveTarget(
   switch (phase) {
     case "booting":
     case "reading_storage":
-    case "logging_out":
-    case "deleting":
       return null;
 
+    // CHANGE: navigate immediately on these phases, don't wait for 'unauthenticated'
+    case "logging_out":
+    case "deleting":
     case "unauthenticated":
       return seg === "(auth)" ? null : "/(auth)/onBoarding";
 
@@ -84,25 +82,22 @@ function resolveTarget(
       if (seg === "(profileSetUp)") return "/(tabs)/home";
       return seg === "(tabs)" || seg === "subScreens" ? null : "/(tabs)/home";
 
-    case "logging_out":
-    case "deleting":
-      // Initiate navigation immediately to prevent the "blink" stay on current screen
-      return "/(auth)/onBoarding";
-
     default:
       return null;
   }
 }
-// ─── Module-level guard — never resets, survives all remounts ───────────────
 
-// ─── RootLayoutNav ────────────────────────────────────────────────────────
 interface RootLayoutNavProps {
   startupPhase: string;
   onAnimationComplete: () => void;
   onContentReady: () => void;
 }
 
-function RootLayoutNav({ startupPhase, onAnimationComplete, onContentReady }: RootLayoutNavProps) {
+function RootLayoutNav({
+  startupPhase,
+  onAnimationComplete,
+  onContentReady,
+}: RootLayoutNavProps) {
   usePresence();
   useRealtimeManager();
   useAuthBoot();
@@ -111,7 +106,7 @@ function RootLayoutNav({ startupPhase, onAnimationComplete, onContentReady }: Ro
   const segments          = useSegments();
   const phase             = useAuthStore(selPhase);
   const isProfileComplete = useAuthStore(selIsProfileComplete);
-  const lastTarget        = useRef<string>('');
+  const lastTarget        = useRef<string>("");
   const navTimer          = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -124,27 +119,26 @@ function RootLayoutNav({ startupPhase, onAnimationComplete, onContentReady }: Ro
     return () => clearTimeout(t);
   }, []);
 
-  useEffect(() => {
-    const isAuthSegment = segments[0] === '(auth)';
-    const isExiting = phase === 'unauthenticated' || phase === 'logging_out' || phase === 'deleting';
-    if (isAuthSegment && isExiting) {
-      const t = setTimeout(() => hideLogoutLoader(), 300);
-      return () => clearTimeout(t);
-    }
-  }, [segments, phase]);
+  // CHANGE: removed the hideLogoutLoader useEffect — no longer needed.
+  // LogoutLoadingModal manages its own visibility via phase subscription.
 
   useEffect(() => {
-    if (phase === 'authenticated' || phase === 'profile_incomplete') {
-      AsyncStorage.setItem(STORAGE_KEY_ONBOARDING, '1').catch(() => {});
+    if (phase === "authenticated" || phase === "profile_incomplete") {
+      AsyncStorage.setItem(STORAGE_KEY_ONBOARDING, "1").catch(() => {});
     }
   }, [phase]);
 
-  useEffect(() => () => { if (navTimer.current) clearTimeout(navTimer.current); }, []);
+  useEffect(
+    () => () => {
+      if (navTimer.current) clearTimeout(navTimer.current);
+    },
+    [],
+  );
 
   useEffect(() => {
-    const isHome = segments[0] === '(tabs)';
-    if (phase === 'booting' || (phase === 'authenticated' && isHome)) {
-      lastTarget.current = '';
+    const isHome = segments[0] === "(tabs)";
+    if (phase === "booting" || (phase === "authenticated" && isHome)) {
+      lastTarget.current = "";
     }
   }, [phase, segments]);
 
@@ -157,14 +151,25 @@ function RootLayoutNav({ startupPhase, onAnimationComplete, onContentReady }: Ro
     lastTarget.current = target;
     log.nav(`[Layout] "${phase}" → "${target}"`);
 
-    const isLoggingIn  = phase === 'authenticated' || phase === 'profile_incomplete';
-    const isLoggingOut = phase === 'unauthenticated' || phase === 'logging_out' || phase === 'deleting';
+    const isLoggingIn  = phase === "authenticated" || phase === "profile_incomplete";
+    // CHANGE: logging_out and deleting are now treated as logout for navigation
+    const isLoggingOut =
+      phase === "unauthenticated" ||
+      phase === "logging_out"     ||
+      phase === "deleting";
 
     const doNavigate = () => {
       try {
         if (isLoggingOut) {
-          try { if (router.canDismiss()) router.dismissAll(); } catch {}
-          setTimeout(() => { try { router.replace(target as any); } catch {} }, 50);
+          try {
+            if (router.canDismiss()) router.dismissAll();
+          } catch {}
+          // CHANGE: removed the 50ms setTimeout — navigate immediately.
+          // The overlay is already covering the screen, delay only prolongs
+          // the time the spinner is visible without any benefit.
+          try {
+            router.replace(target as any);
+          } catch {}
         } else {
           router.replace(target as any);
         }
@@ -176,9 +181,11 @@ function RootLayoutNav({ startupPhase, onAnimationComplete, onContentReady }: Ro
       }
     };
 
-    if (Platform.OS === 'web' || isLoggingIn || isLoggingOut) {
+    if (Platform.OS === "web" || isLoggingIn || isLoggingOut) {
       doNavigate();
-      setTimeout(() => useAuthStore.getState().setTransitioning(false), 800);
+      if (isLoggingIn) {
+        setTimeout(() => useAuthStore.getState().setTransitioning(false), 800);
+      }
     } else {
       if (navTimer.current) clearTimeout(navTimer.current);
       navTimer.current = setTimeout(() => {
@@ -188,29 +195,25 @@ function RootLayoutNav({ startupPhase, onAnimationComplete, onContentReady }: Ro
   }, [phase, isProfileComplete, segments]);
 
   const showSplash =
-    startupPhase === 'booting' ||
-    startupPhase === 'preloading' ||
-    startupPhase === 'splash_animating';
+    startupPhase === "booting"          ||
+    startupPhase === "preloading"       ||
+    startupPhase === "splash_animating";
 
-  // ✅ Stack lives HERE inside RootLayoutNav — this is what expo-router needs
-  // RootLayout wraps providers around this, navRef is hoisted up via registerNavRef
   return (
     <>
       <Stack
         screenOptions={{
           headerShown:    false,
-          animation:      'none',
+          animation:      "none",
           freezeOnBlur:   true,
           gestureEnabled: false,
         }}
       >
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="(profileSetUp)" />
-        <Stack.Screen name="subScreens" />
+        <Stack.Screen name="(auth)"         options={{ gestureEnabled: false }} />
+        <Stack.Screen name="(tabs)"         options={{ gestureEnabled: false }} />
+        <Stack.Screen name="(profileSetUp)" options={{ gestureEnabled: false }} />
+        <Stack.Screen name="subScreens"     options={{ gestureEnabled: false }} />
       </Stack>
-
-      {/* Splash overlays on top of Stack — only visible during boot */}
       {showSplash && <AnimatedSplash onComplete={onAnimationComplete} />}
     </>
   );
@@ -219,12 +222,13 @@ function RootLayoutNav({ startupPhase, onAnimationComplete, onContentReady }: Ro
 let _notifSub: Notifications.Subscription | null = null;
 
 export default function RootLayout() {
-  const { phase, preloadData, onSplashAnimationComplete, onContentReady } = useStartup();
-  const navRef         = useNavigationContainerRef();
+  const { phase, preloadData, onSplashAnimationComplete, onContentReady } =
+    useStartup();
+  const navRef       = useNavigationContainerRef();
   const contentOpacity = useSharedValue(0);
 
   useEffect(() => {
-    if (phase === 'transitioning' || phase === 'done') {
+    if (phase === "transitioning" || phase === "done") {
       contentOpacity.value = withTiming(1, {
         duration: CONTENT_FADE_MS,
         easing:   Easing.out(Easing.ease),
@@ -235,44 +239,46 @@ export default function RootLayout() {
   const contentStyle = useAnimatedStyle(() => ({
     flex:          1,
     opacity:       contentOpacity.value,
-    pointerEvents: (contentOpacity.value < 0.05 ? 'none' : 'auto') as any,
+    pointerEvents: (contentOpacity.value < 0.05 ? "none" : "auto") as any,
   }));
 
-  const handleContentReady = useCallback(() => onContentReady(), [onContentReady]);
+  const handleContentReady = useCallback(
+    () => onContentReady(),
+    [onContentReady],
+  );
 
   useEffect(() => {
     if (!__DEV__) return;
     const task = InteractionManager.runAfterInteractions(() => {
-      if (Platform.OS !== 'web') {
-        setTimeout(async () => { try { await activateKeepAwakeAsync(); } catch {} }, 500);
+      if (Platform.OS !== "web") {
+        setTimeout(async () => {
+          try { await activateKeepAwakeAsync(); } catch {}
+        }, 500);
       }
     });
     return () => task.cancel();
   }, []);
 
-  useEffect(() => { try { configureGoogleSignIn(); } catch {} }, []);
+  useEffect(() => {
+    try { configureGoogleSignIn(); } catch {}
+  }, []);
 
   useEffect(() => {
-    // Register navRef so deepLinkService can check isReady()
     registerNavRef(navRef);
-    // Check if app was cold-started from a notification
     handleColdStartNotification();
-
-    // Single listener — never duplicated thanks to _notifSub guard
     if (_notifSub) return;
-    _notifSub = Notifications.addNotificationResponseReceivedListener((response) => {
-      const data = response.notification.request.content.data as unknown as NotificationData;
-
-      // Filter internal badge notifications
-      if (!data?.url || data?.type === 'badge_sync') {
-        console.log('[Layout] ignoring internal notif:', data?.type);
-        return;
-      }
-
-      console.log('[Layout] notification tapped:', JSON.stringify(data));
-      navigateFromNotification(data);
-    });
-    // No cleanup — listener must survive for entire app session
+    _notifSub = Notifications.addNotificationResponseReceivedListener(
+      (response) => {
+        const data = response.notification.request.content
+          .data as unknown as NotificationData;
+        if (!data?.url || data?.type === "badge_sync") {
+          console.log("[Layout] ignoring internal notif:", data?.type);
+          return;
+        }
+        console.log("[Layout] notification tapped:", JSON.stringify(data));
+        navigateFromNotification(data);
+      },
+    );
   }, []);
 
   useEffect(() => {
@@ -286,24 +292,23 @@ export default function RootLayout() {
         def(err, fatal);
       });
     }
-    log.info('RootLayout mounted');
+    log.info("RootLayout mounted");
   }, []);
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
+    <View style={{ flex: 1, backgroundColor: SPLASH_BG }}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <AppLinksProvider>
           <SafeAreaProvider>
             <PaperProvider>
               <GlobalProvider>
-                <AuthProvider initialSession={(preloadData as any)?.sessionData ?? null}>
+                <AuthProvider
+                  initialSession={(preloadData as any)?.sessionData ?? null}
+                >
                   <ProfileProvider>
-                    {/*
-                      Animated.View wraps RootLayoutNav which contains the Stack.
-                      This is the correct layering — providers wrap the navigator,
-                      not the other way around.
-                    */}
-                    <Animated.View style={[StyleSheet.absoluteFill, contentStyle]}>
+                    <Animated.View
+                      style={[StyleSheet.absoluteFill, contentStyle]}
+                    >
                       <NotificationProvider>
                         <RootLayoutNav
                           startupPhase={phase}
@@ -318,8 +323,8 @@ export default function RootLayout() {
             </PaperProvider>
           </SafeAreaProvider>
         </AppLinksProvider>
+        <LogoutLoadingModal />
       </GestureHandlerRootView>
-      <LogoutLoadingModal />
     </View>
   );
 }

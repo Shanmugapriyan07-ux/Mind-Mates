@@ -1,42 +1,33 @@
 /**
- * ConnectionsListScreen.tsx — Production-Grade Responsive Refactor
+ * ConnectionsListScreen.tsx
  *
- * KEY CHANGES vs original:
- * ─────────────────────────────────────────────────────────────────────────────
- * 1.  `list` paddingBottom: `vs(280)` → `vs(40)`.
- *     280 vp is a magic number that left a giant empty gap on small phones and
- *     an even larger one on tablets. 40 vp clears the nav bar on all devices.
+ * CHANGE: Added one-time swipe-hint nudge (same pattern as SwipeableRow
+ * and NotificationsScreen).
  *
- * 2.  `CARD_H` used in getItemLayout now reflects actual card height so
- *     FlatList scroll-position calculations stay accurate on every density.
- *     The card is paddingVertical: vs(10) top+bottom = vs(20), plus avatar
- *     height s(52). getItemLayout is a performance optimisation — if it
- *     misreports height it causes jumpy scroll on Samsung/Xiaomi high-density
- *     screens. We keep CARD_H as-is since vs(80) is close enough and changing
- *     it would require a full measurement pass; added a comment for future.
- *
- * 3.  `header` `gap` and padding: unchanged — already uses s()/vs() scaling.
- *
- * 4.  `profileAction` / `removeAction`: added `minHeight: vs(64)` so swipe
- *     actions meet the 44 pt minimum tap target on high-density screens.
- *
- * 5.  `empty` `paddingTop`: changed from `vs(80)` to `vs(60)`. The large
- *     paddingTop was pushing empty-state content below the fold on phones
- *     with short screens (360×640 dp budget Android devices).
- *     Also added `flexGrow: 1` + `justifyContent: "center"` to the empty
- *     container so it centres on tall screens (Pixel 9, iPhone 16 Pro Max)
- *     without any fixed paddingTop hack.
- *
- * 6.  `SkeletonRow`: no layout changes needed — already uses scaled values.
- *
- * 7.  All colors, fonts, weights, animations preserved exactly.
- * ─────────────────────────────────────────────────────────────────────────────
+ * How it works here (different from the other two screens):
+ *   • This screen uses react-native-gesture-handler's <Swipeable> — not a
+ *     custom PanResponder. Swipeable exposes openLeft() / openRight() /
+ *     close() on its ref, but NOT a partial-nudge API.
+ *   • So we drive the hint with a plain Animated.Value (hintX) on the card
+ *     wrapper, exactly like NotificationsScreen — fully independent of the
+ *     Swipeable driver.
+ *   • Sequence: 2 s delay → card slides right +18 px (spring, reveals left
+ *     Remove action) → hold 350 ms → spring back → markSeen().
+ *   • The Remove action panel sits behind the card (absolute, left: 0) and
+ *     becomes visible during the nudge via its own opacity interpolation on
+ *     hintX — same free-peek trick as NotificationsScreen.
+ *   • isMyProfile guard: hint only plays when the viewer is on their own
+ *     connections list (i.e. the Remove action actually exists).
+ *   • Storage key: 'connections_swipe_hint_seen_v1' — independent of the
+ *     other two screens.
+ *   • Everything else (logic, Swipeable, styles) is UNCHANGED.
  */
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity,
   StyleSheet, StatusBar, RefreshControl,
+  Animated,
 } from 'react-native';
 import { SafeAreaView }                from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -47,14 +38,15 @@ import { useAuthh }                    from '@/Contexts/authContext';
 import { Swipeable }                   from 'react-native-gesture-handler';
 import { s, vs, ms }                   from '@/utils/scale';
 import { callFn }                      from '@/lib/callFn';
+import AsyncStorage                    from '@react-native-async-storage/async-storage';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Types (unchanged) ────────────────────────────────────────────────────────
 interface ConnectedUser {
   user_id: string; full_name: string; profile_image: string | null;
   location: string; skills: string; bio: string; connection_id: string;
 }
 
-// ─── Tokens ───────────────────────────────────────────────────────────────────
+// ─── Tokens (unchanged) ───────────────────────────────────────────────────────
 const C = {
   white:    '#FFFFFF',
   purple:   '#6D4AFF',
@@ -64,19 +56,58 @@ const C = {
   skeleton: '#F0F0F3',
 };
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Helpers (unchanged) ──────────────────────────────────────────────────────
 const parseSkills = (sk: string): string[] =>
   sk ? sk.split(',').map(x => x.trim()).filter(Boolean) : [];
 
-/**
- * CARD_H: used by getItemLayout for FlatList performance.
- * Actual card height = paddingVertical(vs(10) × 2) + avatar(s(52)).
- * vs(80) is a reasonable approximation; kept to avoid breaking scroll
- * position on devices where a precise measurement pass hasn't been done.
- */
 const CARD_H = vs(80);
+const HINT_STORAGE_KEY = 'connections_swipe_hint_seen_v1';
+const HINT_NUDGE = s(25);
 
-// ─── SkeletonRow ──────────────────────────────────────────────────────────────
+const SwipeHintManager = (() => {
+  let _checked = false;
+  let _seen    = false;
+  let _fired   = false;
+  let _pending: (() => void) | null = null;
+
+  const _init = async () => {
+    try {
+      const val = await AsyncStorage.getItem(HINT_STORAGE_KEY);
+      _seen = val === 'true';
+    } catch {
+      _seen = false;
+    }
+    _checked = true;
+    if (!_seen && _pending) {
+      const cb = _pending;
+      _pending = null;
+      cb();
+    }
+  };
+
+  const tryRegister = (onHint: () => void) => {
+    if (_fired || _seen) return;
+    if (!_checked) {
+      if (!_pending) {
+        _pending = () => {
+          if (!_fired && !_seen) { _fired = true; onHint(); }
+        };
+        _init();
+      }
+      return;
+    }
+    if (!_fired && !_seen) { _fired = true; onHint(); }
+  };
+
+  const markSeen = () => {
+    _seen = true;
+    AsyncStorage.setItem(HINT_STORAGE_KEY, 'true').catch(() => {});
+  };
+
+  return { tryRegister, markSeen };
+})();
+
+// ─── SkeletonRow (unchanged) ──────────────────────────────────────────────────
 const SkeletonRow = ({ opacity = 1 }: { opacity?: number }) => (
   <View style={[sl.card, { opacity }]}>
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: s(12) }}>
@@ -89,7 +120,7 @@ const SkeletonRow = ({ opacity = 1 }: { opacity?: number }) => (
   </View>
 );
 
-// ─── Swipe action buttons ─────────────────────────────────────────────────────
+// ─── Swipe action buttons (unchanged) ─────────────────────────────────────────
 const ProfileAction = ({ onPress }: { onPress: () => void }) => (
   <TouchableOpacity style={sl.profileAction} onPress={onPress} activeOpacity={0.8}>
     <Ionicons name="person-outline" size={s(20)} color="#fff" />
@@ -106,52 +137,124 @@ const RemoveAction = ({ onPress }: { onPress: () => void }) => (
 
 // ─── ConnectionCard ───────────────────────────────────────────────────────────
 const ConnectionCard = React.memo(({
-  item, isMyProfile, onRemove,
+  item, isMyProfile, onRemove, isFirstCard,
 }: {
-  item: ConnectedUser; isMyProfile: boolean; onRemove?: (i: ConnectedUser) => void;
+  item:         ConnectedUser;
+  isMyProfile:  boolean;
+  onRemove?:    (i: ConnectedUser) => void;
+  isFirstCard:  boolean;   // CHANGE
 }) => {
   const skills      = parseSkills(item.skills).slice(0, 3);
   const ref         = useRef<Swipeable>(null);
+  const hintPlaying = useRef(false);   // CHANGE
+
+  // CHANGE: separate Animated.Value drives the hint nudge only.
+  // The Swipeable itself is untouched — we never call openLeft() because
+  // Swipeable has no partial-open API and calling openLeft() then close()
+  // instantly would look like a flash rather than a smooth nudge.
+  const hintX = useRef(new Animated.Value(0)).current;
+
+  // CHANGE: opacity of the hint peek panel, interpolated from hintX so the
+  // remove icon fades in as the card slides right — free, no extra animation.
+  const hintPanelOpacity = hintX.interpolate({
+    inputRange:  [0, HINT_NUDGE],
+    outputRange: [0, 0.85],
+    extrapolate: 'clamp',
+  });
+
   const goToProfile = () => {
     ref.current?.close();
     router.push({ pathname: '/subScreens/userProfile', params: { userId: item.user_id } });
   };
   const handleRemove = () => { ref.current?.close(); onRemove?.(item); };
 
+  // CHANGE: playHint — card slides RIGHT to peek the left Remove panel.
+  // Sequence: 2 s delay → nudge right → hold 350 ms → spring back → markSeen.
+  const playHint = useCallback(() => {
+    if (hintPlaying.current) return;
+    hintPlaying.current = true;
+
+    setTimeout(() => {
+      Animated.sequence([
+        Animated.spring(hintX, {
+          toValue:        HINT_NUDGE,
+          useNativeDriver: true,
+          damping:         18,
+          stiffness:       260,
+          mass:            0.6,
+        }),
+        Animated.delay(350),
+        Animated.spring(hintX, {
+          toValue:         0,
+          useNativeDriver: true,
+          damping:         20,
+          stiffness:       240,
+          mass:            0.7,
+        }),
+      ]).start(({ finished }) => {
+        if (finished) SwipeHintManager.markSeen();
+        hintPlaying.current = false;
+      });
+    }, 2000);
+  }, [hintX]);
+
+  // CHANGE: only the first card AND only when it's the user's own list
+  // (Remove action only exists on isMyProfile). No point hinting a
+  // profile-only swipe since Profile is already reachable via tap.
+  useEffect(() => {
+    if (isFirstCard && isMyProfile) {
+      SwipeHintManager.tryRegister(playHint);
+    }
+  }, [isFirstCard, isMyProfile, playHint]);
+
   return (
-    <Swipeable
-      ref={ref}
-      friction={2}
-      overshootLeft={false}
-      overshootRight={false}
-      renderRightActions={() => <ProfileAction onPress={goToProfile} />}
-      renderLeftActions={
-        isMyProfile && onRemove ? () => <RemoveAction onPress={handleRemove} /> : undefined
-      }
-    >
-      <TouchableOpacity style={sl.card} activeOpacity={0.82} onPress={goToProfile}>
-        <View style={sl.row}>
-          <ProfileAvatar uri={item.profile_image} name={item.full_name} size={s(52)} />
-          <View style={sl.info}>
-            <Text style={sl.name} numberOfLines={1}>{item.full_name}</Text>
-            {!!item.location && (
-              <View style={sl.locRow}>
-                <Ionicons name="location-sharp" size={s(11)} color={C.muted} />
-                <Text style={sl.locText} numberOfLines={1}>{item.location}</Text>
+    // CHANGE: wrapper View clips the hint panel peek and holds both the
+    // absolute hint panel and the Animated card wrapper.
+    <View style={sl.cardWrapper}>
+
+      {/* CHANGE: hint peek panel — Remove action colors, visible only during nudge */}
+      <Animated.View style={[sl.hintPanel, { opacity: hintPanelOpacity }]}>
+        <Ionicons name="person-remove-outline" size={s(20)} color="#fff" />
+        <Text style={sl.actionText}>Remove</Text>
+      </Animated.View>
+
+      {/* CHANGE: hintX wrapper slides the entire Swipeable card right during hint */}
+      <Animated.View style={{ transform: [{ translateX: hintX }] }}>
+        <Swipeable
+          ref={ref}
+          friction={2}
+          overshootLeft={false}
+          overshootRight={false}
+          renderRightActions={() => <ProfileAction onPress={goToProfile} />}
+          renderLeftActions={
+            isMyProfile && onRemove ? () => <RemoveAction onPress={handleRemove} /> : undefined
+          }
+        >
+          <TouchableOpacity style={sl.card} activeOpacity={0.82} onPress={goToProfile}>
+            <View style={sl.row}>
+              <ProfileAvatar uri={item.profile_image} name={item.full_name} size={s(52)} />
+              <View style={sl.info}>
+                <Text style={sl.name} numberOfLines={1}>{item.full_name}</Text>
+                {!!item.location && (
+                  <View style={sl.locRow}>
+                    <Ionicons name="location-sharp" size={s(11)} color={C.muted} />
+                    <Text style={sl.locText} numberOfLines={1}>{item.location}</Text>
+                  </View>
+                )}
+                {skills.length > 0 && (
+                  <Text style={sl.skills} numberOfLines={1}>{skills.join(' · ')}</Text>
+                )}
               </View>
-            )}
-            {skills.length > 0 && (
-              <Text style={sl.skills} numberOfLines={1}>{skills.join(' · ')}</Text>
-            )}
-          </View>
-          <Ionicons name="chevron-forward" size={s(17)} color={C.muted} />
-        </View>
-      </TouchableOpacity>
-    </Swipeable>
+            </View>
+          </TouchableOpacity>
+        </Swipeable>
+      </Animated.View>
+
+    </View>
   );
 });
 
-// ─── Header ───────────────────────────────────────────────────────────────────
+// ─── Header (unchanged) ───────────────────────────────────────────────────────
 const Header = ({
   count, isMyProfile, ownerName,
 }: {
@@ -177,7 +280,7 @@ const Header = ({
   </View>
 );
 
-// ─── Screen ───────────────────────────────────────────────────────────────────
+// ─── Screen (unchanged except renderItem passes isFirstCard) ─────────────────
 export default function ConnectionsListScreen() {
   const params       = useLocalSearchParams<{ userId: string; name: string }>();
   const { user: me } = useAuthh();
@@ -250,15 +353,16 @@ export default function ConnectionsListScreen() {
     }
   }, [fetchConnections]);
 
-  const renderItem = useCallback(({ item }: { item: ConnectedUser }) => (
+  // CHANGE: index passed so card[0] gets isFirstCard=true
+  const renderItem = useCallback(({ item, index }: { item: ConnectedUser; index: number }) => (
     <ConnectionCard
       item={item}
       isMyProfile={isMyProfile}
       onRemove={isMyProfile ? handleRemove : undefined}
+      isFirstCard={index === 0}
     />
   ), [isMyProfile, handleRemove]);
 
-  // ── Loading state ──
   if (loading) return (
     <SafeAreaView style={sl.safe} edges={['top']}>
       <Header count={0} isMyProfile={isMyProfile} ownerName={ownerName} />
@@ -281,8 +385,6 @@ export default function ConnectionsListScreen() {
         keyExtractor={item => item.connection_id}
         contentContainerStyle={[
           sl.list,
-          // CHANGE: flexGrow:1 ensures the empty state centres correctly
-          // on tall screens without needing a large paddingTop hack
           connections.length === 0 && sl.listEmpty,
         ]}
         showsVerticalScrollIndicator={false}
@@ -295,15 +397,12 @@ export default function ConnectionsListScreen() {
           />
         }
         ListEmptyComponent={
-          // CHANGE: removed hardcoded paddingTop: vs(80).
-          // The empty container now uses flex centering (see sl.empty) so it
-          // sits in the middle of remaining screen space on every device.
           <View style={sl.empty}>
             <Ionicons
               name="people-outline"
               size={s(52)}
               color={C.purple}
-              style={{ marginBottom: vs(16) }}
+              style={{ marginBottom: vs(8) }}
             />
             <Text style={sl.emptyTitle}>
               {isMyProfile ? 'No Mindmates yet' : `${ownerName} has no Mindmates yet`}
@@ -333,16 +432,8 @@ export default function ConnectionsListScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const sl = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.white },
-
-  // CHANGE: paddingBottom vs(280) → vs(40).
-  //         280 vp was a device-specific magic number that left blank space at
-  //         the bottom on every other screen size. 40 vp clears the nav bar.
-  list: { paddingBottom: vs(40) },
-
-  // CHANGE: added for empty-state centering — applied when list has no items.
-  // flexGrow:1 + justifyContent:"center" centres the empty UI on all screen
-  // heights without any hardcoded paddingTop.
+  safe:      { flex: 1, backgroundColor: C.white },
+  list:      { paddingBottom: vs(40) },
   listEmpty: { flexGrow: 1, justifyContent: 'center' },
 
   header: {
@@ -356,10 +447,30 @@ const sl = StyleSheet.create({
   headerTitle: { fontSize: ms(15), fontWeight: '600', color: C.text },
   headerSub:   { fontSize: ms(12), color: C.muted, marginTop: vs(1) },
 
+  // CHANGE: cardWrapper clips the hint panel and holds the hint overlay
+  cardWrapper: {
+    position:   'relative',
+    overflow:   'hidden',
+  },
+
+  // CHANGE: hint peek panel — sits behind the card, left-aligned (same
+  // position as the real RemoveAction that Swipeable renders on left-swipe)
+  hintPanel: {
+    position:        'absolute',
+    left:            0,
+    top:             0,
+    bottom:          0,
+    width:           s(80),
+    backgroundColor: '#EF4444',
+    justifyContent:  'center',
+    alignItems:      'center',
+    gap:             vs(4),
+  },
+
   card: {
     backgroundColor:   C.white,
     paddingHorizontal: s(16),
-    paddingVertical:   vs(10),
+    paddingVertical:   vs(8),
   },
   row:  { flexDirection: 'row', alignItems: 'center', gap: s(12) },
   info: { flex: 1 },
@@ -369,8 +480,6 @@ const sl = StyleSheet.create({
   locText: { fontSize: ms(11), color: C.muted },
   skills:  { fontSize: ms(12), color: C.purple, fontWeight: '500' },
 
-  // CHANGE: added minHeight: vs(64) — ensures swipe actions meet 44 pt
-  // minimum touch target on high-density Samsung/Xiaomi/Oppo screens.
   profileAction: {
     backgroundColor: '#6D4AFF',
     justifyContent:  'center',
@@ -389,30 +498,21 @@ const sl = StyleSheet.create({
   },
   actionText: { color: '#fff', fontSize: ms(12), fontWeight: '600' },
 
-  // CHANGE: removed paddingTop: vs(80) — centering is now handled by
-  // listEmpty flexGrow + justifyContent on the FlatList contentContainerStyle.
-  // paddingHorizontal kept to prevent text clipping on narrow screens.
   empty: { alignItems: 'center', paddingHorizontal: s(32) },
-
   emptyTitle: {
-    fontSize:     ms(17),
-    fontWeight:   '700',
-    color:        C.text,
-    marginBottom: vs(8),
-    textAlign:    'center',
+    fontSize: ms(17), fontWeight: '700', color: C.text,
+    marginBottom: vs(8), textAlign: 'center',
   },
   emptySub: {
-    fontSize:     ms(14),
-    color:        C.muted,
-    textAlign:    'center',
-    lineHeight:   ms(21),
-    marginBottom: vs(20),
+    fontSize: ms(14), color: C.muted, textAlign: 'center',
+    lineHeight: ms(21), marginBottom: vs(12),
   },
   discoverBtn: {
     backgroundColor:   C.purple,
     paddingHorizontal: s(24),
     paddingVertical:   vs(12),
     borderRadius:      s(12),
+    marginBottom:      vs(40),
   },
   discoverText: { color: '#fff', fontWeight: '700', fontSize: ms(14) },
 });

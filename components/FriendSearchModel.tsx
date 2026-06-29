@@ -108,7 +108,7 @@ export const FriendsSearchModal: React.FC<Props> = ({
       onClose();
       setTimeout(() => {
         router.push({
-          pathname: "/subScreens/chatScreen",
+          pathname: "/subScreens/chatScreen/[chatId]",
           params: {
             chatId: f.chat_id ?? "",
             userId: f.user_id,

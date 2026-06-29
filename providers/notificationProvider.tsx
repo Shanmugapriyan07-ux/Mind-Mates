@@ -5,60 +5,70 @@ import {
 } from "@/services/badgeService";
 import {
   flushPendingNavigation,
-  navigateFromNotification,
 } from "@/services/deepLinkService";
 import {
-  NotificationPayload,
   notificationService,
 } from "@/services/notificationService";
 import { useAuthStore } from "@/stores/authStore";
 import * as Notifications from "expo-notifications";
 import React, { useEffect, useRef } from "react";
-import { AppState, AppStateStatus } from "react-native";
-// At TOP of file — module level, survives everything
+
+// Module-level — survives unmount/remount
 let _foregroundListenerSub: Notifications.Subscription | null = null;
+let _registrationInFlight = false; // ✅ prevents concurrent registration attempts
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const { hydrated } = useAuthStore();
   const userId = useAuthStore((s) => s.user?.id ?? null);
   const registeredForRef = useRef<string | null>(null);
 
-  // ── Foreground display listener — registered ONCE ever ───────────────────
+  // ── Foreground listener — registered ONCE ever ────────────────────────────
   useEffect(() => {
-    if (_foregroundListenerSub) return; // already registered, skip
-    
+    if (_foregroundListenerSub) return;
+
     console.log('[NotificationProvider] registering foreground listener ONCE');
     initBadgeService();
 
-    // Only foreground DISPLAY listener here — NO tap listener (that's in _layout.tsx)
-    _foregroundListenerSub = Notifications.addNotificationReceivedListener((_notification) => {
-      // App is in foreground — update badge count
+    _foregroundListenerSub = Notifications.addNotificationReceivedListener(() => {
       Notifications.getBadgeCountAsync().then((current) => {
         updateAppIconBadge(current + 1);
       });
     });
-
-    // NO cleanup — must survive unmount/remount cycles
+    // NO cleanup — intentional
   }, []);
 
-  // ── Token registration ────────────────────────────────────────────────────
+  // ── Token registration — ONCE per userId, never retried from here ─────────
   useEffect(() => {
     if (!userId) {
       clearAppIconBadge();
       if (registeredForRef.current) {
-        notificationService.deleteTokenForUser(registeredForRef.current).catch(() => {});
+        notificationService
+          .deleteTokenForUser(registeredForRef.current)
+          .catch(() => {});
       }
       registeredForRef.current = null;
       return;
     }
-    if (registeredForRef.current === userId) return;
-    registeredForRef.current = userId;
 
-    notificationService.registerForPushNotifications(userId)
+    // ✅ Already registered for this user — skip
+    if (registeredForRef.current === userId) return;
+
+    // ✅ Another registration already in-flight — skip
+    if (_registrationInFlight) return;
+
+    registeredForRef.current = userId;
+    _registrationInFlight = true;
+
+    notificationService
+      .registerForPushNotifications(userId)
       .then((token) => {
         if (token) console.log('[NotificationProvider] ✓ Token registered for', userId);
       })
-      .catch((err) => console.error('[NotificationProvider] Registration failed', err));
+      .catch((err) => console.error('[NotificationProvider] Registration failed', err))
+      .finally(() => {
+        _registrationInFlight = false;
+      });
+
   }, [userId]);
 
   // ── Flush pending deep-link once auth hydrates ────────────────────────────
@@ -66,16 +76,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     if (hydrated) flushPendingNavigation();
   }, [hydrated]);
 
-  // ── Token refresh on foreground ───────────────────────────────────────────
-  useEffect(() => {
-    if (!userId) return;
-    const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
-      if (state === 'active' && registeredForRef.current === userId) {
-        notificationService.registerForPushNotifications(userId).catch(() => {});
-      }
-    });
-    return () => sub.remove();
-  }, [userId]);
+  // ✅ REMOVED: AppState foreground retry — was causing infinite error loop
 
   return <>{children}</>;
 }

@@ -1,6 +1,6 @@
 // lib/presenceService.ts
-import { AppState, AppStateStatus, Platform } from 'react-native';
-import { supabase }                            from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
+import { AppState, AppStateStatus } from 'react-native';
 
 const HEARTBEAT_MS     = 20_000;   // ping every 20s while active
 const BACKGROUND_DELAY = 8_000;    // go offline 8s after backgrounding
@@ -43,32 +43,21 @@ class PresenceService {
       this.userId      = userId;
       console.log('[Presence] init:', userId.slice(0, 8));
 
-      // ── FIX: Read current AppState at init time ───────────────────────────
-      // On notification cold-launch the AppState 'active' event fires before
-      // auth resolves, so our listener misses it. We read the current value
-      // directly here instead of relying solely on the event.
       this.currentState = AppState.currentState as AppStateStatus;
 
       if (this.currentState === 'active') {
-        await this.setOnlineWithRetry(true);
+        this.setOnlineWithRetry(true).catch(() => {}); // Non-blocking
         this.startHeartbeat();
       }
-      // If somehow launched in background (rare), the AppState listener below
-      // will handle the transition to active.
-
       this.listenAppState();
     } finally {
       this.initInProgress = false;
     }
   }
-
-  // ── destroy ───────────────────────────────────────────────────────────────
   async destroy() {
-    await this.teardown(/* silent */ false);
+    await this.teardown(false);
     this.userId = null;
   }
-
-  // ── enterChat ─────────────────────────────────────────────────────────────
   enterChat(chatId: string): void {
     if (!this.userId) return;
     console.log('[Presence] enterChat:', chatId.slice(0, 8));
@@ -80,8 +69,6 @@ class PresenceService {
         if (error) console.warn('[Presence] enterChat failed:', error.message);
       });
   }
-
-  // ── leaveChat ─────────────────────────────────────────────────────────────
   leaveChat(): void {
     if (!this.userId) return;
     console.log('[Presence] leaveChat');
@@ -93,25 +80,20 @@ class PresenceService {
         if (error) console.warn('[Presence] leaveChat failed:', error.message);
       });
   }
-
-  // ── Private ───────────────────────────────────────────────────────────────
-
   private async teardown(silent: boolean) {
     this.isDestroyed = true;
     this.stopHeartbeat();
     this.stopBgTimer();
     this.appStateSub?.remove();
-    this.appStateSub = null;
 
     if (!silent && this.userId) {
-      await this.setFields({ is_online: false, active_chat_id: null });
+      this.setFields({ is_online: false, active_chat_id: null }).catch(() => {});
     }
   }
-
-  // Retries setOnline on network failure — critical for cold-launch where
-  // the network stack may not be ready the instant the app wakes.
   private async setOnlineWithRetry(online: boolean, attempt = 0): Promise<void> {
     if (this.isDestroyed || !this.userId) return;
+    if (attempt >= MAX_INIT_RETRIES) return;
+
     try {
       await this.setOnline(online);
     } catch (e: any) {
@@ -123,7 +105,6 @@ class PresenceService {
       console.error('[Presence] setOnline failed after retries:', e?.message);
     }
   }
-
   private async setOnline(online: boolean) {
     await this.setFields({
       is_online: online,
@@ -205,8 +186,11 @@ class PresenceService {
           if (this.userId) {
             supabase
               .from('users')
-              .update({ active_chat_id: null })
-              .eq('user_id', this.userId);
+              .update({ active_chat_id: null, is_online: false })
+              .eq('user_id', this.userId)
+              .then(({ error }) => {
+                if (error) console.warn('[Presence] bg sync failed');
+              });
           }
 
           // Delay going offline — user may be in app switcher and return quickly

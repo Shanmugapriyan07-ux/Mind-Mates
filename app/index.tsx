@@ -1,4 +1,3 @@
-// app/index.tsx (or _layout.tsx — wherever your root is)
 import React from 'react';
 import { View } from 'react-native';
 import { useStartup } from '../startup/useStartup';
@@ -21,7 +20,7 @@ export default function Index() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
+    <View style={{ flex: 1, backgroundColor: '#6D4AFF' }}>
       <View
         style={{ flex: 1 }}
         onLayout={handleContentLayout}

@@ -11,9 +11,6 @@ export interface NotificationData {
   senderImage?: string;
 }
 
-// The navigation container ref — set from the component that owns it
-// deepLinkService.ts — replace safeNavigate completely
-
 let _lastNavigatedUrl = '';
 let _lastNavigatedAt  = 0;
 let _navRef: { isReady: () => boolean } | null = null;
@@ -66,8 +63,6 @@ const resolveRoute = (url: string, fullData?: NotificationData): object => {
       pathname: '/subScreens/chatScreen/[chatId]',
       params: {
         chatId:      chatMatch[1],
-        // Pass sender info so chat screen shows correct header immediately
-        // without waiting for a DB fetch
         senderName:  fullData?.senderName  ?? '',
         senderImage: fullData?.senderImage ?? '',
         senderId:    fullData?.senderId    ?? '',

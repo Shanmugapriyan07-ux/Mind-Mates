@@ -1,6 +1,6 @@
-import { useAuthh }           from '@/Contexts/authContext';
-import { callFn }             from '@/lib/callFn';
-import { supabase, TABLES }   from '@/lib/supabase';
+import { useAuthh } from '@/Contexts/authContext';
+import { callFn } from '@/lib/callFn';
+import { supabase, TABLES } from '@/lib/supabase';
 import { useCallback, useEffect, useRef, useState } from 'react';
 const secToMs = (ts: number) => (ts < 10_000_000_000 ? ts * 1000 : ts);
 export interface ChatMessage {
@@ -10,7 +10,10 @@ export interface ChatMessage {
   message:        string;
   type:           string;
   status:         'sent' | 'seen';
-  reactions:      string;
+  reactions:      string; // already present — 'text' | 'voice'
+  audioUrl?: string;
+  duration?: number;   // seconds
+  waveform?: number[];
   replyToId?:     string;
   replyToText?:   string;
   replyToSender?: string;
@@ -37,6 +40,9 @@ const rowToMsg = (r: any): ChatMessage => ({
   replyToId:     r.reply_to_id,
   replyToText:   r.reply_to_text,
   replyToSender: r.reply_to_sender,
+   audioUrl: r.audio_url,
+  duration: r.duration,
+  waveform: r.waveform ? JSON.parse(r.waveform) : [],
   edited:        r.edited         ?? false,
   createdAt:     r.created_at,
   deletedFor:    r.deleted_for    ?? [],
@@ -44,7 +50,7 @@ const rowToMsg = (r: any): ChatMessage => ({
 const MSG_COLS = [
   'id','chat_id','sender_id','message','type','status',
   'reactions','reply_to_id','reply_to_text','reply_to_sender',
-  'edited','created_at','deleted_for',
+  'edited','created_at','deleted_for','audio_url','duration','waveform',
 ].join(',');
 const MUTABLE_COLS = 'id,status,reactions,edited,message,deleted_for';
 export const findChat = async (myId: string, otherId: string) => {
@@ -304,9 +310,8 @@ export const useMessages = (chatId: string) => {
     };
 
     // ── Channel setup (Strategy 7) ─────────────────────────────────────────
-    // Use a stable channel name (no Date.now()) so Supabase can reuse the
-    // multiplexed WebSocket slot instead of creating a new one each render.
-    const channelName = `msg_${chatId}`;
+    // Unique channel name per effect mount to prevent "after subscribe()" errors
+    const channelName = `msg_${chatId}_${Date.now()}`;
     const channel = supabase
       .channel(channelName)
       .on(

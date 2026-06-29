@@ -194,6 +194,7 @@ export default function DiscoverScreen() {
           <Text style={st.errorText}>{error}</Text>
           <TouchableOpacity style={st.retryBtn} onPress={loadInitial}>
             <Text style={st.retryText}>Try Again</Text>
+          
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -227,14 +228,14 @@ export default function DiscoverScreen() {
         ListEmptyComponent={
           !loading ? (
             <View style={st.center}>
-              <Ionicons name="people" size={s(52)} color={C.purple} style={st.emptyIcon} />
-              <Text style={st.emptyTitle}>No matches yet</Text>
+              <Ionicons name="people" size={s(50)} color={C.purple} style={st.emptyIcon} />
               <TouchableOpacity
                 style={st.retryBtn}
                 onPress={() => router.push("/subScreens/searchUser")}
               >
                 <Text style={st.retryText}>Find Your Mindmate</Text>
               </TouchableOpacity>
+                 <Text style={st.emptyTitle}>No matches yet</Text>
             </View>
           ) : null
         }
@@ -274,10 +275,9 @@ const st = StyleSheet.create({
     alignItems:       "center",
     justifyContent:   "center",
     paddingTop:       vs(80),
-    paddingHorizontal: s(32),
-    gap:              vs(12),
+    paddingHorizontal: s(30),
+    gap:              vs(5),
   },
-
   header: {
     backgroundColor:   C.white,
     paddingHorizontal: s(20),
@@ -289,67 +289,57 @@ const st = StyleSheet.create({
   searchBar: {
     flexDirection:  "row",
     alignItems:     "center",
-    gap:            s(4),
     backgroundColor: C.bg,
     borderRadius:   s(50),
-    paddingHorizontal: s(14),
+    paddingHorizontal: s(11),
     height:         vs(43),
     borderWidth:    0,
     borderColor:    C.border,
-    marginHorizontal: s(8),
+    marginHorizontal: s(7),
   },
   scanIcon: {
     width:  s(37),
     height: s(37),
+    bottom: s(1),
   },
-
   searchPlaceholder: {
     flex:       1,
     fontSize:   ms(TYPOGRAPHY.body),
     color:      C.muted,
     fontWeight: "400",
   },
-
   card: {
     backgroundColor:   C.white,
     paddingHorizontal: s(18),
     paddingVertical:   vs(9),
   },
-
   cardRow: { flexDirection: "row", alignItems: "center", gap: s(12) },
   info:    { flex: 1 },
-
   name: {
     fontSize:     ms(14),
     fontWeight:   "600",
     color:        C.text,
     marginBottom: vs(3),
   },
-
   locRow: {
     flexDirection: "row",
     alignItems:    "center",
     gap:           s(3),
     marginBottom:  vs(4),
   },
-
   locText:    { fontSize: ms(TYPOGRAPHY.caption) },
-  // CHANGE 7 (continued): TYPOGRAPHY.caption also wrapped in ms().
-
   skillsRow: {
     flexDirection: "row",
     alignItems:    "center",
     gap:           s(6),
     flexWrap:      "nowrap",
   },
-
   skillsCommon: {
     fontSize:   ms(12),
     fontWeight: "600",
     color:      C.purple,
     flexShrink: 1,
   },
-
   extraBadge: {
     backgroundColor:   C.bg,
     borderRadius:      s(10),
@@ -358,9 +348,7 @@ const st = StyleSheet.create({
     borderWidth:       1,
     borderColor:       C.border,
   },
-
   extraText: { fontSize: ms(11), fontWeight: "600", color: C.muted },
-
   connectBtn: {
     paddingHorizontal: s(8),
     paddingVertical:   vs(8),
@@ -370,31 +358,28 @@ const st = StyleSheet.create({
     justifyContent:    "center",
     minWidth:          s(82),
   },
-
   connectText: { fontWeight: "700", fontSize: ms(12) },
-
   errorText: {
     fontSize:  ms(14),
     color:     C.muted,
     textAlign: "center",
   },
-  emptyIcon: { },
-
+  emptyIcon: {marginTop:vs(7) },
   emptyTitle: {
-    fontSize:     ms(16),
-    fontWeight:   "700",
+    fontSize:     ms(13),
+    fontWeight:   "500",
     color:        C.text,
     textAlign:    "center",
+    marginBottom:vs(3),
+    marginLeft:vs(2)
   },
-
   retryBtn: {
     backgroundColor:   C.purple,
-    paddingHorizontal: s(24),
-    paddingVertical:   vs(11),
+    paddingHorizontal: s(14),
+    paddingVertical:   vs(10),
     borderRadius:      s(12),
     justifyContent:    "center",
     alignSelf:         "center",
   },
-
-  retryText: { color: "#fff", fontWeight: "600", fontSize: ms(14) },
+  retryText: { color: "#fff", fontWeight: "700", fontSize: ms(13) },
 });

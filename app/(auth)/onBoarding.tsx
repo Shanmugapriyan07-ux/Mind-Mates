@@ -61,11 +61,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const DOT_SIZE = s(10);
 const ACTIVE_WIDTH = s(24);
-const IMAGE_ASPECT = 1.05; // height / width ratio of onboarding illustrations
-
-// How much of the screen height the image panel occupies.
-// 0.44 matches the visual weight of the original vs(340) on a 760px-tall phone.
-const IMAGE_FLEX = 0.44;
+const IMAGE_ASPECT = 1.07;
+const IMAGE_FLEX = 0.4;
 
 const SLIDES = [
   {
@@ -109,22 +106,19 @@ const Dot = memo(
   },
 );
 
-// ─── Screen ───────────────────────────────────────────────────────────────────
 export default function Onboarding() {
-  // CHANGE 1: Live screen dimensions — adapts to orientation + foldables
   const { width, height } = useWindowDimensions();
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const isAnimating = useRef(false);
   const imageOpacity = useSharedValue(1);
   const textOpacity = useSharedValue(1);
-
-  // CHANGE 2: Image size derived from live width, not hardcoded s(400)/vs(450)
-  const imageWidth = Math.min(width * 0.88, 420);
-  const imageHeight = imageWidth * IMAGE_ASPECT;
-
-  // CHANGE 3: Top panel height is a proportion of screen height, not fixed
   const topPanelHeight = height * IMAGE_FLEX;
+  const imageWidth = Math.min(width * 1.3, 402);
+  const imageHeight = Math.min(
+    imageWidth * IMAGE_ASPECT,
+    topPanelHeight * 1.5,
+  );
 
   const goToNext = useCallback(() => {
     if (isAnimating.current) return;
@@ -170,20 +164,12 @@ export default function Onboarding() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/*
-        CHANGE 4: topHalf height is a runtime value (height * IMAGE_FLEX)
-        instead of the fixed vs(340). Applied via inline style so it reacts
-        to useWindowDimensions updates (e.g., orientation change).
-      */}
       <View style={[styles.topHalf, { height: topPanelHeight }]}>
         <Animated.Image
           source={slide.image}
           style={[
             animatedImageStyle,
             {
-              // CHANGE 5: No more marginTop / left offset.
-              // Parent's justifyContent:"center" + alignItems:"center" centres it.
-              // Width and height are proportional to the live screen dimensions.
               width: imageWidth,
               height: imageHeight,
             },
@@ -192,17 +178,7 @@ export default function Onboarding() {
         />
       </View>
 
-      {/*
-        bottomHalf: pure flex column, no justifyContent override.
-        Layout contract:
-          topGroup  → flex-start (natural)
-          spacer    → flex: 1 (absorbs all remaining space)
-          dotContainer → natural height, marginBottom locks gap to button
-          button    → natural height, always last
-        Nothing uses top/bottom/left/right positioning.
-      */}
       <View style={styles.bottomHalf}>
-
         {/* TOP GROUP — title + subtitle only. No dots here (they moved down). */}
         <View style={styles.topGroup}>
           <Animated.View style={[styles.textBlock, animatedTextStyle]}>
@@ -214,11 +190,7 @@ export default function Onboarding() {
         {/* SPACER — the only element that stretches. Everything else is fixed. */}
         <View style={styles.spacer} />
 
-        {/*
-          CHANGE 6: Dots moved here — between spacer and button.
-          marginBottom creates a fixed gap to the button edge.
-          No top/bottom offsets. This is the WhatsApp / Instagram pattern.
-        */}
+     
         <View style={styles.dotContainer}>
           {SLIDES.map((_, i) => (
             <Dot key={i} index={i} activeIndex={currentIndex} />
@@ -236,7 +208,6 @@ export default function Onboarding() {
           </Text>
           <Ionicons name="arrow-forward" size={s(18)} color="#fff" />
         </TouchableOpacity>
-
       </View>
     </SafeAreaView>
   );
@@ -247,18 +218,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#ffffff",
   },
-
-  // CHANGE 7: No height here — injected as inline style from useWindowDimensions.
   topHalf: {
     backgroundColor: "#ffffff",
-    justifyContent: "center",
+    justifyContent: "flex-start",
     alignItems: "center",
-    // overflow: hidden protects against any image bleed on very small screens
     overflow: "hidden",
+    left: s(5)
   },
-
-  // CHANGE 8: paddingTop/paddingHorizontal/paddingBottom stay.
-  // justifyContent removed — spacer pattern handles distribution.
   bottomHalf: {
     flex: 1,
     backgroundColor: "#000000",
@@ -272,9 +238,6 @@ const styles = StyleSheet.create({
     width: "100%",
     alignItems: "center",
   },
-
-  // CHANGE 9: minHeight removed — replaced with paddingBottom so the block
-  // never clips text but also never wastes rigid space on small screens.
   textBlock: {
     alignItems: "center",
     width: "100%",
@@ -302,13 +265,10 @@ const styles = StyleSheet.create({
   spacer: {
     flex: 1,
   },
-
-  // CHANGE 10: bottom: SPACING.md removed. marginBottom creates a clean
-  // gap between dots and button purely via layout flow — no positioning hacks.
   dotContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: vs(16),
+    marginBottom: vs(20),
   },
 
   dot: {
@@ -317,9 +277,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#6D4AFF",
     marginHorizontal: s(4),
   },
-
-  // CHANGE 11: top: SPACING.md removed. Button is naturally last in the
-  // flex column; paddingBottom on parent handles the safe bottom gap.
   button: {
     backgroundColor: "#6D4AFF",
     flexDirection: "row",
@@ -329,7 +286,6 @@ const styles = StyleSheet.create({
     borderRadius: s(32),
     width: "100%",
   },
-
   buttonText: {
     color: "#ffffff",
     fontSize: ms(18),

@@ -1,13 +1,3 @@
-/**
- * ChatScreen — Fully Responsive Refactor
- * ─────────────────────────────────────────────────────────────────────────────
- * All positional hacks (bottom/top/left/right on non-positioned flex children)
- * replaced with proper Flexbox layout. Every change is annotated.
- *
- * Verified safe on: Android phones (360–412 dp), iPhones (375–430 pt),
- * Samsung/Oppo/Vivo/Xiaomi OEMs, Pixel, and iPad / Android tablets.
- */
-
 import { ChatMenuSheet }           from "@/components/blockSheet";
 import ChatInput                   from "@/components/chatInput";
 import ConfirmModal                from "@/components/confirmModel";
@@ -15,6 +5,7 @@ import MediaPreview                from "@/components/mediaPreview";
 import MediaViewer                 from "@/components/mediaViewer";
 import { ActionMessage, MessageActionSheet } from "@/components/messageActionSheet";
 import { ProfileAvatar }           from "@/components/Profileavatar";
+import { VoiceMessageBubble, VoiceStatus } from "@/components/voiceMessageBubble";
 import { useAuthh }                from "@/Contexts/authContext";
 import { ChatMessage, findChat, getChatId, useMessages } from "@/hooks/useChat";
 import { useOnlineStatus }         from "@/hooks/useOnlineStatus";
@@ -212,10 +203,6 @@ const ReactionsRow = ({ reactionsJson, onReact, msg }: {
   const g: Record<string, number> = {};
   rx.forEach((r) => { g[r.emoji] = (g[r.emoji] || 0) + 1; });
   return (
-    // CHANGE 1: Removed `bottom: vs(5)` from reactionsRow. A bottom offset on
-    // a non-positioned flex child shifts layout differently on every OEM.
-    // The correct approach is to use negative marginTop to pull the reactions
-    // row closer to the bubble above it — this works identically on all devices.
     <View style={t.reactionsRow}>
       {Object.entries(g).map(([emoji, count]) => (
         <TouchableOpacity
@@ -370,11 +357,7 @@ const MessageBubble = React.memo(
 
     return (
       <View style={[t.msgWrap, isMe ? t.myWrap : t.otherWrap]}>
-        {/*
-          NOTE: swipeReplyIcon uses position:"absolute" correctly here —
-          it is pinned relative to the msgWrap container (position:"relative"
-          by default on View), not the screen. This is intentional and safe. ✅
-        */}
+
         <RNAnimated.View style={[
           t.swipeReplyIcon,
           isMe ? t.swipeIconLeft : t.swipeIconRight,
@@ -470,10 +453,6 @@ const ChatHeader = ({
   const { isOnline, lastSeen } = useOnlineStatus(userId);
   const statusText = formatLastSeen(lastSeen);
   return (
-    // CHANGE 2: Added `borderBottomWidth: 1` to header. `borderBottomColor`
-    // was already set but without `borderBottomWidth` the border is invisible
-    // on all platforms (RN requires both properties). Fixes a missing visual
-    // separator on every device.
     <View style={[ch.header, iBlockedThem && { backgroundColor: "#000", borderBottomColor: "#333" }]}>
       <TouchableOpacity
         onPress={() => router.back()}
@@ -481,12 +460,6 @@ const ChatHeader = ({
       >
         <Ionicons name="arrow-back" size={s(20)} color={iBlockedThem ? "#fff" : C.text} />
       </TouchableOpacity>
-
-      {/*
-        NOTE: The online dot uses position:"absolute" relative to this View
-        which has no explicit position — in RN all Views are position:"relative"
-        by default, so the dot correctly anchors to the avatar wrap. ✅
-      */}
       <View style={{ position: "relative" }}>
         <TouchableOpacity
           onPress={() => router.push({ pathname: "/subScreens/userProfile", params: { userId } })}
@@ -502,7 +475,7 @@ const ChatHeader = ({
           {name ?? "Chat"}
         </Text>
         {iBlockedThem ? (
-          <Text style={[ch.headerStatus, { color: "#EF4444", fontWeight: "700" }]}>USER BLOCKED</Text>
+          <Text style={[ch.headerStatus, { color: "#EF4444", fontWeight: "600" }]}>USER BLOCKED</Text>
         ) : isOtherTyping ? (
           <Text style={[ch.headerStatus, ch.typingStatus]}>typing...</Text>
         ) : isOnline ? (
@@ -526,6 +499,7 @@ const ChatHeader = ({
 // ─── ChatScreen ───────────────────────────────────────────────────────────────
 export default function ChatScreen() {
   const { user } = useAuthh();
+  const myId = user?.id ?? "";
 
   const params = useLocalSearchParams<{
     chatId?:      string; userId?:      string; name?:        string;
@@ -614,7 +588,7 @@ export default function ChatScreen() {
         if (markReadRef.current) clearTimeout(markReadRef.current);
         markReadRef.current = setTimeout(() => {
           callFn({ action: "mark_chat_read", chatId })
-            .catch((err: any) => { lastMarkedRef.current = ""; });
+            .catch((_err: any) => { lastMarkedRef.current = ""; });
         }, 150);
       }
     }
@@ -671,6 +645,49 @@ export default function ChatScreen() {
     if (isOtherTyping && isNearBottomRef.current && !isPaginatingRef.current)
       setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 80);
   }, [isOtherTyping]);
+
+  // ─── Voice message handlers ───────────────────────────────────────────────
+
+  const handleVoiceOptimistic = useCallback((
+    tempId: string,
+    durationMs: number,
+    waveform: number[]
+  ) => {
+    const optimisticMsg: ChatMessage = {
+      $id:        tempId,
+      chatId,
+      senderId:   myId,
+      message:    "",
+      type:       "voice",
+      status:     "sent",
+      reactions:  "[]",
+      createdAt:  Math.floor(Date.now() / 1000),
+      deletedFor: [],
+      audioUrl:   "",
+      duration:   Math.round(durationMs / 1000),
+      waveform,
+      _pending:   true,
+    };
+    setMessages((prev: ChatMessage[]) => [...prev, optimisticMsg]);
+  }, [chatId, myId, setMessages]);
+
+  const handleVoiceSuccess = useCallback((
+    tempId: string,
+    audioUrl: string,
+    messageId: string
+  ) => {
+    setMessages((prev: any) => prev.map((m: any) =>
+      m.$id === tempId
+        ? { ...m, $id: messageId, audioUrl, _pending: false }
+        : m
+    ));
+  }, [setMessages]);
+
+  const handleVoiceFailed = useCallback((tempId: string) => {
+    setMessages((prev: any) => prev.map((m: any) =>
+      m.$id === tempId ? { ...m, _pending: false, _failed: true } : m
+    ));
+  }, [setMessages]);
 
   const handleReact = useCallback(async (msg: ChatMessage, emoji: string) => {
     if (!user?.id) return;
@@ -798,17 +815,65 @@ export default function ChatScreen() {
     const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
     isNearBottomRef.current = layoutMeasurement.height + contentOffset.y >= contentSize.height - 100;
   };
-
+  const handleVoiceLongPress = useCallback((msg: ChatMessage) => {
+    setActionMsg({
+      $id:        msg.$id,
+      sender_id:  msg.senderId,
+      message:    "",
+       created_at: msg.createdAt,
+    });
+  }, []);
   const renderItem = useCallback(({ item, index }: { item: ChatMessage; index: number }) => {
     if (user?.id && item.deletedFor?.includes(user.id)) return null;
-    const isMe  = item.senderId === user?.id;
+    const isMe  = item.senderId === myId;
     const prev  = messages[index - 1];
     const showD = !prev || new Date(secToMs(item.createdAt)).toDateString() !== new Date(secToMs(prev.createdAt)).toDateString();
+    if ((item as any).type === "voice") {
+      const voiceStatus: VoiceStatus = item._pending
+        ? "uploading"
+        : item._failed
+        ? "failed"
+        : item.status === "seen"
+        ? "seen"
+        : "sent";
+
+      return (
+        <>
+          {showD && <DateDivider ts={item.createdAt} />}
+          <VoiceMessageBubble
+            messageId={item.$id}
+            audioUrl={(item as any).audioUrl ?? ""}
+            durationSec={(item as any).duration ?? 0}
+            waveform={(item as any).waveform ?? []}
+            status={voiceStatus}
+            isMe={isMe}
+            timestamp={formatTime(item.createdAt)}
+            isFailed={!!item._failed}
+            onLongPress={() => handleVoiceLongPress(item)}
+            onReact={(emoji: string) => handleReact(item, emoji)}
+            onReply={() => handleReply(item)}
+            onRetry={() => {
+            }}
+          />
+          {!!(item as any).reactions && (item as any).reactions !== "[]" && (
+            <View style={isMe ? t.myWrap : t.otherWrap}>
+              <ReactionsRow
+                reactionsJson={(item as any).reactions}
+                onReact={handleReact}
+                msg={item}
+              />
+            </View>
+          )}
+        </>
+      );
+    }
+
+    // Text / media branch — unchanged
     return (
       <>
         {showD && <DateDivider ts={item.createdAt} />}
         <MessageBubble
-          item={item} isMe={isMe} myId={user?.id ?? ""}
+          item={item} isMe={isMe} myId={myId}
           otherName={resolvedName}
           onRetry={retryMessage}
           onLongPress={(msg) => setActionMsg({
@@ -821,7 +886,10 @@ export default function ChatScreen() {
         />
       </>
     );
-  }, [messages, user?.id, retryMessage, handleReact, handleReply, resolvedName]);
+  }, [
+    // CHANGE: Added handleVoiceLongPress to deps so the callback is always fresh.
+    messages, myId, retryMessage, handleReact, handleReply, handleVoiceLongPress, resolvedName, user?.id,
+  ]);
 
   // ─── Loading / error states ───────────────────────────────────────────────
   if (chatState === "finding")
@@ -868,12 +936,6 @@ export default function ChatScreen() {
           <View style={ch.center}><ActivityIndicator color={C.purple} size="large" /></View>
         ) : (
           <>
-            {iBlockedThem && (
-              <View style={ch.blockedBanner}>
-                <Ionicons name="ban" size={s(14)} color="#fff" />
-                <Text style={ch.blockedBannerText}>You have blocked this user</Text>
-              </View>
-            )}
             <FlatList
               ref={flatRef}
               data={messages}
@@ -916,10 +978,13 @@ export default function ChatScreen() {
           chatId={chatId} replyTo={replyTo as any} editingMsg={editingMsg as any}
           onCancelReply={() => setReplyTo(null)}
           onCancelEdit={() => { setEditingMsg(null); setInputText(""); }}
-          myId={user?.id ?? ""} otherName={resolvedName}
+          myId={myId} otherName={resolvedName}
           isBlocked={isBlocked} iBlockedThem={iBlockedThem}
           onUnblock={handleUnblock} blockedName={resolvedName}
           onMediaSend={(uri, type) => setPendingMedia({ uri, type })}
+          onVoiceOptimistic={handleVoiceOptimistic}
+          onVoiceSuccess={handleVoiceSuccess}
+          onVoiceFailed={handleVoiceFailed}
         />
       </KeyboardAvoidingView>
 
@@ -929,6 +994,8 @@ export default function ChatScreen() {
         onSend={handleMediaConfirm} onClose={() => setPendingMedia(null)}
         sending={sendingMedia} otherName={resolvedName ?? "them"}
       />
+
+    
       <MessageActionSheet
         visible={!!actionMsg} message={actionMsg} isMine={actionMsg?.sender_id === user?.id}
         onClose={() => setActionMsg(null)}
@@ -993,14 +1060,12 @@ const ch = StyleSheet.create({
     paddingHorizontal: s(16),
     paddingVertical:   vs(10),
     backgroundColor:   C.white,
-    borderBottomWidth: 1,           // CHANGE 2: added — was missing; borderBottomColor without
-    borderBottomColor: C.border,    // this has zero effect on all platforms
   },
   headerName:   { fontSize: ms(14), fontWeight: "600", color: C.text },
   headerStatus: { fontSize: ms(11), color: C.muted, marginTop: vs(1) },
   typingStatus: { color: C.purple, fontWeight: "600" },
   onlineDot: {
-    position:        "absolute",    // ✅ correct — relative to avatar View wrapper
+    position:        "absolute",
     bottom:          0,
     right:           0,
     width:           s(12),
@@ -1010,11 +1075,6 @@ const ch = StyleSheet.create({
     borderWidth:     2,
     borderColor:     C.white,
   },
-
-  // CHANGE 3: Removed `bottom: vs(40)` from center. A bottom offset on a
-  // non-positioned flex child inside flex:1 is unreliable across RN versions
-  // and OEM Android layouts. `flex:1` + `alignItems/justifyContent:"center"`
-  // already centres content on every screen height — no nudge is needed.
   center: {
     flex:           1,
     alignItems:     "center",
@@ -1031,17 +1091,14 @@ const ch = StyleSheet.create({
   emptyChat:     { alignItems: "center", paddingTop: vs(80) },
   emptyChatText: { fontSize: ms(15), color: C.muted },
 
-  // CHANGE 4: Extracted inline blocked banner into named styles for clarity
-  // and removed the raw padding:s(10) which was mixing s() with a non-gap layout.
   blockedBanner: {
-    flexDirection:  "row",
-    alignItems:     "center",
-    backgroundColor: "#111",
+    flexDirection:     "row",
+    alignItems:        "center",
+    backgroundColor:   "#111",
     paddingHorizontal: s(16),
     paddingVertical:   vs(8),
     gap:               s(6),
   },
-  blockedBannerText: { color: "#fff", fontSize: ms(13) },
 });
 
 const t = StyleSheet.create({
@@ -1057,12 +1114,11 @@ const t = StyleSheet.create({
     elevation:         1,
   },
   myBubble:    { backgroundColor: C.purpleMsg, borderBottomRightRadius: s(4), elevation: 2 },
-  otherBubble: { backgroundColor: C.otherMsg, borderBottomLeftRadius: s(4), borderColor: C.border, elevation: 3 },
+  otherBubble: { backgroundColor: C.otherMsg, borderBottomLeftRadius: s(4), borderColor: C.border, elevation: 2 },
   failedBubble:{ borderWidth: 1, borderColor: C.red },
   msgText:     { fontSize: ms(15), lineHeight: ms(21) },
   myText:      { color: "#fff" },
   otherText:   { color: C.text },
-
   mediaBubbleWrap: { borderRadius: s(18), overflow: "hidden", marginTop: vs(4), alignSelf: "flex-start" },
   mediaContainer:  { borderRadius: s(18), overflow: "hidden", backgroundColor: C.otherMsg, alignItems: "center", justifyContent: "center" },
   mediaImage:      { borderRadius: s(18) },
@@ -1086,10 +1142,6 @@ const t = StyleSheet.create({
     borderRadius:    s(12),
   },
 
-  // CHANGE 1 (style): Removed `bottom: vs(5)` from reactionsRow.
-  // Used `marginTop: -vs(4)` instead — this pulls the row closer to the bubble
-  // above using a standard margin, which is reliable across all devices and
-  // RN versions unlike a bottom offset on a non-positioned child.
   reactionsRow: {
     flexDirection: "row",
     flexWrap:      "wrap",
@@ -1099,7 +1151,7 @@ const t = StyleSheet.create({
   },
 
   swipeReplyIcon: {
-    position:  "absolute",         // ✅ correct — pins to msgWrap (implicit relative container)
+    position:  "absolute",
     top:       "50%" as any,
     marginTop: -s(12),
     zIndex:    0,
@@ -1107,10 +1159,6 @@ const t = StyleSheet.create({
   swipeIconLeft:  { left:  -s(28) },
   swipeIconRight: { right: -s(28) },
 
-  // CHANGE 5: Removed `bottom: vs(6)` and `right: s(5)` from reactionBadge.
-  // These were positioning hacks layered on top of reactionsRow which already
-  // had its own `bottom` offset. With both offsets removed, the badges sit
-  // naturally in the flex row and stack correctly via flexWrap on all devices.
   reactionBadge: {
     flexDirection:     "row",
     alignItems:        "center",
@@ -1132,7 +1180,7 @@ const t = StyleSheet.create({
   videoPlayOverlay: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center" },
   videoPlayBtn:     { width: s(50), height: s(50), borderRadius: s(25), backgroundColor: "rgba(0,0,0,0.58)", alignItems: "center", justifyContent: "center" },
   videoBadge: {
-    position:          "absolute",  // ✅ correct — pins to mediaContainer which is position relative
+    position:          "absolute",
     bottom:            vs(7),
     right:             s(7),
     flexDirection:     "row",

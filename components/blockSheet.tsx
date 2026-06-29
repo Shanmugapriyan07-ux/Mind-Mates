@@ -105,8 +105,8 @@ export const ChatMenuSheet = ({ visible, onClose, items }: Props) => {
             >
               <Ionicons
                 name={item.icon as any}
-                size={19}
-                color={item.color ?? "#555"}
+                size={18}
+                color={item.color ?? "#6D4AFF"}
               />
               <Text style={[m.label, item.color ? { color: item.color } : {}]}>
                 {item.label}
@@ -151,9 +151,9 @@ const m = StyleSheet.create({
   item: {
     flexDirection: "row",
     alignItems: "center",
-    gap: s(14),
+    gap: s(12),
     paddingHorizontal: s(18),
-    paddingVertical: s(13),
+    paddingVertical: s(12),
   },
   label: {
     fontSize: ms(15),

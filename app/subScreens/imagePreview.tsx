@@ -1,30 +1,36 @@
 import { useAuthh } from "@/Contexts/authContext";
 import { useProfile } from "@/Contexts/profileContext";
 import { useProfileImage } from "@/hooks/useProfileImage";
+import { ms, s, vs } from "@/utils/scale";
 import { BlurView } from "expo-blur";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useRef } from "react";
 import {
-    Dimensions,
-    Image,
-    Platform,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    Animated,
-    View
+  Animated,
+  Dimensions,
+  Image,
+  Platform,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { s, vs, ms } from "@/utils/scale";
-import {
-    SafeAreaView,
-} from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 const { width: W } = Dimensions.get("window");
 const IMAGE_SIZE = W * 0.78;
 export default function ImagePreviewScreen() {
   const { user } = useAuthh();
   const { profile } = useProfile();
-  const { userId: viewedUserId } = useLocalSearchParams<{ userId?: string }>();
+  const {
+    userId: viewedUserId,
+    image: passedImage,
+    name: passedName,
+  } = useLocalSearchParams<{
+    userId?: string;
+    image?: string;
+    name?: string;
+  }>();
   const isOwnProfile = !viewedUserId || viewedUserId === user?.id;
   const { imageUri, uploading, error } = useProfileImage();
   const backdropOpacity = useRef(new Animated.Value(0)).current;
@@ -53,7 +59,7 @@ export default function ImagePreviewScreen() {
     ]).start();
   }, []);
   const dismiss = () => {
-  Animated.parallel([
+    Animated.parallel([
       Animated.timing(backdropOpacity, {
         toValue: 1,
         duration: 0,
@@ -72,15 +78,19 @@ export default function ImagePreviewScreen() {
         useNativeDriver: true,
         delay: 10,
       }),
-    ]).start(() => { router.back(); });
+    ]).start(() => {
+      router.back();
+    });
   };
-  const initials = (profile?.fullName ?? user?.name ?? "U")
+  const initials = (
+    isOwnProfile ? (profile?.fullName ?? user?.name ?? "U") : passedName || "U"
+  )
     .split(" ")
     .map((w: string) => w[0])
     .join("")
     .toUpperCase()
     .slice(0, 2);
-  const displayImage = isOwnProfile ? imageUri : profile?.profileImage;
+  const displayImage = isOwnProfile ? imageUri : passedImage || null;
   const isBusy = uploading;
   return (
     <View style={st.root}>
@@ -203,5 +213,5 @@ const st = StyleSheet.create({
     fontSize: ms(13),
     textAlign: "center",
     paddingHorizontal: s(32),
-  }
+  },
 });

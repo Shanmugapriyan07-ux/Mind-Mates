@@ -1,63 +1,38 @@
-import { ChatMenuSheet } from "@/components/blockSheet";
-import ChatInput from "@/components/chatInput";
-import ConfirmModal from "@/components/confirmModel";
-import MediaPreview from "@/components/mediaPreview";
-import MediaViewer from "@/components/mediaViewer";
-import {
-  ActionMessage,
-  MessageActionSheet,
-} from "@/components/messageActionSheet";
-import { ProfileAvatar } from "@/components/Profileavatar";
-import { useAuthh } from "@/Contexts/authContext";
+import { ChatMenuSheet }           from "@/components/blockSheet";
+import ChatInput                   from "@/components/chatInput";
+import ConfirmModal                from "@/components/confirmModel";
+import MediaPreview                from "@/components/mediaPreview";
+import MediaViewer                 from "@/components/mediaViewer";
+import { ActionMessage, MessageActionSheet } from "@/components/messageActionSheet";
+import { ProfileAvatar }           from "@/components/Profileavatar";
+import { VoiceMessageBubble, VoiceStatus } from "@/components/voiceMessageBubble";
+import { useAuthh }                from "@/Contexts/authContext";
 import { ChatMessage, findChat, getChatId, useMessages } from "@/hooks/useChat";
-import { useOnlineStatus } from "@/hooks/useOnlineStatus";
-import { useTyping } from "@/hooks/useTyping";
+import { useOnlineStatus }         from "@/hooks/useOnlineStatus";
+import { useTyping }               from "@/hooks/useTyping";
 import {
-  cdnChatUrl,
-  cdnVideoThumbUrl,
-  compressForUpload,
-  uploadToCloudinary,
+  cdnChatUrl, cdnVideoThumbUrl, compressForUpload, uploadToCloudinary,
 } from "@/lib/cloudinaryUpload";
-import { presenceService } from "@/lib/presenceService";
-import { supabase } from "@/lib/supabase";
-import { clearAppIconBadge } from "@/services/badgeService";
-import { useChatStore } from "@/stores/chatStore";
-import { ms, s, vs } from "@/utils/scale";
-import { Ionicons } from "@expo/vector-icons";
-import * as Clipboard from "expo-clipboard";
+import { presenceService }         from "@/lib/presenceService";
+import { supabase }                from "@/lib/supabase";
+import { clearAppIconBadge }       from "@/services/badgeService";
+import { useChatStore }            from "@/stores/chatStore";
+import { ms, s, vs }               from "@/utils/scale";
+import { Ionicons }                from "@expo/vector-icons";
+import * as Clipboard              from "expo-clipboard";
 import { router, useLocalSearchParams } from "expo-router";
-import React, {
-  RefObject,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import React, { RefObject, useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  FlatList,
-  Image,
-  KeyboardAvoidingView,
-  PanResponder,
-  Platform,
-  Animated as RNAnimated,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+  ActivityIndicator, Alert, Dimensions, FlatList, Image,
+  KeyboardAvoidingView, PanResponder, Platform,
+  Animated as RNAnimated, StatusBar, StyleSheet,
+  Text, TextInput, TouchableOpacity, View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 let CachedImage: any;
-try {
-  CachedImage = require("expo-image").Image;
-} catch {
-  CachedImage = require("react-native").Image;
-}
+try   { CachedImage = require("expo-image").Image; }
+catch { CachedImage = require("react-native").Image; }
 
 const IMG_PREFIX = "__IMG__";
 const VID_PREFIX = "__VID__";
@@ -99,7 +74,7 @@ const C = {
   seen:      "#6D4AFF",
 };
 
-const SCREEN_WIDTH = Dimensions.get("window").width;
+const SCREEN_WIDTH  = Dimensions.get("window").width;
 const MAX_MEDIA_WIDTH = SCREEN_WIDTH * 0.7;
 const IMAGE_SIZE_CACHE = new Map<string, { width: number; height: number; ratio: number }>();
 
@@ -128,13 +103,11 @@ const useRemoteImageSize = (uri: string | null) => {
 
   useEffect(() => {
     if (!uri) { setSize(null); setLoading(false); setError(false); return; }
-    const lowerUri  = uri.toLowerCase();
+    const lowerUri   = uri.toLowerCase();
     const isVideoUrl =
       lowerUri.includes("/video/upload/") ||
-      lowerUri.endsWith(".mp4") ||
-      lowerUri.endsWith(".mov") ||
-      lowerUri.endsWith(".webm") ||
-      lowerUri.endsWith(".avi");
+      lowerUri.endsWith(".mp4") || lowerUri.endsWith(".mov") ||
+      lowerUri.endsWith(".webm") || lowerUri.endsWith(".avi");
     if (isVideoUrl) { setSize(null); setLoading(false); setError(false); return; }
 
     let active = true;
@@ -146,13 +119,12 @@ const useRemoteImageSize = (uri: string | null) => {
       uri,
       (width, height) => {
         if (!active) return;
-        const ratio        = width > 0 && height > 0 ? width / height : 1;
-        const displayWidth = Math.min(width, MAX_MEDIA_WIDTH);
+        const ratio         = width > 0 && height > 0 ? width / height : 1;
+        const displayWidth  = Math.min(width, MAX_MEDIA_WIDTH);
         const displayHeight = Math.round(displayWidth / ratio);
         const resolved = { width: displayWidth, height: Math.max(displayHeight, 80), ratio };
         IMAGE_SIZE_CACHE.set(uri, resolved);
-        setSize(resolved);
-        setLoading(false);
+        setSize(resolved); setLoading(false);
       },
       () => { if (!active) return; setError(true); setLoading(false); },
     );
@@ -163,18 +135,22 @@ const useRemoteImageSize = (uri: string | null) => {
 };
 
 // ─── StatusTick ──────────────────────────────────────────────────────────────
-const StatusTick = ({ status, pending, failed }: { status: string; pending?: boolean; failed?: boolean }) => {
-  if (failed)           return <Ionicons name="alert-circle-outline" size={s(14)} color={C.red} />;
-  if (pending)          return <ActivityIndicator size={s(10)} color="rgba(255,255,255,0.7)" />;
+const StatusTick = ({ status, pending, failed }: {
+  status: string; pending?: boolean; failed?: boolean;
+}) => {
+  if (failed)            return <Ionicons name="alert-circle-outline" size={s(14)} color={C.red} />;
+  if (pending)           return <ActivityIndicator size={s(10)} color="rgba(255,255,255,0.7)" />;
   if (status === "seen") return null;
   return <Ionicons name="checkmark" size={s(16)} color="rgba(255,255,255,0.7)" />;
 };
 
 // ─── DateDivider ─────────────────────────────────────────────────────────────
 const DateDivider = ({ ts }: { ts: number }) => {
-  const d = new Date(secToMs(ts)), today = new Date();
+  const d     = new Date(secToMs(ts));
+  const today = new Date();
   const diff  = Math.floor((today.getTime() - secToMs(ts)) / 86400000);
-  const label = diff === 0 ? "Today" : diff === 1 ? "Yesterday" : d.toLocaleDateString([], { month: "short", day: "numeric" });
+  const label = diff === 0 ? "Today" : diff === 1 ? "Yesterday"
+    : d.toLocaleDateString([], { month: "short", day: "numeric" });
   return (
     <View style={t.dateDivider}>
       <View style={t.dateLine} />
@@ -188,7 +164,8 @@ const DateDivider = ({ ts }: { ts: number }) => {
 const ReplyQuote = ({ replyToText, replyToSender, myId, otherName }: {
   replyToText: string; replyToSender: string; myId: string; otherName: string;
 }) => {
-  const isImg   = replyToText?.startsWith("__IMG__"), isVid = replyToText?.startsWith("__VID__");
+  const isImg   = replyToText?.startsWith("__IMG__");
+  const isVid   = replyToText?.startsWith("__VID__");
   const isMedia = isImg || isVid;
   const mediaUrl = isMedia ? extractMediaUrl(replyToText) : null;
   const caption  = isMedia ? extractMediaCaption(replyToText) : null;
@@ -202,7 +179,9 @@ const ReplyQuote = ({ replyToText, replyToSender, myId, otherName }: {
             {isImg ? (
               <CachedImage source={{ uri: mediaUrl }} style={t.replyThumbImg} contentFit="cover" />
             ) : (
-              <View style={[t.replyThumbImg, { backgroundColor: "#1C1C1E", alignItems: "center", justifyContent: "center" }]}>
+              <View style={[t.replyThumbImg, {
+                backgroundColor: "#1C1C1E", alignItems: "center", justifyContent: "center",
+              }]}>
                 <Ionicons name="play-circle" size={s(16)} color="#fff" />
               </View>
             )}
@@ -215,7 +194,9 @@ const ReplyQuote = ({ replyToText, replyToSender, myId, otherName }: {
 };
 
 // ─── ReactionsRow ─────────────────────────────────────────────────────────────
-const ReactionsRow = ({ reactionsJson, onReact, msg }: { reactionsJson: string; onReact: (m: any, e: string) => void; msg: any }) => {
+const ReactionsRow = ({ reactionsJson, onReact, msg }: {
+  reactionsJson: string; onReact: (m: any, e: string) => void; msg: any;
+}) => {
   let rx: { userId: string; emoji: string }[] = [];
   try { rx = JSON.parse(reactionsJson); } catch {}
   if (!rx.length) return null;
@@ -224,7 +205,12 @@ const ReactionsRow = ({ reactionsJson, onReact, msg }: { reactionsJson: string; 
   return (
     <View style={t.reactionsRow}>
       {Object.entries(g).map(([emoji, count]) => (
-        <TouchableOpacity key={emoji} style={t.reactionBadge} onPress={() => onReact(msg, emoji)} activeOpacity={0.7}>
+        <TouchableOpacity
+          key={emoji}
+          style={t.reactionBadge}
+          onPress={() => onReact(msg, emoji)}
+          activeOpacity={0.7}
+        >
           <Text style={t.reactionEmoji}>{emoji}</Text>
           {count > 1 && <Text style={t.reactionCount}>{count}</Text>}
         </TouchableOpacity>
@@ -251,7 +237,9 @@ const TypingDots = React.memo(() => {
   }, []);
   return (
     <View style={t.typingDots}>
-      {[dot1, dot2, dot3].map((d, i) => <RNAnimated.View key={i} style={[t.typingDot, { opacity: d }]} />)}
+      {[dot1, dot2, dot3].map((d, i) => (
+        <RNAnimated.View key={i} style={[t.typingDot, { opacity: d }]} />
+      ))}
     </View>
   );
 });
@@ -267,15 +255,16 @@ const MediaBubble = React.memo(({ message, isMe, pending, onPress }: {
   message: string; isMe: boolean; pending: boolean; onPress: () => void;
 }) => {
   const [hasLocalError, setHasLocalError] = React.useState(false);
-  const url     = extractMediaUrl(message);
-  const caption = extractMediaCaption(message);
-  const isVid   = isVideoMsg(message);
+  const url      = extractMediaUrl(message);
+  const caption  = extractMediaCaption(message);
+  const isVid    = isVideoMsg(message);
   const thumbUri = isVid ? cdnVideoThumbUrl(url, 400, 300) : null;
   const { size, loading, error: sizeError } = useRemoteImageSize(isVid ? null : url);
   const hasError    = isVid ? hasLocalError : (hasLocalError || sizeError);
   const mediaWidth  = size?.width  ?? MAX_MEDIA_WIDTH;
   const mediaHeight = size?.height ?? Math.round(MAX_MEDIA_WIDTH * 0.75);
   useEffect(() => { setHasLocalError(false); }, [url]);
+
   return (
     <View style={t.mediaBubbleWrap}>
       <TouchableOpacity onPress={onPress} activeOpacity={0.88} disabled={pending || (hasError && !isVid) || !url}>
@@ -283,7 +272,11 @@ const MediaBubble = React.memo(({ message, isMe, pending, onPress }: {
           {isVid ? (
             <View style={[t.mediaContainer, { width: mediaWidth, height: mediaHeight, backgroundColor: "#111" }]}>
               {thumbUri ? (
-                <CachedImage source={{ uri: thumbUri }} style={[t.mediaImage, { width: mediaWidth, height: mediaHeight }]} contentFit="cover" />
+                <CachedImage
+                  source={{ uri: thumbUri }}
+                  style={[t.mediaImage, { width: mediaWidth, height: mediaHeight }]}
+                  contentFit="cover"
+                />
               ) : (
                 <View style={[t.mediaFallback, { width: mediaWidth, height: mediaHeight }]}>
                   <Ionicons name="videocam-outline" size={s(38)} color="#9CA3AF" />
@@ -318,7 +311,9 @@ const MediaBubble = React.memo(({ message, isMe, pending, onPress }: {
           )}
         </View>
       </TouchableOpacity>
-      {!!caption && <Text style={[t.mediaCaption, isMe ? t.myText : t.otherText]}>{caption}</Text>}
+      {!!caption && (
+        <Text style={[t.mediaCaption, isMe ? t.myText : t.otherText]}>{caption}</Text>
+      )}
     </View>
   );
 });
@@ -350,21 +345,27 @@ const MessageBubble = React.memo(
     })).current;
 
     const iconOpacity = swipeX.interpolate({
-      inputRange: isMe ? [-THRESH, -20, 0] : [0, 20, THRESH],
-      outputRange: isMe ? [1, 0.4, 0] : [0, 0.4, 1],
+      inputRange:  isMe ? [-THRESH, -20, 0] : [0, 20, THRESH],
+      outputRange: isMe ? [1, 0.4, 0]       : [0, 0.4, 1],
       extrapolate: "clamp",
     });
     const iconScale = swipeX.interpolate({
-      inputRange: isMe ? [-THRESH, -20, 0] : [0, 20, THRESH],
-      outputRange: isMe ? [1, 0.7, 0.4] : [0.4, 0.7, 1],
+      inputRange:  isMe ? [-THRESH, -20, 0] : [0, 20, THRESH],
+      outputRange: isMe ? [1, 0.7, 0.4]     : [0.4, 0.7, 1],
       extrapolate: "clamp",
     });
 
     return (
       <View style={[t.msgWrap, isMe ? t.myWrap : t.otherWrap]}>
-        <RNAnimated.View style={[t.swipeReplyIcon, isMe ? t.swipeIconLeft : t.swipeIconRight, { opacity: iconOpacity, transform: [{ scale: iconScale }] }]}>
+
+        <RNAnimated.View style={[
+          t.swipeReplyIcon,
+          isMe ? t.swipeIconLeft : t.swipeIconRight,
+          { opacity: iconOpacity, transform: [{ scale: iconScale }] },
+        ]}>
           <Ionicons name="return-down-back-outline" size={s(18)} color={C.muted} />
         </RNAnimated.View>
+
         <RNAnimated.View style={{ transform: [{ translateX: swipeX }] }} {...pan.panHandlers}>
           <TouchableOpacity
             activeOpacity={item._failed ? 0.6 : 0.95}
@@ -375,7 +376,7 @@ const MessageBubble = React.memo(
               t.bubble,
               isMe ? t.myBubble : t.otherBubble,
               item._pending && { opacity: 0.6 },
-              item._failed && t.failedBubble,
+              item._failed  && t.failedBubble,
               isMediaMsg(item.message) && { padding: 0, overflow: "hidden" },
             ]}
           >
@@ -392,7 +393,10 @@ const MessageBubble = React.memo(
                 message={item.message}
                 isMe={isMe}
                 pending={!!item._pending}
-                onPress={() => onOpenMedia(extractMediaUrl(item.message), isVideoMsg(item.message) ? "video" : "image")}
+                onPress={() => onOpenMedia(
+                  extractMediaUrl(item.message),
+                  isVideoMsg(item.message) ? "video" : "image",
+                )}
               />
             ) : (
               <Text style={[t.msgText, isMe ? t.myText : t.otherText]}>{item.message}</Text>
@@ -413,8 +417,13 @@ const MessageBubble = React.memo(
               </View>
             )}
           </TouchableOpacity>
+
           {!!(item as any).reactions && (item as any).reactions !== "[]" && (
-            <ReactionsRow reactionsJson={(item as any).reactions} onReact={onReact} msg={item} />
+            <ReactionsRow
+              reactionsJson={(item as any).reactions}
+              onReact={onReact}
+              msg={item}
+            />
           )}
         </RNAnimated.View>
       </View>
@@ -445,7 +454,10 @@ const ChatHeader = ({
   const statusText = formatLastSeen(lastSeen);
   return (
     <View style={[ch.header, iBlockedThem && { backgroundColor: "#000", borderBottomColor: "#333" }]}>
-      <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+      <TouchableOpacity
+        onPress={() => router.back()}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
         <Ionicons name="arrow-back" size={s(20)} color={iBlockedThem ? "#fff" : C.text} />
       </TouchableOpacity>
       <View style={{ position: "relative" }}>
@@ -457,12 +469,13 @@ const ChatHeader = ({
         </TouchableOpacity>
         {isOnline && !isOtherTyping && <View style={ch.onlineDot} />}
       </View>
+
       <View style={{ flex: 1 }}>
         <Text style={[ch.headerName, iBlockedThem && { color: "#fff" }]} numberOfLines={1}>
           {name ?? "Chat"}
         </Text>
         {iBlockedThem ? (
-          <Text style={[ch.headerStatus, { color: "#EF4444", fontWeight: "700" }]}>USER BLOCKED</Text>
+          <Text style={[ch.headerStatus, { color: "#EF4444", fontWeight: "600" }]}>USER BLOCKED</Text>
         ) : isOtherTyping ? (
           <Text style={[ch.headerStatus, ch.typingStatus]}>typing...</Text>
         ) : isOnline ? (
@@ -471,7 +484,12 @@ const ChatHeader = ({
           <Text style={ch.headerStatus}>{statusText}</Text>
         ) : null}
       </View>
-      <TouchableOpacity onPress={onMenuPress} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={{ padding: s(4) }}>
+
+      <TouchableOpacity
+        onPress={onMenuPress}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        style={{ padding: s(4) }}
+      >
         <Ionicons name="ellipsis-vertical" size={s(18)} color={iBlockedThem ? "#fff" : C.text} />
       </TouchableOpacity>
     </View>
@@ -481,23 +499,14 @@ const ChatHeader = ({
 // ─── ChatScreen ───────────────────────────────────────────────────────────────
 export default function ChatScreen() {
   const { user } = useAuthh();
+  const myId = user?.id ?? "";
 
-  // ✅ SINGLE useLocalSearchParams call — handles BOTH navigation sources:
-  //    1. Normal in-app navigation:   { chatId, userId, name, image, lastSeen }
-  //    2. Notification deep-link:     { chatId, senderId, senderName, senderImage }
   const params = useLocalSearchParams<{
-    chatId?:      string;
-    userId?:      string;
-    name?:        string;
-    image?:       string;
-    lastSeen?:    string;
-    // Notification params (may be present instead of userId/name/image)
-    senderId?:    string;
-    senderName?:  string;
-    senderImage?: string;
+    chatId?:      string; userId?:      string; name?:        string;
+    image?:       string; lastSeen?:    string;
+    senderId?:    string; senderName?:  string; senderImage?: string;
   }>();
 
-  // ✅ Resolve the other user's ID — works for both navigation sources
   const resolvedUserId  = params.userId  || params.senderId  || "";
   const resolvedName    = params.name    || params.senderName  || "";
   const resolvedImage   = params.image   || params.senderImage || "";
@@ -510,18 +519,18 @@ export default function ChatScreen() {
     paramChatId ? "idle" : "finding"
   );
 
-  const [actionMsg,    setActionMsg]    = useState<ActionMessage | null>(null);
-  const [replyTo,      setReplyTo]      = useState<ChatMessage | null>(null);
-  const [editingMsg,   setEditingMsg]   = useState<ActionMessage | null>(null);
-  const [menuSheet,    setMenuSheet]    = useState(false);
-  const [isBlocked,    setIsBlocked]    = useState(false);
-  const [iBlockedThem, setIBlockedThem] = useState(false);
-  const [pendingMedia, setPendingMedia] = useState<{ uri: string; type: "image" | "video" } | null>(null);
-  const [sendingMedia, setSendingMedia] = useState(false);
-  const [viewerMedia,  setViewerMedia]  = useState<{ uri: string; type: "image" | "video" } | null>(null);
-  const [deleteModal,  setDeleteModal]  = useState<{ msg: ActionMessage; mode: "soft" | "choose" } | null>(null);
-  const [clearChatModal, setClearChatModal] = useState(false);
-  const [reportModal,    setReportModal]    = useState(false);
+  const [actionMsg,       setActionMsg]       = useState<ActionMessage | null>(null);
+  const [replyTo,         setReplyTo]         = useState<ChatMessage | null>(null);
+  const [editingMsg,      setEditingMsg]      = useState<ActionMessage | null>(null);
+  const [menuSheet,       setMenuSheet]       = useState(false);
+  const [isBlocked,       setIsBlocked]       = useState(false);
+  const [iBlockedThem,    setIBlockedThem]    = useState(false);
+  const [pendingMedia,    setPendingMedia]    = useState<{ uri: string; type: "image" | "video" } | null>(null);
+  const [sendingMedia,    setSendingMedia]    = useState(false);
+  const [viewerMedia,     setViewerMedia]     = useState<{ uri: string; type: "image" | "video" } | null>(null);
+  const [deleteModal,     setDeleteModal]     = useState<{ msg: ActionMessage; mode: "soft" | "choose" } | null>(null);
+  const [clearChatModal,  setClearChatModal]  = useState(false);
+  const [reportModal,     setReportModal]     = useState(false);
 
   const setActiveChatId  = useChatStore((s) => s.setActiveChatId);
   const flatRef          = useRef<FlatList>(null);
@@ -533,9 +542,7 @@ export default function ChatScreen() {
     useMessages(chatId);
 
   const { isOtherTyping, onTypingInput, onTypingStop } = useTyping(
-    chatId || null,
-    user?.id ?? null,
-    resolvedUserId || null,   // ✅ uses resolved userId
+    chatId || null, user?.id ?? null, resolvedUserId || null,
   );
 
   const handleLoadOlder = useCallback(async () => {
@@ -545,7 +552,6 @@ export default function ChatScreen() {
     setTimeout(() => { isPaginatingRef.current = false; }, 1000);
   }, [loadOlderMessages, loadingOld, hasMore]);
 
-  // ✅ Block check uses resolvedUserId — works from notification too
   useEffect(() => {
     if (!resolvedUserId || !user?.id) return;
     callFn({ action: "check_block", otherUserId: resolvedUserId })
@@ -555,10 +561,7 @@ export default function ChatScreen() {
 
   useEffect(() => {
     clearAppIconBadge();
-    if (chatId && user?.id) {
-      setActiveChatId(chatId);
-      presenceService.enterChat(chatId);
-    }
+    if (chatId && user?.id) { setActiveChatId(chatId); presenceService.enterChat(chatId); }
     return () => { setActiveChatId(null); presenceService.leaveChat(); };
   }, [chatId, user?.id]);
 
@@ -569,40 +572,34 @@ export default function ChatScreen() {
   useEffect(() => {
     if (!chatId || chatId.trim() === "" || !user?.id) return;
     const uid = user.id;
-
     const unread = messages.filter(
       (m) => m.senderId !== uid && m.status !== "seen" && !m._pending && !m.$id.startsWith("tmp_")
     );
-
     if (unread.length > 0) {
       const fingerprint = unread.map((m) => m.$id).sort().join(",");
       if (fingerprint !== lastMarkedRef.current) {
         lastMarkedRef.current = fingerprint;
         setMessages((prev: ChatMessage[]) =>
           prev.map((m) =>
-            m.senderId !== uid && m.status !== "seen" && !m._pending ? { ...m, status: "seen" as const } : m
+            m.senderId !== uid && m.status !== "seen" && !m._pending
+              ? { ...m, status: "seen" as const } : m
           )
         );
         if (markReadRef.current) clearTimeout(markReadRef.current);
         markReadRef.current = setTimeout(() => {
           callFn({ action: "mark_chat_read", chatId })
-            .catch((err: any) => { console.warn("[MarkRead] failed:", err?.message); lastMarkedRef.current = ""; });
+            .catch((_err: any) => { lastMarkedRef.current = ""; });
         }, 150);
       }
     }
-
     const now = Date.now();
     const hasSentUnseen = messages.some(
       (m) => m.senderId === uid && m.status !== "seen" && !m._pending && !m.$id.startsWith("tmp_")
     );
     if (hasSentUnseen && now - lastSyncRef.current > 4000) {
       lastSyncRef.current = now;
-      supabase
-        .from("messages")
-        .select("id, status")
-        .eq("chat_id", chatId)
-        .eq("sender_id", uid)
-        .eq("status", "seen")
+      supabase.from("messages").select("id, status")
+        .eq("chat_id", chatId).eq("sender_id", uid).eq("status", "seen")
         .then((res) => {
           if (!res.data || res.data.length === 0) return;
           const seenIds = new Set(res.data.map((r: any) => r.id));
@@ -610,8 +607,7 @@ export default function ChatScreen() {
             let dirty = false;
             const next = prev.map((m: any) => {
               if (m.senderId === uid && m.status !== "seen" && seenIds.has(m.$id)) {
-                dirty = true;
-                return { ...m, status: "seen" as const };
+                dirty = true; return { ...m, status: "seen" as const };
               }
               return m;
             });
@@ -621,7 +617,6 @@ export default function ChatScreen() {
     }
   }, [chatId, user?.id, messages]);
 
-  // ✅ Find chat by resolvedUserId when no chatId param given (e.g. from profile screen)
   useEffect(() => {
     if (paramChatId || !resolvedUserId || !user?.id) return;
     let cancelled = false, attempts = 0;
@@ -642,15 +637,57 @@ export default function ChatScreen() {
   }, [resolvedUserId, user?.id, paramChatId]);
 
   useEffect(() => {
-    if (messages.length > 0 && !isPaginatingRef.current && isNearBottomRef.current) {
+    if (messages.length > 0 && !isPaginatingRef.current && isNearBottomRef.current)
       setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 100);
-    }
   }, [messages.length]);
 
   useEffect(() => {
     if (isOtherTyping && isNearBottomRef.current && !isPaginatingRef.current)
       setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 80);
   }, [isOtherTyping]);
+
+  // ─── Voice message handlers ───────────────────────────────────────────────
+
+  const handleVoiceOptimistic = useCallback((
+    tempId: string,
+    durationMs: number,
+    waveform: number[]
+  ) => {
+    const optimisticMsg: ChatMessage = {
+      $id:        tempId,
+      chatId,
+      senderId:   myId,
+      message:    "",
+      type:       "voice",
+      status:     "sent",
+      reactions:  "[]",
+      createdAt:  Math.floor(Date.now() / 1000),
+      deletedFor: [],
+      audioUrl:   "",
+      duration:   Math.round(durationMs / 1000),
+      waveform,
+      _pending:   true,
+    };
+    setMessages((prev: ChatMessage[]) => [...prev, optimisticMsg]);
+  }, [chatId, myId, setMessages]);
+
+  const handleVoiceSuccess = useCallback((
+    tempId: string,
+    audioUrl: string,
+    messageId: string
+  ) => {
+    setMessages((prev: any) => prev.map((m: any) =>
+      m.$id === tempId
+        ? { ...m, $id: messageId, audioUrl, _pending: false }
+        : m
+    ));
+  }, [setMessages]);
+
+  const handleVoiceFailed = useCallback((tempId: string) => {
+    setMessages((prev: any) => prev.map((m: any) =>
+      m.$id === tempId ? { ...m, _pending: false, _failed: true } : m
+    ));
+  }, [setMessages]);
 
   const handleReact = useCallback(async (msg: ChatMessage, emoji: string) => {
     if (!user?.id) return;
@@ -664,9 +701,7 @@ export default function ChatScreen() {
           rx = rx[idx].emoji === emoji
             ? rx.filter((r) => r.userId !== user.id)
             : rx.map((r) => (r.userId === user.id ? { ...r, emoji } : r));
-        } else {
-          rx = [...rx, { userId: user.id, emoji }];
-        }
+        } else { rx = [...rx, { userId: user.id, emoji }]; }
         return { ...m, reactions: JSON.stringify(rx) };
       })
     );
@@ -679,9 +714,7 @@ export default function ChatScreen() {
   }, []);
 
   const handleEdit = useCallback((msg: ActionMessage) => {
-    setEditingMsg(msg);
-    setInputText(msg.message);
-    setReplyTo(null);
+    setEditingMsg(msg); setInputText(msg.message); setReplyTo(null);
     setTimeout(() => inputRef.current?.focus(), 100);
   }, []);
 
@@ -754,11 +787,14 @@ export default function ChatScreen() {
     if (editingMsg) {
       const msgId = editingMsg.$id;
       setInputText(""); setSending(true); setEditingMsg(null);
-      setMessages((prev: any) => prev.map((m: any) => m.$id === msgId ? { ...m, message: text, edited: true } : m));
+      setMessages((prev: any) => prev.map((m: any) =>
+        m.$id === msgId ? { ...m, message: text, edited: true } : m
+      ));
       callFn({ action: "edit_message", messageId: msgId, newText: text })
-        .catch(() => { setMessages((prev: any) => prev.map((m: any) => m.$id === msgId ? { ...m, message: editingMsg.message } : m)); });
-      setSending(false);
-      return;
+        .catch(() => { setMessages((prev: any) => prev.map((m: any) =>
+          m.$id === msgId ? { ...m, message: editingMsg.message } : m
+        )); });
+      setSending(false); return;
     }
     setInputText(""); setSending(true);
     const reply = replyTo; setReplyTo(null);
@@ -779,26 +815,81 @@ export default function ChatScreen() {
     const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
     isNearBottomRef.current = layoutMeasurement.height + contentOffset.y >= contentSize.height - 100;
   };
-
+  const handleVoiceLongPress = useCallback((msg: ChatMessage) => {
+    setActionMsg({
+      $id:        msg.$id,
+      sender_id:  msg.senderId,
+      message:    "",
+       created_at: msg.createdAt,
+    });
+  }, []);
   const renderItem = useCallback(({ item, index }: { item: ChatMessage; index: number }) => {
     if (user?.id && item.deletedFor?.includes(user.id)) return null;
-    const isMe  = item.senderId === user?.id;
+    const isMe  = item.senderId === myId;
     const prev  = messages[index - 1];
     const showD = !prev || new Date(secToMs(item.createdAt)).toDateString() !== new Date(secToMs(prev.createdAt)).toDateString();
+    if ((item as any).type === "voice") {
+      const voiceStatus: VoiceStatus = item._pending
+        ? "uploading"
+        : item._failed
+        ? "failed"
+        : item.status === "seen"
+        ? "seen"
+        : "sent";
+
+      return (
+        <>
+          {showD && <DateDivider ts={item.createdAt} />}
+          <VoiceMessageBubble
+            messageId={item.$id}
+            audioUrl={(item as any).audioUrl ?? ""}
+            durationSec={(item as any).duration ?? 0}
+            waveform={(item as any).waveform ?? []}
+            status={voiceStatus}
+            isMe={isMe}
+            timestamp={formatTime(item.createdAt)}
+            isFailed={!!item._failed}
+            onLongPress={() => handleVoiceLongPress(item)}
+            onReact={(emoji: string) => handleReact(item, emoji)}
+            onReply={() => handleReply(item)}
+            onRetry={() => {
+            }}
+          />
+          {!!(item as any).reactions && (item as any).reactions !== "[]" && (
+            <View style={isMe ? t.myWrap : t.otherWrap}>
+              <ReactionsRow
+                reactionsJson={(item as any).reactions}
+                onReact={handleReact}
+                msg={item}
+              />
+            </View>
+          )}
+        </>
+      );
+    }
+
+    // Text / media branch — unchanged
     return (
       <>
         {showD && <DateDivider ts={item.createdAt} />}
         <MessageBubble
-          item={item} isMe={isMe} myId={user?.id ?? ""}
-          otherName={resolvedName}    // ✅ uses resolved name
+          item={item} isMe={isMe} myId={myId}
+          otherName={resolvedName}
           onRetry={retryMessage}
-          onLongPress={(msg) => setActionMsg({ $id: msg.$id, sender_id: msg.senderId, message: msg.message, created_at: msg.createdAt })}
-          onReact={handleReact} onReply={handleReply}
+          onLongPress={(msg) => setActionMsg({
+            $id: msg.$id, sender_id: msg.senderId,
+            message: msg.message, created_at: msg.createdAt,
+          })}
+          onReact={handleReact}
+          onReply={handleReply}
           onOpenMedia={(uri, type) => setViewerMedia({ uri, type })}
         />
       </>
     );
-  }, [messages, user?.id, retryMessage, handleReact, handleReply, resolvedName]);
+  }, [
+    // CHANGE: Added handleVoiceLongPress to deps so the callback is always fresh.
+    messages, myId, retryMessage, handleReact, handleReply, handleVoiceLongPress, resolvedName, user?.id,
+  ]);
 
   // ─── Loading / error states ───────────────────────────────────────────────
   if (chatState === "finding")
@@ -831,28 +922,20 @@ export default function ChatScreen() {
   return (
     <SafeAreaView style={ch.safe} edges={["top", "bottom"]}>
       <StatusBar barStyle="dark-content" />
-
-      {/* ✅ Header always shows correct name/image/online status from both sources */}
       <ChatHeader
-        name={resolvedName}
-        image={resolvedImage}
+        name={resolvedName} image={resolvedImage}
         onMenuPress={() => setMenuSheet(true)}
-        userId={resolvedUserId}
-        isOtherTyping={isOtherTyping}
-        iBlockedThem={iBlockedThem}
+        userId={resolvedUserId} isOtherTyping={isOtherTyping} iBlockedThem={iBlockedThem}
       />
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
         {loading ? (
           <View style={ch.center}><ActivityIndicator color={C.purple} size="large" /></View>
         ) : (
           <>
-            {iBlockedThem && (
-              <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#111", padding: s(10), gap: s(6) }}>
-                <Ionicons name="ban" size={s(14)} color="#fff" />
-                <Text style={{ color: "#fff", fontSize: ms(13) }}>You have blocked this user</Text>
-              </View>
-            )}
             <FlatList
               ref={flatRef}
               data={messages}
@@ -895,10 +978,13 @@ export default function ChatScreen() {
           chatId={chatId} replyTo={replyTo as any} editingMsg={editingMsg as any}
           onCancelReply={() => setReplyTo(null)}
           onCancelEdit={() => { setEditingMsg(null); setInputText(""); }}
-          myId={user?.id ?? ""} otherName={resolvedName}
+          myId={myId} otherName={resolvedName}
           isBlocked={isBlocked} iBlockedThem={iBlockedThem}
           onUnblock={handleUnblock} blockedName={resolvedName}
           onMediaSend={(uri, type) => setPendingMedia({ uri, type })}
+          onVoiceOptimistic={handleVoiceOptimistic}
+          onVoiceSuccess={handleVoiceSuccess}
+          onVoiceFailed={handleVoiceFailed}
         />
       </KeyboardAvoidingView>
 
@@ -908,6 +994,8 @@ export default function ChatScreen() {
         onSend={handleMediaConfirm} onClose={() => setPendingMedia(null)}
         sending={sendingMedia} otherName={resolvedName ?? "them"}
       />
+
+    
       <MessageActionSheet
         visible={!!actionMsg} message={actionMsg} isMine={actionMsg?.sender_id === user?.id}
         onClose={() => setActionMsg(null)}
@@ -920,7 +1008,9 @@ export default function ChatScreen() {
         visible={menuSheet} onClose={() => setMenuSheet(false)}
         items={[
           { icon: "trash-outline",     label: "Clear Chat",   onPress: handleClearChat },
-          { icon: iBlockedThem ? "checkmark-circle-outline" : "ban-outline", label: iBlockedThem ? "Unblock User" : "Block User", onPress: iBlockedThem ? handleUnblock : handleBlock },
+          { icon: iBlockedThem ? "checkmark-circle-outline" : "ban-outline",
+            label: iBlockedThem ? "Unblock User" : "Block User",
+            onPress: iBlockedThem ? handleUnblock : handleBlock },
           { icon: "flag-outline",      label: "Report User",  onPress: handleReportPress },
         ]}
       />
@@ -941,14 +1031,16 @@ export default function ChatScreen() {
       />
       <ConfirmModal
         visible={clearChatModal}
-        title="Clear Chat?" message={`Delete all messages with ${resolvedName}? This only clears it for you.`}
+        title="Clear Chat?"
+        message={`Delete all messages with ${resolvedName}? This only clears it for you.`}
         confirmLabel="Clear" cancelLabel="Cancel" confirmDestructive icon="chatbubble-ellipses-outline"
         onConfirm={() => { setClearChatModal(false); doClearChat(); }}
         onCancel={() => setClearChatModal(false)}
       />
       <ConfirmModal
         visible={reportModal}
-        title="Report User?" message={`Report ${resolvedName} for inappropriate content? Our team will review this within 24 hours.`}
+        title="Report User?"
+        message={`Report ${resolvedName} for inappropriate content? Our team will review this within 24 hours.`}
         confirmLabel="Report" cancelLabel="Cancel" confirmDestructive icon="flag-outline"
         onConfirm={() => { setReportModal(false); doReport(); }}
         onCancel={() => setReportModal(false)}
@@ -959,61 +1051,147 @@ export default function ChatScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const ch = StyleSheet.create({
-  safe:         { flex: 1, backgroundColor: C.white },
-  header:       { flexDirection: "row", alignItems: "center", gap: s(12), paddingHorizontal: s(16), paddingVertical: vs(10), backgroundColor: C.white, borderBottomColor: C.border },
+  safe: { flex: 1, backgroundColor: C.white },
+
+  header: {
+    flexDirection:     "row",
+    alignItems:        "center",
+    gap:               s(12),
+    paddingHorizontal: s(16),
+    paddingVertical:   vs(10),
+    backgroundColor:   C.white,
+  },
   headerName:   { fontSize: ms(14), fontWeight: "600", color: C.text },
   headerStatus: { fontSize: ms(11), color: C.muted, marginTop: vs(1) },
   typingStatus: { color: C.purple, fontWeight: "600" },
-  onlineDot:    { position: "absolute", bottom: 0, right: 0, width: s(12), height: s(12), borderRadius: s(6), backgroundColor: "#6D4AFF", borderWidth: 2, borderColor: C.white },
-  center:       { flex: 1, alignItems: "center", justifyContent: "center", padding: s(40), bottom: vs(40) },
-  centerText:   { fontSize: ms(14), color: C.muted, textAlign: "center", marginTop: vs(1) },
-  errorTitle:   { fontSize: ms(18), fontWeight: "600", color: C.text },
-  listContent:  { paddingHorizontal: s(12), paddingVertical: vs(12), paddingBottom: vs(8) },
-  loadMoreBtn:  { alignSelf: "center", padding: s(8) },
-  loadMoreText: { color: C.purple, fontSize: ms(13), fontWeight: "600" },
-  emptyChat:    { alignItems: "center", paddingTop: vs(80) },
-  emptyChatText:{ fontSize: ms(15), color: C.muted },
+  onlineDot: {
+    position:        "absolute",
+    bottom:          0,
+    right:           0,
+    width:           s(12),
+    height:          s(12),
+    borderRadius:    s(6),
+    backgroundColor: "#6D4AFF",
+    borderWidth:     2,
+    borderColor:     C.white,
+  },
+  center: {
+    flex:           1,
+    alignItems:     "center",
+    justifyContent: "center",
+    padding:        s(40),
+    gap:            vs(10),
+  },
+  centerText:    { fontSize: ms(14), color: C.muted, textAlign: "center" },
+  errorTitle:    { fontSize: ms(18), fontWeight: "600", color: C.text },
+
+  listContent:   { paddingHorizontal: s(12), paddingVertical: vs(12), paddingBottom: vs(8) },
+  loadMoreBtn:   { alignSelf: "center", padding: s(8) },
+  loadMoreText:  { color: C.purple, fontSize: ms(13), fontWeight: "600" },
+  emptyChat:     { alignItems: "center", paddingTop: vs(80) },
+  emptyChatText: { fontSize: ms(15), color: C.muted },
+
+  blockedBanner: {
+    flexDirection:     "row",
+    alignItems:        "center",
+    backgroundColor:   "#111",
+    paddingHorizontal: s(16),
+    paddingVertical:   vs(8),
+    gap:               s(6),
+  },
 });
 
 const t = StyleSheet.create({
-  msgWrap:          { marginVertical: vs(2), maxWidth: "80%" },
-  myWrap:           { alignSelf: "flex-end" },
-  otherWrap:        { alignSelf: "flex-start" },
-  bubble:           { borderRadius: s(18), paddingHorizontal: s(12), paddingVertical: vs(8), paddingBottom: vs(6), elevation: 1 },
-  myBubble:         { backgroundColor: C.purpleMsg, borderBottomRightRadius: s(4), elevation: 2 },
-  otherBubble:      { backgroundColor: C.otherMsg, borderBottomLeftRadius: s(4), borderColor: C.border, elevation: 3 },
-  failedBubble:     { borderWidth: 1, borderColor: C.red },
-  msgText:          { fontSize: ms(15), lineHeight: ms(21) },
-  myText:           { color: "#fff" },
-  otherText:        { color: C.text },
-  mediaBubbleWrap:  { borderRadius: s(18), overflow: "hidden", marginTop: vs(4), alignSelf: "flex-start" },
-  mediaContainer:   { borderRadius: s(18), overflow: "hidden", backgroundColor: C.otherMsg, alignItems: "center", justifyContent: "center" },
-  mediaImage:       { borderRadius: s(18) },
-  mediaFallback:    { alignItems: "center", justifyContent: "center", backgroundColor: "#374151" },
-  mediaCaption:     { marginTop: vs(6), paddingHorizontal: s(4), fontSize: ms(14), lineHeight: ms(20) },
-  editedLabel:      { fontSize: ms(12), color: C.muted, marginTop: vs(1) },
-  metaRow:          { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", marginTop: vs(3), gap: s(2) },
-  timeText:         { fontSize: ms(10), color: C.muted },
-  replyQuote:       { borderLeftWidth: s(2), borderLeftColor: "rgb(255,255,255)", paddingLeft: s(8), marginBottom: vs(6), backgroundColor: "#6f4bfe", borderRadius: s(6), padding: s(6) },
-  replyQuoteName:   { fontSize: ms(11), color: "rgba(255,255,255,0.8)", fontWeight: "700", marginBottom: vs(2) },
-  replyQuoteText:   { fontSize: ms(12), color: "rgba(255,255,255,0.7)" },
-  mediaLoadingOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.45)", alignItems: "center", justifyContent: "center", borderRadius: s(12) },
-  reactionsRow:     { flexDirection: "row", flexWrap: "wrap", gap: s(4), marginLeft: s(4), bottom: vs(5) },
-  swipeReplyIcon:   { position: "absolute", top: "50%" as any, marginTop: -s(12), zIndex: 0 },
-  swipeIconLeft:    { left: -s(28) },
-  swipeIconRight:   { right: -s(28) },
-  replyThumb:       { borderRadius: s(4), overflow: "hidden" },
-  replyThumbImg:    { width: s(32), height: s(32), borderRadius: s(4) },
-  reactionBadge:    { flexDirection: "row", alignItems: "center", gap: s(3), backgroundColor: "#ffffff", borderRadius: s(12), paddingHorizontal: s(5), paddingVertical: vs(2), borderColor: C.border, elevation: 5, bottom: vs(6), right: s(5) },
-  reactionEmoji:    { fontSize: ms(13) },
-  reactionCount:    { fontSize: ms(11), color: C.muted, fontWeight: "600" },
-  dateDivider:      { flexDirection: "row", alignItems: "center", marginVertical: vs(16), gap: s(10) },
-  dateLine:         { flex: 1, height: 1, backgroundColor: C.border },
-  dateText:         { fontSize: ms(11), color: C.muted, fontWeight: "600" },
+  msgWrap:   { marginVertical: vs(2), maxWidth: "80%" },
+  myWrap:    { alignSelf: "flex-end" },
+  otherWrap: { alignSelf: "flex-start" },
+
+  bubble: {
+    borderRadius:      s(18),
+    paddingHorizontal: s(12),
+    paddingVertical:   vs(8),
+    paddingBottom:     vs(6),
+    elevation:         1,
+  },
+  myBubble:    { backgroundColor: C.purpleMsg, borderBottomRightRadius: s(4), elevation: 2 },
+  otherBubble: { backgroundColor: C.otherMsg, borderBottomLeftRadius: s(4), borderColor: C.border, elevation: 2 },
+  failedBubble:{ borderWidth: 1, borderColor: C.red },
+  msgText:     { fontSize: ms(15), lineHeight: ms(21) },
+  myText:      { color: "#fff" },
+  otherText:   { color: C.text },
+  mediaBubbleWrap: { borderRadius: s(18), overflow: "hidden", marginTop: vs(4), alignSelf: "flex-start" },
+  mediaContainer:  { borderRadius: s(18), overflow: "hidden", backgroundColor: C.otherMsg, alignItems: "center", justifyContent: "center" },
+  mediaImage:      { borderRadius: s(18) },
+  mediaFallback:   { alignItems: "center", justifyContent: "center", backgroundColor: "#374151" },
+  mediaCaption:    { marginTop: vs(6), paddingHorizontal: s(4), fontSize: ms(14), lineHeight: ms(20) },
+  editedLabel:     { fontSize: ms(12), color: C.muted, marginTop: vs(1) },
+  metaRow:         { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", marginTop: vs(3), gap: s(2) },
+  timeText:        { fontSize: ms(10), color: C.muted },
+
+  replyQuote:     { borderLeftWidth: s(2), borderLeftColor: "rgb(255,255,255)", paddingLeft: s(8), marginBottom: vs(6), backgroundColor: "#6f4bfe", borderRadius: s(6), padding: s(6) },
+  replyQuoteName: { fontSize: ms(11), color: "rgba(255,255,255,0.8)", fontWeight: "700", marginBottom: vs(2) },
+  replyQuoteText: { fontSize: ms(12), color: "rgba(255,255,255,0.7)" },
+  replyThumb:     { borderRadius: s(4), overflow: "hidden" },
+  replyThumbImg:  { width: s(32), height: s(32), borderRadius: s(4) },
+
+  mediaLoadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    alignItems:      "center",
+    justifyContent:  "center",
+    borderRadius:    s(12),
+  },
+
+  reactionsRow: {
+    flexDirection: "row",
+    flexWrap:      "wrap",
+    gap:           s(4),
+    marginLeft:    s(4),
+    marginTop:     -vs(4),
+  },
+
+  swipeReplyIcon: {
+    position:  "absolute",
+    top:       "50%" as any,
+    marginTop: -s(12),
+    zIndex:    0,
+  },
+  swipeIconLeft:  { left:  -s(28) },
+  swipeIconRight: { right: -s(28) },
+
+  reactionBadge: {
+    flexDirection:     "row",
+    alignItems:        "center",
+    gap:               s(3),
+    backgroundColor:   "#ffffff",
+    borderRadius:      s(12),
+    paddingHorizontal: s(5),
+    paddingVertical:   vs(2),
+    borderColor:       C.border,
+    elevation:         5,
+  },
+  reactionEmoji: { fontSize: ms(13) },
+  reactionCount: { fontSize: ms(11), color: C.muted, fontWeight: "600" },
+
+  dateDivider: { flexDirection: "row", alignItems: "center", marginVertical: vs(16), gap: s(10) },
+  dateLine:    { flex: 1, height: 1, backgroundColor: C.border },
+  dateText:    { fontSize: ms(11), color: C.muted, fontWeight: "600" },
+
   videoPlayOverlay: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center" },
   videoPlayBtn:     { width: s(50), height: s(50), borderRadius: s(25), backgroundColor: "rgba(0,0,0,0.58)", alignItems: "center", justifyContent: "center" },
-  videoBadge:       { position: "absolute", bottom: vs(7), right: s(7), flexDirection: "row", alignItems: "center", backgroundColor: "rgba(0,0,0,0.52)", paddingHorizontal: s(6), paddingVertical: vs(3), borderRadius: s(5) },
-  videoBadgeTxt:    { color: "#fff", fontSize: ms(11), fontWeight: "600" },
+  videoBadge: {
+    position:          "absolute",
+    bottom:            vs(7),
+    right:             s(7),
+    flexDirection:     "row",
+    alignItems:        "center",
+    backgroundColor:   "rgba(0,0,0,0.52)",
+    paddingHorizontal: s(6),
+    paddingVertical:   vs(3),
+    borderRadius:      s(5),
+  },
+  videoBadgeTxt: { color: "#fff", fontSize: ms(11), fontWeight: "600" },
+
   typingBubbleWrap: { paddingLeft: s(12), paddingVertical: vs(6), alignSelf: "flex-start" },
   typingBubble:     { backgroundColor: C.otherMsg, borderRadius: s(18), borderBottomLeftRadius: s(4), borderWidth: 1, borderColor: C.border, paddingHorizontal: s(14), paddingVertical: vs(10), elevation: 1 },
   typingDots:       { flexDirection: "row", alignItems: "center", gap: s(5) },

@@ -25,14 +25,11 @@ export default {
   plugins: [
     "expo-router",
     "expo-secure-store",
-    "@react-native-firebase/app",
-    "@react-native-firebase/auth",
-    "@react-native-google-signin/google-signin",
 
+    // ✅ expo-notifications — closed properly with its own ]
     [
       "expo-notifications",
       {
-        icon: "./assets/images/notification-icon.png",
         color: "#6D4AFF",
         defaultChannel: "messages",
         androidChannels: [
@@ -69,7 +66,13 @@ export default {
           },
         ],
       },
-    ],
+    ],  // ✅ expo-notifications ends HERE
+
+    // ✅ Firebase plugins — separate entries, not inside expo-notifications
+    "@react-native-firebase/app",
+    "@react-native-firebase/auth",
+    "@react-native-google-signin/google-signin",
+
     [
       "expo-build-properties",
       {
@@ -82,6 +85,8 @@ export default {
               "**/libc++_shared.so",
               "**/libfbjni.so",
               "**/libreactnativejni.so",
+              "**/libfirebase_app.so",
+              "**/libfirebase_messaging.so",
             ],
           },
         },
@@ -95,7 +100,6 @@ export default {
         backgroundColor: "#6D4AFF",
       },
     ],
-
     "expo-asset",
     "expo-video",
   ],

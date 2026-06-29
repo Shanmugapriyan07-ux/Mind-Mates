@@ -4,9 +4,9 @@ import * as ImageManipulator from 'expo-image-manipulator';
 const CLOUD_NAME      = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME    ?? '';
 const UNSIGNED_PRESET = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET ?? 'mindmates_unsigned';
 export const COMPRESS_CONFIG = {
-  profile:   { maxDim: 600,  quality: 0.78, format: ImageManipulator.SaveFormat.JPEG },
-  chat:      { maxDim: 1080, quality: 0.72, format: ImageManipulator.SaveFormat.JPEG },
-  thumbnail: { maxDim: 300,  quality: 0.60, format: ImageManipulator.SaveFormat.JPEG },
+  profile:   { maxDim: 600,  quality: 0.75, format: ImageManipulator.SaveFormat.JPEG },
+  chat:      { maxDim: 800,  quality: 0.70, format: ImageManipulator.SaveFormat.JPEG },
+  thumbnail: { maxDim: 300,  quality: 0.55, format: ImageManipulator.SaveFormat.JPEG },
 } as const;
 export type UploadType = keyof typeof COMPRESS_CONFIG;
 export interface CloudinaryResult {
@@ -24,20 +24,33 @@ export const compressForUpload = async (
   uri:  string,
   type: UploadType = 'chat',
 ): Promise<string> => {
-  if (typeof document !== 'undefined') return uri;
+  if (typeof document !== 'undefined') return uri; // web
   const cfg = COMPRESS_CONFIG[type];
   try {
-    const probe = await ImageManipulator.manipulateAsync(
-      uri, [], { format: ImageManipulator.SaveFormat.JPEG }
-    );
+    // Get dimensions and compress in single call for speed
+    const probe = await ImageManipulator.manipulateAsync(uri, [], { 
+      format: ImageManipulator.SaveFormat.JPEG 
+    });
     const { width, height } = probe;
-    const ops: ImageManipulator.Action[] = Math.max(width, height) > cfg.maxDim
-      ? [width >= height ? { resize: { width: cfg.maxDim } } : { resize: { height: cfg.maxDim } }]
-      : [];
-    const out = await ImageManipulator.manipulateAsync(
-      probe.uri, ops, { compress: cfg.quality, format: cfg.format }
+    
+    // Build resize action if needed
+    const actions: ImageManipulator.Action[] = [];
+    const maxDim = cfg.maxDim;
+    if (Math.max(width, height) > maxDim) {
+      if (width >= height) {
+        actions.push({ resize: { width: maxDim } });
+      } else {
+        actions.push({ resize: { height: maxDim } });
+      }
+    }
+
+    // Single compression pass with all operations
+    const result = await ImageManipulator.manipulateAsync(
+      probe.uri, 
+      actions, 
+      { compress: cfg.quality, format: cfg.format }
     );
-    return out.uri;
+    return result.uri;
   } catch (e) {
     console.warn('[compress] failed, using original:', e);
     return uri;
@@ -147,13 +160,12 @@ const xhrUpload = (
   new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('POST', endpoint, true);
-    xhr.timeout = 300_000;
-
+    // Reduced timeout from 300s to 120s for faster feedback
+    xhr.timeout = 120_000;
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable && onProgress)
-        onProgress(Math.round((e.loaded / e.total) * 100));
+       onProgress(Math.min(100, Math.round((e.loaded / e.total) * 100)));
     };
-
     xhr.onload = () => {
       if (xhr.status === 200) {
         try {
@@ -178,7 +190,7 @@ const xhrUpload = (
       }
     };
     xhr.onerror   = () => reject(new Error('Network error'));
-    xhr.ontimeout = () => reject(new Error('Upload timed out (5 min exceeded)'));
+    xhr.ontimeout = () => reject(new Error('Upload timed out (2 min exceeded)'));
     xhr.send(formData);
   });
 export const cdnProfileUrl = (url: string, size = 200): string =>

@@ -37,12 +37,13 @@ export function useStartup(): UseStartupReturn {
         setPreloadData({ session: null, fontsReady: false, elapsed: 0 });
       }
 
-    try {
-  await hideNativeSplash();
-} catch (error) {
-  console.warn("[Startup] hideNativeSplash failed:", error);
-}
-setPhase("splash_animating");
+      setPhase("splash_animating");
+      await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
+      try {
+        await hideNativeSplash();
+      } catch (error) {
+        console.warn("[Startup] hideNativeSplash failed:", error);
+      }
     })();
   }, []);
   const maybeTransition = useCallback(() => {

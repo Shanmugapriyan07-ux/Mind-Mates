@@ -119,7 +119,7 @@ function GoogleSignInButton({
           ) : (
             <Image
               source={icons.google}
-              style={{ width: s(22), height: s(22), left: s(17) }}
+              style={{ width: s(22), height: s(23), left: s(18) }}
             />
           )}
         </View>
@@ -184,9 +184,9 @@ const styles = StyleSheet.create({
   label: {
     flex: 1,
     textAlign: "center",
-    fontSize: ms(19),
+    fontSize: ms(18),
     fontWeight: "600",
-    left: s(10),
+    left: s(7),
     color: "#3C4043",
     letterSpacing: s(0.15),
     fontFamily: Platform.select({

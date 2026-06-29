@@ -1,62 +1,3 @@
-/**
- * UserProfileScreen.tsx — Production-Grade Responsive Refactor
- *
- * KEY CHANGES vs original:
- * ─────────────────────────────────────────────────────────────────────────────
- * 1.  REMOVED `right: s(110)` from `statsRow`.
- *     This was an absolute positional hack to shift the Mindmates stat to the
- *     left side on one specific screen width. On wider screens (tablets, large
- *     Androids) it pushed the stat off the left edge. On narrow screens it
- *     clipped. Replaced with `alignSelf: "flex-start"` + `marginHorizontal:
- *     s(25)` so it sits flush with the action buttons below it on every device.
- *
- * 2.  REMOVED `right: s(7)` from `locationRow`.
- *     The icon-text row was shifted left with a positional hack instead of
- *     alignment. Now uses `alignSelf: "center"` and lets the natural flex flow
- *     centre it under the name. `right` offsets compound on different rtl/ltr
- *     layouts and break on tablets.
- *
- * 3.  REMOVED `right: s(3)` from `statNumber` and `right: s(7)` from the
- *     inline `friend` icon.
- *     These nudges were compensating for `right: s(110)` on the parent.
- *     With the parent fixed, the children no longer need these counter-offsets.
- *
- * 4.  REMOVED `top: vs(10)` from `header` style.
- *     The header sits inside SafeAreaView with `edges={["top"]}`, so the OS
- *     inset already creates the gap. Adding `top` on top of that doubled the
- *     gap on notched phones and caused clipping under the status bar on others.
- *
- * 5.  REMOVED `top: vs(3)` from the chevron icon inside HeaderBar.
- *     `alignItems: "center"` on the parent row vertically centres the icon
- *     correctly; the positional offset was fighting it.
- *
- * 6.  `pillsWrapper` — REMOVED `right: s(18)` and `width: "110%"`.
- *     110 % width + a negative right offset is a well-known trick to make a
- *     horizontal scroll bleed past the parent padding, but it clips on narrow
- *     screens and overflows on tablets. Replaced with a negative horizontal
- *     margin pattern (`marginHorizontal: -s(14)`) which achieves the same
- *     visual bleed in a composable, safe way.
- *
- * 7.  `scroll` paddingBottom reduced from `vs(250)` to `vs(60)`.
- *     250 vp of bottom padding was pushing content far off-screen on small
- *     phones and creating an empty-space gap on tablets. 60 vp is enough to
- *     clear the navigation bar on all tested devices.
- *
- * 8.  `SkillCard` width changed from `"18%"` to a Flexbox-safe value.
- *     18 % is fine at 375 pt but on 360 pt (many Samsung/Oppo/Vivo) the 5-per-
- *     row grid overflows. Changed to `minWidth: s(70)` with `flex: 0` so each
- *     card sizes to content on every screen width without overflow.
- *
- * 9.  Avatar image: added `resizeMode: "cover"` explicitly to prevent
- *     distortion on non-square images (some OEM cameras produce portrait crops).
- *
- * 10. `header` paddingTop: changed from fixed `vs(10)` to a composable value;
- *     SafeAreaView `edges={["top"]}` handles the status-bar gap.
- *
- * 11. No color, animation, font, shadow, or visual token was changed.
- * ─────────────────────────────────────────────────────────────────────────────
- */
-
 import { useAuthh } from "@/Contexts/authContext";
 import { useConnection } from "@/hooks/useConnection";
 import { useConnectionCount } from "@/hooks/useConnectionCount";
@@ -463,16 +404,15 @@ export default function UserProfileScreen() {
   }, [fetchProfile]);
 
   const isOwnProfile = me?.id === targetUserId;
-
-  // ── Shared header bar ──
-  // CHANGE: removed `top: vs(10)` — SafeAreaView edges={["top"]} handles the
-  //         status-bar inset. The `top` offset was doubling the gap on notched
-  //         phones and pulling content under the status bar on older Androids.
   const HeaderBar = () => (
     <View style={st.header}>
       <TouchableOpacity onPress={() => router.back()}>
-        {/* CHANGE: removed `top: vs(3)` — `alignItems:"center"` on header row handles it */}
-        <Ionicons name="chevron-back" size={s(20)} color="#17191B" />
+        <Ionicons
+          name="chevron-back"
+          size={s(17)}
+          color="#17191B"
+          style={{ marginTop: 8 }}
+        />
       </TouchableOpacity>
       <View style={{ width: s(32) }} />
     </View>
@@ -485,7 +425,7 @@ export default function UserProfileScreen() {
         <StatusBar barStyle="dark-content" />
         <View style={st.header}>
           <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={s(20)} color="#17191B" />
+            <Ionicons name="chevron-back" size={s(16)} color="#17191B" />
           </TouchableOpacity>
           <Text style={st.headerTitle}>Profile</Text>
           <View style={{ width: s(32) }} />
@@ -501,7 +441,7 @@ export default function UserProfileScreen() {
         <StatusBar barStyle="dark-content" />
         <View style={st.header}>
           <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={s(20)} color="#17191B" />
+            <Ionicons name="chevron-back" size={s(16)} color="#17191B" />
           </TouchableOpacity>
           <Text style={st.headerTitle}>Profile</Text>
           <View style={{ width: s(32) }} />
@@ -527,47 +467,46 @@ export default function UserProfileScreen() {
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled
       >
-        {/* ── Avatar block ── */}
         <View style={st.avatarBlock}>
           <View style={st.avatarWrap}>
-            {imageUrl ? (
-              // CHANGE: added resizeMode="cover" — prevents distortion on
-              //         portrait-cropped OEM camera images
-              <Image
-                source={{ uri: imageUrl }}
-                style={st.avatar}
-                resizeMode="cover"
-              />
-            ) : (
-              <View style={st.avatarPlaceholder}>
-                <Text style={st.avatarPlaceholderText}>
-                  {profile.full_name?.charAt(0)?.toUpperCase() ?? "?"}
-                </Text>
-              </View>
-            )}
+            <Pressable
+              onPress={() =>
+                router.push({
+                  pathname: "/subScreens/imagePreview",
+                  params: {
+                    userId: targetUserId,
+                    image: imageUrl || "",
+                    name: profile.full_name,
+                  },
+                })
+              }
+            >
+              {imageUrl ? (
+                <Image
+                  source={{ uri: imageUrl }}
+                  style={st.avatar}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={st.avatarPlaceholder}>
+                  <Text style={st.avatarPlaceholderText}>
+                    {profile.full_name?.charAt(0)?.toUpperCase() ?? "?"}
+                  </Text>
+                </View>
+              )}
+            </Pressable>
           </View>
           <Text style={st.name}>{profile.full_name || "User"}</Text>
           {profile.interested_skills ? (
             <Text style={st.headline}>{profile.interested_skills}</Text>
           ) : null}
           {profile.location ? (
-            /**
-             * CHANGE: removed `right: s(7)` from locationRow.
-             * alignSelf: "center" centres the row under the name without
-             * any side-effect on different screen widths.
-             */
             <View style={st.locationRow}>
               <Ionicons name="location" size={s(14)} color="#6D4AFF" />
               <Text style={st.locationText}>{profile.location}</Text>
             </View>
           ) : null}
         </View>
-
-        {/* ── Stats row ──
-            CHANGE: removed `right: s(110)` positional hack.
-            Now uses alignSelf:"flex-start" + marginHorizontal to sit left-
-            aligned under the avatar block, matching the action buttons.
-            Works identically on 360 pt phones, 390 pt iPhones, and 768 pt tablets. */}
         <View style={st.statsRow}>
           <Pressable
             style={st.statItem}
@@ -578,9 +517,6 @@ export default function UserProfileScreen() {
               })
             }
           >
-            {/* CHANGE: removed `right: s(7)` from icon and `right: s(3)` from
-                statNumber — they were counter-offsets for the parent's right:110.
-                With the parent fixed, simple flex row centering works correctly. */}
             <View style={st.friend}>
               <Ionicons
                 name="people"
@@ -607,7 +543,7 @@ export default function UserProfileScreen() {
               style={st.messageBtn}
               onPress={() =>
                 router.push({
-                  pathname: "/subScreens/chatScreen/[chatId]",
+                  pathname: "/subScreens/chatScreen",
                   params: {
                     userId: targetUserId,
                     name: profile.full_name,
@@ -661,34 +597,24 @@ export default function UserProfileScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const st = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#FFFFFF" },
-
-  // CHANGE: removed `top: vs(10)` — SafeAreaView edges={["top"]} already
-  //         provides the status-bar gap; adding top doubled it on notched phones.
   header: {
     flexDirection: "row",
-    alignItems: "center",              // vertically centres chevron + title
+    alignItems: "center", // vertically centres chevron + title
     justifyContent: "space-between",
     paddingHorizontal: s(25),
-    paddingVertical: vs(10),
+    paddingVertical: vs(8),
     backgroundColor: "#FFFFFF",
   },
   headerTitle: { fontSize: ms(18), fontWeight: "700", color: "#17191B" },
-
-  // CHANGE: paddingBottom reduced from vs(250) → vs(60).
-  //         250 vp was a magic number for one device; 60 is enough to clear
-  //         the nav bar on every tested Android/iOS configuration.
   scroll: { paddingBottom: vs(60), paddingTop: vs(8) },
-
-  // CHANGE: `flexDirection:"row"` + `alignItems:"center"` replaces the three
-  //         counter-offset hacks (right on icon, right on number, right on parent)
   friend: { flexDirection: "row", alignItems: "center" },
 
   avatarBlock: { alignItems: "center", paddingBottom: vs(8) },
   avatarWrap: { position: "relative", marginBottom: vs(3) },
   avatar: {
-    width: s(105),
-    height: s(105),
-    borderRadius: s(55),
+    width: s(102),
+    height: s(102),
+    borderRadius: s(54),
     borderWidth: 3,
     borderColor: "#fff",
     // resizeMode added inline on the Image component above
@@ -710,19 +636,17 @@ const st = StyleSheet.create({
   },
 
   name: {
-    fontSize: ms(18),
+    fontSize: ms(16),
     fontWeight: "500",
     color: "#17191B",
     marginBottom: vs(2),
   },
   headline: {
-    fontSize: ms(15),
+    fontSize: ms(14),
     fontWeight: "500",
     color: "#6B7280",
     marginBottom: vs(4),
   },
-
-  // CHANGE: removed `right: s(7)` — alignSelf:"center" centres without offset
   locationRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -730,10 +654,6 @@ const st = StyleSheet.create({
     gap: s(4),
   },
   locationText: { fontSize: ms(13), color: "#6B7280", fontWeight: "500" },
-
-  // CHANGE: removed `right: s(110)` and `marginHorizontal: s(2)`.
-  // alignSelf:"flex-start" + marginHorizontal keeps the stat left-aligned
-  // under the avatar block consistently on all screen widths.
   statsRow: {
     flexDirection: "row",
     backgroundColor: "#fff",
@@ -746,16 +666,14 @@ const st = StyleSheet.create({
     fontSize: ms(14),
     fontWeight: "700",
     color: "#6D4AFF",
-    // CHANGE: removed `right: s(3)` — counter-offset is no longer needed
   },
   statLabel: { fontSize: ms(14), fontWeight: "500", color: "#6D4AFF" },
 
   actionsRow: {
     flexDirection: "row",
-    gap: s(10),
-    marginHorizontal: s(25),
-    marginTop: vs(7),
-    padding: s(1),
+    gap: s(25),
+    marginHorizontal: s(35),
+    marginTop: vs(8),
   },
 
   connectBtn: {
@@ -793,32 +711,24 @@ const st = StyleSheet.create({
     borderColor: "#E5E7EB",
   },
   editBtnText: { fontSize: ms(15), fontWeight: "600", color: "#6D4AFF" },
-
-  /**
-   * CHANGE: removed `width: "110%"`, `right: s(18)`.
-   * Negative horizontal margin (`marginHorizontal: -s(14)`) is the idiomatic
-   * React Native pattern for bleeding a horizontal ScrollView past the parent's
-   * padding. It composes correctly on 360–430 pt phones and 768 pt+ tablets.
-   * Instagram uses this exact pattern for its story bar.
-   */
   pillsWrapper: {
     flexDirection: "row",
     alignItems: "center",
     marginHorizontal: -s(4),
-    paddingTop: vs(18),
-    paddingBottom: vs(6),
+    paddingTop: vs(14),
+    paddingBottom: vs(4),
   },
   pillsScroll: { flex: 1 },
   pillRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: s(8),
-    paddingHorizontal: s(18),        // padding inside the scroll keeps first/last pill inset
+    paddingHorizontal: s(18), // padding inside the scroll keeps first/last pill inset
   },
 
   pill: {
     paddingHorizontal: s(14),
-    paddingVertical: vs(8),
+    paddingVertical: vs(6),
     borderRadius: s(20),
     borderWidth: 1.5,
     borderColor: "#D1D5DB",
@@ -842,13 +752,6 @@ const st = StyleSheet.create({
     justifyContent: "flex-start",
     gap: s(20),
   },
-
-  /**
-   * CHANGE: removed `width: "18%"` and `maxWidth: s(100)`.
-   * 18 % of 360 pt = 64.8 pt. With gap: s(20) and 5 cards per row this
-   * overflows on small Androids. `minWidth: s(70)` + `flex: 0` lets each card
-   * size to content and wraps cleanly on every screen width.
-   */
   skillCard: {
     alignItems: "center",
     flex: 0,

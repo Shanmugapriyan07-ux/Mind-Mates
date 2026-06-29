@@ -148,7 +148,7 @@ export async function deleteAccount(): Promise<void> {
   if (!user?.id) return;
   if (
     store.phase === 'unauthenticated' ||
-    store.phase === 'deleting'
+    store.phase === 'logging_out'
   ) return;
 
   try {

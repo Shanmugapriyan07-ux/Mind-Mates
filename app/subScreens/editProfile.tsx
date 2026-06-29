@@ -291,7 +291,7 @@ const st = StyleSheet.create({
   // 110 vp of dead space was appearing after the bio field on every device.
   scroll: {
     paddingHorizontal: s(22),
-    paddingBottom:     vs(24),
+    paddingBottom:     vs(80),
   },
 
   subtitle: {
@@ -302,23 +302,13 @@ const st = StyleSheet.create({
     marginBottom: vs(10),
     fontWeight:   '500',
   },
-
-  // CHANGE: removed `padding: vs(2)`.
-  // 2 vp padding × 4 groups = 16 vp of extra cumulative vertical space that
-  // compressed the form on short screens. marginBottom alone handles gap.
   inputGroup: { marginBottom: SPACING.md },
-
   label: {
     fontSize:     ms(14),
     fontWeight:   '600',
     color:        '#374151',
     marginBottom: vs(7),
   },
-
-  // CHANGE: removed fixed `height: vs(49)` → `minHeight: vs(48)` + `paddingVertical: vs(10)`.
-  // Fixed height clips descenders and long glyphs on high-density screens
-  // (Pixel 9, Galaxy S24 Ultra). minHeight keeps the same visual size but
-  // allows the row to expand if the content requires it.
   inputWrapper: {
     flexDirection:   'row',
     alignItems:      'center',
@@ -329,6 +319,7 @@ const st = StyleSheet.create({
     minHeight:       vs(48),
     paddingVertical: vs(10),
     paddingRight:    s(8),
+  
   },
   inputFocused: {
     borderColor:     '#6D4AFF',

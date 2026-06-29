@@ -1,34 +1,70 @@
-import React, { useCallback, useState } from 'react';
+import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
+import { useVoiceUpload, VoiceUploadCallbacks } from "@/hooks/useVoiceUpload";
 import {
-  View, Text, TextInput, TouchableOpacity,
-  StyleSheet, Platform, ActivityIndicator,
-  Pressable, Modal, Dimensions,
-} from 'react-native';
+  clearPermissionCache,
+  isCameraGranted,
+  isLibraryGranted,
+  requestCameraPermissionCached,
+  requestMediaLibraryPermissionCached,
+} from "@/lib/permissionsCache";
+import { ms, s, vs } from "@/utils/scale";
+import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+import React, {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import {
+  ActivityIndicator,
+  Dimensions,
+  Keyboard,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import Animated, {
-  useSharedValue,
   useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
   withSpring,
   withTiming,
-} from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
-import { s, vs, ms } from '@/utils/scale';
-const { height: SH } = Dimensions.get('window');
+} from "react-native-reanimated";
+
+const { height: SH } = Dimensions.get("window");
+
 const T = {
-  pill:      '#2C2C2E',
-  white:     '#FFFFFF',
-  grey:      '#8E8E93',
-  purple:    '#6D4AFF',
-  amber:     '#F59E0B',
-  red:       '#FF3B30',
-  pageBg:    '#000000',
-  sheetBg:   '#1C1C1E',
-  circle:    '#3A3A3C',
+  pill:    "#2C2C2E",
+  white:   "#FFFFFF",
+  grey:    "#8E8E93",
+  purple:  "#6D4AFF",
+  amber:   "#F59E0B",
+  red:     "#FF3B30",
+  circle:  "#3A3A3C",
+  recBg:   "#1C1C1E",
+  cancelBg:"#2C2C2E",
 };
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const fmtTime = (ms: number) => {
+  const s   = Math.floor(ms / 1000);
+  const min = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${min}:${String(sec).padStart(2, "0")}`;
+};
+
+// ─── MediaSheet ───────────────────────────────────────────────────────────────
 const MediaSheet = ({
   visible, onClose, onImage, onVideo, onCamera,
 }: {
-  visible:  boolean;
+  visible: boolean;
   onClose:  () => void;
   onImage:  () => void;
   onVideo:  () => void;
@@ -36,36 +72,32 @@ const MediaSheet = ({
 }) => {
   const slideAnim = useSharedValue(SH);
   const fadeAnim  = useSharedValue(0);
+
   React.useEffect(() => {
     if (visible) {
-      fadeAnim.value  = withTiming(1,  { duration: 1 });
-      slideAnim.value = withSpring(1,  { damping: 200, stiffness: 400,mass: 0.8 });
+      fadeAnim.value  = withTiming(1, { duration: 150 });
+      slideAnim.value = withSpring(0, { damping: 22, stiffness: 280, mass: 0.6 });
     } else {
-      fadeAnim.value  = withTiming(1,  { duration: 10 });
-      slideAnim.value = withTiming(SH, { duration: 20 });
+      fadeAnim.value  = withTiming(0, { duration: 120 });
+      slideAnim.value = withTiming(SH, { duration: 200 });
     }
   }, [visible]);
+
   const backdropStyle = useAnimatedStyle(() => ({ opacity: fadeAnim.value }));
   const sheetStyle    = useAnimatedStyle(() => ({
     transform: [{ translateY: slideAnim.value }],
   }));
+
   if (!visible) return null;
+
   const opts = [
-    {
-      key: 'photo', icon: 'image-outline', label: 'Photo Library',
-      sub: 'Choose from your photos', iconColor: '#ffffff', iconBg: '#6D4AFF',
-      onPress: onImage,
-    },
-    {
-      key: 'video', icon: 'videocam-outline', label: 'Video',
-      sub: 'Choose a video clip', iconColor: '#ffffff', iconBg: '#6D4AFF',
-      onPress: onVideo,
-    },
-    ...(Platform.OS !== 'web' ? [{
-      key: 'camera', icon: 'camera-outline', label: 'Camera',
-      sub: 'Take a photo or video', iconColor: '#ffffff', iconBg: '#6D4AFF', onCamera,
-    }] : []),
+    { key: "photo",  icon: "image-outline",   label: "Photo Library", sub: "Choose from your photos", onPress: onImage  },
+    { key: "video",  icon: "videocam-outline", label: "Video",         sub: "Choose a video clip",     onPress: onVideo  },
+    ...(Platform.OS !== "web"
+      ? [{ key: "camera", icon: "camera-outline", label: "Camera", sub: "Take a photo or video", onPress: onCamera }]
+      : []),
   ];
+
   return (
     <Modal transparent animationType="none" visible={visible}
       onRequestClose={onClose} statusBarTranslucent>
@@ -74,12 +106,12 @@ const MediaSheet = ({
       </Animated.View>
       <Animated.View style={[stt.sheet, sheetStyle]}>
         <View style={stt.handle} />
-        {opts.map((opt, i) => (
+        {opts.map(opt => (
           <View key={opt.key}>
-            <TouchableOpacity style={stt.row} activeOpacity={0.7}
-              onPress={() => { onClose(); if (opt.onPress) setTimeout(opt.onPress, 80); }}>
-              <View style={[stt.iconBox, { backgroundColor: opt.iconBg }]}>
-                <Ionicons name={opt.icon as any} size={22} color={opt.iconColor} />
+            <TouchableOpacity style={stt.sheetRow} activeOpacity={0.7}
+              onPress={() => { onClose(); opt.onPress(); }}>
+              <View style={[stt.iconBox, { backgroundColor: T.purple }]}>
+                <Ionicons name={opt.icon as any} size={22} color="#fff" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={stt.rowLabel}>{opt.label}</Text>
@@ -95,10 +127,168 @@ const MediaSheet = ({
     </Modal>
   );
 };
+
+// ─── PulsingDot ───────────────────────────────────────────────────────────────
+const PulsingDot = React.memo(() => {
+  const scale = useSharedValue(1);
+
+  useEffect(() => {
+    scale.value = withRepeat(
+      withSequence(
+        withTiming(1.5, { duration: 600 }),
+        withTiming(1.0, { duration: 600 }),
+      ),
+      -1,
+      false,
+    );
+    return () => { scale.value = 1; };
+  }, []);
+
+  const style = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return <Animated.View style={[rec.dot, style]} />;
+});
+
+// ─── WaveBars ─────────────────────────────────────────────────────────────────
+const WaveBars = React.memo(({ bars }: { bars: number[] }) => {
+  const display = bars.length >= 24
+    ? bars.slice(-24)
+    : [...Array(24 - bars.length).fill(5), ...bars];
+
+  return (
+    <View style={rec.waveRow}>
+      {display.map((h, i) => {
+        const px = 3 + (Math.max(3, Math.min(100, h)) / 100) * 24;
+        return (
+          <View
+            key={i}
+            style={[rec.bar, {
+              height: px,
+              opacity: 0.3 + (i / display.length) * 0.7,
+            }]}
+          />
+        );
+      })}
+    </View>
+  );
+});
+
+// ─── RecordingRow ─────────────────────────────────────────────────────────────
+const RecordingRow = React.memo(({
+  elapsedMs,
+  liveBars,
+  onCancel,
+  onSend,
+  sending,
+}: {
+  elapsedMs: number;
+  liveBars:  number[];
+  onCancel:  () => void;
+  onSend:    () => void;
+  sending:   boolean;
+}) => {
+  return (
+    <View style={rec.root}>
+      <TouchableOpacity
+        style={rec.cancelBtn}
+        onPress={onCancel}
+        activeOpacity={0.75}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        <Ionicons name="trash-outline" size={20} color={T.red} />
+      </TouchableOpacity>
+
+      <View style={rec.pill}>
+        <PulsingDot />
+        <Text style={rec.timer}>{fmtTime(elapsedMs)}</Text>
+        <WaveBars bars={liveBars} />
+      </View>
+
+      <TouchableOpacity
+        style={rec.sendBtn}
+        onPress={onSend}
+        disabled={sending}
+        activeOpacity={0.75}
+      >
+        {sending
+          ? <ActivityIndicator size="small" color={T.white} />
+          : <Ionicons name="send" size={20} color={T.white} />
+        }
+      </TouchableOpacity>
+    </View>
+  );
+});
+
+const rec = StyleSheet.create({
+  root: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: s(8),
+    minHeight: vs(46),
+  },
+  cancelBtn: {
+    width: s(44),
+    height: s(44),
+    borderRadius: s(22),
+    backgroundColor: "#2C1B1B",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pill: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: T.recBg,
+    borderRadius: s(26),
+    paddingHorizontal: s(12),
+    paddingVertical: vs(6),
+    minHeight: vs(46),
+    gap: s(8),
+  },
+  dot: {
+    width: s(9),
+    height: s(9),
+    borderRadius: s(5),
+    backgroundColor: T.red,
+  },
+  timer: {
+    fontSize: ms(14),
+    fontWeight: "700",
+    color: T.red,
+    fontVariant: ["tabular-nums"],
+    minWidth: s(36),
+  },
+  waveRow: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: s(2),
+    height: s(28),
+    overflow: "hidden",
+  },
+  bar: {
+    width: s(3),
+    borderRadius: s(2),
+    backgroundColor: T.purple,
+  },
+  sendBtn: {
+    width: s(44),
+    height: s(44),
+    borderRadius: s(22),
+    backgroundColor: T.purple,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+});
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 interface ReplyMsg { $id: string; message: string; senderId: string; }
 interface EditMsg  { $id: string; message: string; }
+
 export interface Props {
-  value:         string;
+  value: string;
   onChangeText:  (text: string) => void;
   onSend:        () => void;
   sending:       boolean;
@@ -115,119 +305,256 @@ export interface Props {
   iBlockedThem?: boolean;
   onUnblock?:    () => void;
   blockedName?:  string;
-  onMediaSend?:  (uri: string, type: 'image' | 'video') => void;
+  onMediaSend?:  (uri: string, type: "image" | "video") => void;
+  onVoiceOptimistic?: (tempId: string, durationMs: number, waveform: number[]) => void;
+  onVoiceSuccess?:    (tempId: string, audioUrl: string, messageId: string) => void;
+  onVoiceFailed?:     (tempId: string) => void;
 }
+
+// ─── ChatInput ────────────────────────────────────────────────────────────────
 export const ChatInput = ({
   value, onChangeText, onSend, sending, disabled,
-  inputRef,
-  replyTo, editingMsg, onCancelReply, onCancelEdit,
+  inputRef, chatId, replyTo, editingMsg,
+  onCancelReply, onCancelEdit,
   myId, otherName,
   isBlocked, iBlockedThem, onUnblock, blockedName,
   onMediaSend,
+  onVoiceOptimistic, onVoiceSuccess, onVoiceFailed,
 }: Props) => {
-  const [showMedia, setShowMedia] = useState(false);
-  const hasText  = useSharedValue(0);  
-  const focused  = useSharedValue(0);  
+
+  const [showMedia,    setShowMedia]    = useState(false);
+  const [isRecording,  setIsRecording]  = useState(false);
+  const [voiceSending, setVoiceSending] = useState(false);
+
+  const actionInFlightRef = useRef(false);
+
+  // CHANGE: keep a local ref to the TextInput so we can blur it ourselves
+  // before starting recording, even if the parent didn't pass inputRef.
+  const localInputRef = useRef<TextInput>(null);
+  const resolvedInputRef = (inputRef as React.RefObject<TextInput>) ?? localInputRef;
+
+  const recorder          = useVoiceRecorder();
+  const { enqueueUpload } = useVoiceUpload();
+
+  const hasText = useSharedValue(0);
+  const focused = useSharedValue(0);
+
   const sendStyle = useAnimatedStyle(() => ({
-    width:      withTiming(hasText.value ? 36 : 0,  { duration: 10 }),
-    opacity:    withTiming(hasText.value ? 1  : 0,  { duration: 10 }),
-    marginLeft: withTiming(hasText.value ? 6  : 0,  { duration: 10 }),
-    transform:  [{ scale: withSpring(hasText.value ? 1 : 0.4,
-   { damping: 200, stiffness: 340 }) }],
+    width:      withTiming(hasText.value ? 36 : 0, { duration: 150 }),
+    opacity:    withTiming(hasText.value ? 1  : 0, { duration: 150 }),
+    marginLeft: withTiming(hasText.value ? 6  : 0, { duration: 150 }),
+    transform:  [{ scale: withSpring(hasText.value ? 1 : 0.4, { damping: 200, stiffness: 340 }) }],
+    overflow: "hidden" as const,
   }));
+
+  const micStyle = useAnimatedStyle(() => ({
+    width:      withTiming(hasText.value ? 0  : 36, { duration: 150 }),
+    opacity:    withTiming(hasText.value ? 0  : 1,  { duration: 150 }),
+    marginLeft: withTiming(hasText.value ? 0  : 6,  { duration: 150 }),
+    overflow: "hidden" as const,
+  }));
+
   const plusStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: withSpring(focused.value ? 0.70 : 1,
-      { damping: 200, stiffness: 300 }) }],
-    backgroundColor: withTiming(
-      focused.value ? '#565658' : T.circle,
-      { duration: 0 }
-    ),
+    transform: [{ scale: withSpring(focused.value ? 0.9 : 1, { damping: 200, stiffness: 300 }) }],
+    backgroundColor: withTiming(focused.value ? "#565658" : T.circle, { duration: 0 }),
   }));
+
   const handleFocus = useCallback(() => { focused.value = 1; }, []);
   const handleBlur  = useCallback(() => { focused.value = 0; }, []);
+
   const handleChangeText = useCallback((text: string) => {
     onChangeText(text);
     hasText.value = text.trim().length > 0 ? 1 : 0;
   }, [onChangeText]);
+
   const handleSend = useCallback(() => {
     if (!value.trim() || sending || disabled) return;
     onSend();
     hasText.value = 0;
   }, [value, sending, disabled, onSend]);
-  const pickImage = useCallback(async () => {
+
+  // ── Voice: TAP MIC → dismiss keyboard first, then start recording ─────────
+  const handleMicPress = useCallback(async () => {
+    if (actionInFlightRef.current) return;
+    actionInFlightRef.current = true;
+
     try {
-      const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!granted) {
-        console.warn('❌ Photo library permission denied');
+      // CHANGE: Step 1 — blur the TextInput so the keyboard starts animating
+      // down immediately, before we do anything else. This is the same strategy
+      // WhatsApp / Telegram use: input loses focus → keyboard dismisses →
+      // recording row appears in the freed space. No jarring layout jump.
+      resolvedInputRef.current?.blur();
+      focused.value = 0;
+
+      // CHANGE: Step 2 — dismiss keyboard imperatively. On Android the blur()
+      // alone is sometimes not enough if the keyboard is in "adjustResize" mode.
+      Keyboard.dismiss();
+
+      // CHANGE: Step 3 — give the keyboard animation a head-start (one frame)
+      // before switching to the recording row. This prevents the input row and
+      // recording row from fighting over the same space while the keyboard is
+      // still animating down, which is what caused the jump.
+      await new Promise<void>((resolve) => setTimeout(resolve, 80));
+
+      const ok = await recorder.startRecording();
+      if (ok) {
+        setIsRecording(true);
+      }
+    } finally {
+      actionInFlightRef.current = false;
+    }
+  }, [recorder, resolvedInputRef]);
+
+  // ── Voice: SEND ───────────────────────────────────────────────────────────
+  const handleVoiceSend = useCallback(async () => {
+    if (actionInFlightRef.current || !isRecording) return;
+    actionInFlightRef.current = true;
+    setVoiceSending(true);
+
+    try {
+      if (recorder.elapsedMs < 1000) {
+        await recorder.stopAndDiscard();
+        setIsRecording(false);
+        setVoiceSending(false);
+        actionInFlightRef.current = false;
         return;
       }
+
+      const result = await recorder.stopAndSave();
+      setIsRecording(false);
+      setVoiceSending(false);
+
+      if (!result || !chatId) {
+        actionInFlightRef.current = false;
+        return;
+      }
+
+      const callbacks: VoiceUploadCallbacks = {
+        onOptimistic: (tempId) =>
+          onVoiceOptimistic?.(tempId, result.durationMs, result.waveform),
+        onSuccess: (tempId, audioUrl, messageId) =>
+          onVoiceSuccess?.(tempId, audioUrl, messageId),
+        onFailed: (tempId) =>
+          onVoiceFailed?.(tempId),
+      };
+
+      enqueueUpload({
+        localUri:      result.uri,
+        durationMs:    result.durationMs,
+        waveform:      result.waveform,
+        chatId,
+        senderId:      myId,
+        replyToId:     replyTo?.$id      ?? null,
+        replyToText:   replyTo?.message  ?? null,
+        replyToSender: replyTo?.senderId ?? null,
+      }, callbacks);
+
+    } catch (e) {
+      console.error("[ChatInput] handleVoiceSend error:", e);
+      await recorder.stopAndDiscard().catch(() => {});
+      setIsRecording(false);
+      setVoiceSending(false);
+    } finally {
+      actionInFlightRef.current = false;
+    }
+  }, [isRecording, recorder, chatId, myId, replyTo, enqueueUpload,
+      onVoiceOptimistic, onVoiceSuccess, onVoiceFailed]);
+
+  // ── Voice: CANCEL ─────────────────────────────────────────────────────────
+  const handleVoiceCancel = useCallback(async () => {
+    if (actionInFlightRef.current) return;
+    actionInFlightRef.current = true;
+
+    try {
+      await recorder.stopAndDiscard();
+      setIsRecording(false);
+      setVoiceSending(false);
+    } finally {
+      actionInFlightRef.current = false;
+    }
+  }, [recorder]);
+
+  useEffect(() => {
+    return () => {
+      recorder.stopAndDiscard().catch(() => {});
+    };
+  }, []);
+
+  // ── Media pickers ─────────────────────────────────────────────────────────
+  const pickImage = useCallback(async () => {
+    try {
+      const granted = isLibraryGranted()
+        ? true : await requestMediaLibraryPermissionCached();
+      if (!granted) { console.warn("❌ Photo library permission denied"); return; }
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes:    ImagePicker.MediaTypeOptions.Images, 
-        allowsEditing: true,
-        quality:       0.8,
-        aspect:        [4, 3],
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false, quality: 0.85, exif: false,
       });
-      if (!result.canceled && result.assets && result.assets.length > 0) {
+      if (!result.canceled && result.assets?.length > 0) {
         const asset = result.assets[0];
-        if (asset?.uri) {
-          console.log('✅ Image URI:', asset.uri.slice(0, 80));
-          onMediaSend?.(asset.uri, 'image');
-        }
+        if (asset?.uri) onMediaSend?.(asset.uri, "image");
       }
     } catch (e: any) {
-      console.error('❌ pickImage failed:', e?.message);
+      const msg = e?.message || "";
+      if (msg.includes("permission") || msg.includes("rejected")) clearPermissionCache();
+      console.error("❌ pickImage failed:", msg);
     }
   }, [onMediaSend]);
+
   const pickVideo = useCallback(async () => {
     try {
-      const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const granted = isLibraryGranted()
+        ? true : await requestMediaLibraryPermissionCached();
       if (!granted) return;
-
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes:       ImagePicker.MediaTypeOptions.Videos,
-        allowsEditing:    true,
-        videoMaxDuration: 60,
+        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        allowsEditing: false, videoMaxDuration: 60, quality: 0.85, exif: false,
       });
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
+      if (!result.canceled && result.assets?.length > 0) {
         const asset = result.assets[0];
-        if (asset?.uri) {
-          console.log('✅ Video URI:', asset.uri.slice(0, 80));
-          onMediaSend?.(asset.uri, 'video');
-        }
+        if (asset?.uri) onMediaSend?.(asset.uri, "video");
       }
     } catch (e: any) {
-      console.error('❌ pickVideo failed:', e?.message);
+      const msg = e?.message || "";
+      if (msg.includes("permission") || msg.includes("rejected")) clearPermissionCache();
+      console.error("❌ pickVideo failed:", msg);
     }
   }, [onMediaSend]);
+
   const openCamera = useCallback(async () => {
-    if (Platform.OS === 'web') return;
+    if (Platform.OS === "web") return;
     try {
-      const { granted } = await ImagePicker.requestCameraPermissionsAsync();
-      if (!granted) return;
-
+      const granted = isCameraGranted()
+        ? true : await requestCameraPermissionCached();
+      if (!granted) { console.warn("❌ Camera permission denied"); return; }
       const result = await ImagePicker.launchCameraAsync({
-        allowsEditing: true, quality: 0.8,
+        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        allowsEditing: false, quality: 0.7, exif: false,
+        videoQuality: ImagePicker.UIImagePickerControllerQualityType.Medium,
+        ...(Platform.OS === "ios" && {
+          presentationStyle: ImagePicker.UIImagePickerPresentationStyle.FULL_SCREEN,
+        }),
       });
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
+      if (!result.canceled && result.assets?.length > 0) {
         const asset = result.assets[0];
         if (asset?.uri) {
-          const type = asset.type === 'video' ? 'video' : 'image';
-          onMediaSend?.(asset.uri, type);
+          onMediaSend?.(asset.uri, asset.type === "video" ? "video" : "image");
         }
       }
     } catch (e: any) {
-      console.error('❌ openCamera failed:', e?.message);
+      const msg = e?.message || "";
+      if (msg.includes("permission") || msg.includes("rejected")) clearPermissionCache();
+      console.error("❌ openCamera failed:", msg);
     }
   }, [onMediaSend]);
 
+  // ── Blocked state ─────────────────────────────────────────────────────────
   if (isBlocked) {
     return (
       <View style={st.blockedWrap}>
         <Text style={st.blockedText}>
           {iBlockedThem
-            ? `You blocked ${blockedName ?? 'this person'}. Unblock to message.`
+            ? `You blocked ${blockedName ?? "this person"}. Unblock to message.`
             : `You can't message this person.`}
         </Text>
         {iBlockedThem && (
@@ -238,8 +565,12 @@ export const ChatInput = ({
       </View>
     );
   }
+
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <View style={st.wrapper}>
+
+      {/* Edit context bar */}
       {editingMsg && (
         <View style={[st.contextBar, { borderLeftColor: T.amber }]}>
           <View style={{ flex: 1 }}>
@@ -252,11 +583,13 @@ export const ChatInput = ({
           </TouchableOpacity>
         </View>
       )}
+
+      {/* Reply context bar */}
       {replyTo && !editingMsg && (
         <View style={[st.contextBar, { borderLeftColor: T.purple }]}>
           <View style={{ flex: 1 }}>
             <Text style={[st.ctxName, { color: T.purple }]}>
-              {replyTo.senderId === myId ? 'You' : otherName}
+              {replyTo.senderId === myId ? "You" : otherName}
             </Text>
             <Text style={st.ctxText} numberOfLines={1}>{replyTo.message}</Text>
           </View>
@@ -266,47 +599,75 @@ export const ChatInput = ({
           </TouchableOpacity>
         </View>
       )}
-      <View style={st.row}>
-        <Animated.View style={[st.plusCircle, plusStyle]}>
-          <TouchableOpacity
-            style={st.plusTouch}
-            onPress={() => setShowMedia(true)}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="add" size={22} color={T.white} />
-          </TouchableOpacity>
-        </Animated.View>
-        <View style={st.pill}>
-          <TextInput
-            ref={inputRef}
-            value={value}
-            onChangeText={handleChangeText}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-            placeholder="Type a message..."
-            placeholderTextColor={T.grey}
-            multiline
-            maxLength={1000}
-            style={[st.input, { maxHeight: 120 }]}
-            blurOnSubmit={false}
-            selectionColor={T.purple}
-            keyboardAppearance="dark"
-          />
-          <Animated.View style={[st.iconSlot, sendStyle]}>
+
+      {/* ── RECORDING ROW ── */}
+      {isRecording ? (
+        <RecordingRow
+          elapsedMs={recorder.elapsedMs}
+          liveBars={recorder.liveBars}
+          onCancel={handleVoiceCancel}
+          onSend={handleVoiceSend}
+          sending={voiceSending}
+        />
+      ) : (
+        /* ── NORMAL INPUT ROW ── */
+        <View style={st.row}>
+
+          <Animated.View style={[st.plusCircle, plusStyle]}>
             <TouchableOpacity
-              style={st.sendBtn}
-              onPress={handleSend}
-              disabled={!value.trim() || sending || disabled}
+              style={st.plusTouch}
+              onPress={() => setShowMedia(true)}
               activeOpacity={0.8}
             >
-              {sending
-                ? <ActivityIndicator size="small" color="#000" />
-                : <Ionicons name="send" size={18} color="#6D4AFF" />
-              }
+              <Ionicons name="add" size={22} color={T.white} />
             </TouchableOpacity>
           </Animated.View>
+
+          <View style={st.pill}>
+            <TextInput
+              ref={resolvedInputRef}
+              value={value}
+              onChangeText={handleChangeText}
+              onFocus={handleFocus}
+              onBlur={handleBlur}
+              placeholder="Type a message..."
+              placeholderTextColor={T.grey}
+              multiline
+              maxLength={1000}
+              style={[st.input, { maxHeight: 120 }]}
+              blurOnSubmit={false}
+              selectionColor={T.purple}
+              keyboardAppearance="dark"
+            />
+
+            <Animated.View style={[st.iconSlot, sendStyle]}>
+              <TouchableOpacity
+                style={st.sendBtn}
+                onPress={handleSend}
+                disabled={!value.trim() || sending || disabled}
+                activeOpacity={0.8}
+              >
+                {sending
+                  ? <ActivityIndicator size="small" color="#000" />
+                  : <Ionicons name="send" size={18} color={T.purple} />
+                }
+              </TouchableOpacity>
+            </Animated.View>
+
+            <Animated.View style={[st.iconSlot, micStyle]}>
+              <TouchableOpacity
+                style={st.micBtn}
+                onPress={handleMicPress}
+                activeOpacity={0.75}
+              >
+                <Ionicons name="mic" size={25} color={'#633dfc'} style={{marginRight:s(1)}}/>
+              </TouchableOpacity>
+            </Animated.View>
+          </View>
+
         </View>
-      </View>
+      )}
+
       <MediaSheet
         visible={showMedia}
         onClose={() => setShowMedia(false)}
@@ -320,57 +681,62 @@ export const ChatInput = ({
 
 export default ChatInput;
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const st = StyleSheet.create({
   wrapper: {
     backgroundColor: T.white,
     paddingHorizontal: s(12),
     paddingTop: vs(5),
-    paddingBottom: Platform.OS === 'ios' ? vs(28) : vs(10),
-    shadowColor: '#000',
+    paddingBottom: Platform.OS === "ios" ? vs(28) : vs(10),
+    shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: s(10),
     shadowOffset: { width: 0, height: 5 },
   },
-
   contextBar: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#ffffff',
-    paddingHorizontal: s(12), paddingVertical: vs(8),
-    borderLeftWidth: s(3), borderRadius: s(8),
-    marginBottom: vs(8), gap: vs(8),
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#ffffff",
+    paddingHorizontal: s(12),
+    paddingVertical: vs(8),
+    borderLeftWidth: s(3),
+    borderRadius: s(8),
+    marginBottom: vs(8),
+    gap: vs(8),
   },
-  ctxName: { fontSize: ms(11), fontWeight: '700', marginBottom: vs(1) },
+  ctxName: { fontSize: ms(11), fontWeight: "700", marginBottom: vs(1) },
   ctxText: { fontSize: ms(12), color: T.grey },
-
   row: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
+    flexDirection: "row",
+    alignItems: "flex-end",
     gap: s(8),
   },
   plusCircle: {
-    width: s(44), height: s(44),
-    borderRadius: s(42),
+    width: s(43),
+    height: s(43),
+    borderRadius: s(40),
     backgroundColor: T.circle,
-    alignItems: 'center',
-    justifyContent: 'center',
-    bottom:vs(2)
-    
+    alignItems: "center",
+    justifyContent: "center",
+    bottom: vs(2),
   },
   plusTouch: {
-    width: s(44), height: s(44),
-    alignItems: 'center', justifyContent: 'center',
+    width: s(44),
+    height: s(44),
+    alignItems: "center",
+    justifyContent: "center",
   },
   pill: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
+    flexDirection: "row",
+    alignItems: "flex-end",
     backgroundColor: T.pill,
     borderRadius: s(26),
     paddingLeft: s(16),
     paddingRight: s(6),
     paddingVertical: vs(6),
     minHeight: vs(46),
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOpacity: 0.25,
     shadowRadius: s(8),
     shadowOffset: { width: 0, height: vs(1) },
@@ -382,55 +748,102 @@ const st = StyleSheet.create({
     color: T.white,
     paddingVertical: vs(4),
     lineHeight: vs(22),
-    alignItems:'center',
-    justifyContent:'center',
-    bottom:vs(4)
+    alignItems: "center",
+    justifyContent: "center",
+    bottom: vs(4),
   },
   iconSlot: {
     height: s(34),
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: vs(2),
   },
   sendBtn: {
-    width: s(33), height: s(33),
+    width: s(33),
+    height: s(33),
     borderRadius: s(17),
     backgroundColor: T.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    right:1
+    alignItems: "center",
+    justifyContent: "center",
+    right: 1,
+  },
+  micBtn: {
+    width: s(33),
+    height: s(33),
+    borderRadius: s(17),
+    // backgroundColor: T.purple,
+    alignItems: "center",
+    justifyContent: "center",
   },
   blockedWrap: {
-    backgroundColor: '#2C1B1B', padding: s(14), alignItems: 'center',
-    borderTopWidth: s(1), borderTopColor: '#3D2020',
+    backgroundColor: "#2C1B1B",
+    padding: s(14),
+    alignItems: "center",
+    borderTopWidth: s(1),
+    borderTopColor: "#3D2020",
   },
-  blockedText: { color: T.red, fontSize: ms(13), fontWeight: '600', textAlign: 'center' },
-  unblockText: { color: T.red, fontWeight: '700', fontSize: ms(13), marginTop: vs(4) },
+  blockedText: {
+    color: T.red,
+    fontSize: ms(13),
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  unblockText: {
+    color: T.red,
+    fontWeight: "700",
+    fontSize: ms(13),
+    marginTop: vs(4),
+  },
 });
+
 const stt = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: "rgba(0,0,0,0.6)",
   },
   sheet: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
+    position: "absolute",
+    bottom: 0, left: 0, right: 0,
     backgroundColor: T.white,
-    borderTopLeftRadius: s(22), borderTopRightRadius: s(22),
+    borderTopLeftRadius: s(22),
+    borderTopRightRadius: s(22),
     paddingBottom: s(40),
-    shadowColor: '#000', shadowOpacity: 0.6, shadowRadius: s(24), elevation: s(24),
+    shadowColor: "#000",
+    shadowOpacity: 0.6,
+    shadowRadius: s(24),
+    elevation: s(24),
   },
   handle: {
-    width: s(36), height: s(4), borderRadius: s(2), backgroundColor: '#d6d6d6',
-    alignSelf: 'center', marginTop: vs(10), marginBottom: vs(8),
+    width: s(36), height: s(4),
+    borderRadius: s(2),
+    backgroundColor: "#d6d6d6",
+    alignSelf: "center",
+    marginTop: vs(10), marginBottom: vs(8),
   },
-  row: { flexDirection: 'row', alignItems: 'center', gap: s(14), paddingHorizontal: s(20), paddingVertical: vs(15), marginTop: vs(4) },
-  iconBox: { width: s(46), height: s(46), borderRadius: s(13), alignItems: 'center', justifyContent: 'center' },
-  rowLabel: { fontSize: ms(15), fontWeight: '500', color: '#000000' },
+  sheetRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: s(14),
+    paddingHorizontal: s(20),
+    paddingVertical: vs(15),
+    marginTop: vs(4),
+  },
+  iconBox: {
+    width: s(46), height: s(46),
+    borderRadius: s(13),
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  rowLabel: { fontSize: ms(15), fontWeight: "500", color: "#000000" },
   rowSub:   { fontSize: ms(12), color: T.grey, marginTop: vs(2) },
   cancelBtn: {
-    marginHorizontal: s(16), marginTop: vs(14), paddingVertical: vs(16),
-    borderRadius: s(14), backgroundColor: '#e6e6e6', alignItems: 'center',
+    marginHorizontal: s(16),
+    marginTop: vs(14),
+    paddingVertical: vs(16),
+    borderRadius: s(14),
+    backgroundColor: "#e6e6e6",
+    alignItems: "center",
   },
-  cancelText: { fontSize: ms(16), fontWeight: '600', color: '#555' },
+  cancelText: { fontSize: ms(16), fontWeight: "600", color: "#555" },
 });

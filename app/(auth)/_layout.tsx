@@ -5,13 +5,11 @@ export default function AuthLayout() {
     >
       <Stack.Screen name="onBoarding" options={{
         headerShown: false,
-        lazy: false,
         freezeOnBlur: true,
         contentStyle: { backgroundColor: '#FFFFFF' },
       }}/>
          <Stack.Screen name="Google" options={{
       headerShown: false,
-      lazy: false,
       freezeOnBlur: true, 
       animation:'none',
        contentStyle: { backgroundColor: '#FFFFFF' },

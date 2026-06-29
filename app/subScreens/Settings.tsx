@@ -49,6 +49,7 @@ import { useProfile } from "@/Contexts/profileContext";
 import { useOpenLink } from "@/hooks/useOpenLink";
 import { deleteAccount, logout } from "@/services/authServices";
 import { clearAppIconBadge } from "@/services/badgeService";
+import { useAuthStore } from "@/stores/authStore";
 import { ms, s, vs } from "@/utils/scale";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -130,13 +131,6 @@ const openEmail = () => {
     () => Alert.alert("Cannot open mail app", `Email: ${SUPPORT.email}`),
   );
 };
-
-// ─── HelpModal ────────────────────────────────────────────────────────────────
-/**
- * CHANGE: Removed all `bottom` / positional offsets from child views.
- * Layout now relies purely on `marginBottom` which composes correctly across
- * every screen size and density.
- */
 const HelpModal = ({
   visible,
   onClose,
@@ -152,10 +146,7 @@ const HelpModal = ({
     statusBarTranslucent
   >
     <Pressable style={h.backdrop} onPress={onClose}>
-      {/* stopPropagation keeps taps inside the card from closing the modal */}
       <Pressable style={h.card} onPress={(e) => e.stopPropagation()}>
-
-        {/* CHANGE: removed `bottom: vs(10)` — marginBottom alone controls gap */}
         <View style={h.headerRow}>
           <Text style={h.title}>Help & Support</Text>
           <TouchableOpacity
@@ -166,11 +157,7 @@ const HelpModal = ({
             <Ionicons name="close" size={s(20)} color="#6D4AFF" />
           </TouchableOpacity>
         </View>
-
-        {/* CHANGE: removed `bottom: vs(14)` — marginBottom handles spacing */}
         <Text style={h.subtitle}>How would you like to contact us?</Text>
-
-        {/* CHANGE: removed `bottom: vs(14)` — marginBottom handles spacing */}
         <View style={h.contactBox}>
           <Text style={h.contactTitle}>MindMates Support – 24/7</Text>
           <Text style={h.contactPhone}>{SUPPORT.phone}</Text>
@@ -244,14 +231,13 @@ const h = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: vs(8),
+    marginBottom: vs(4),
+    bottom:vs(2)
   },
-
   title: {
-    fontSize: ms(18),
+    fontSize: ms(19),
     fontWeight: "700",
     color: "#6D4AFF",
-    // CHANGE: removed `right: s(3)` — flex space-between already positions this
   },
   closeBtn: {
     width: s(30),
@@ -259,17 +245,12 @@ const h = StyleSheet.create({
     borderRadius: s(15),
     alignItems: "center",
     justifyContent: "center",
-    // CHANGE: removed `left: s(10)` — flex layout handles positioning
   },
-
-  // CHANGE: removed `bottom: vs(14)` — only marginBottom remains
   subtitle: {
-    fontSize: ms(12),
+    fontSize: ms(13),
     color: "#6B7280",
     marginBottom: vs(14),
   },
-
-  // CHANGE: removed `bottom: vs(14)` — only marginBottom remains
   contactBox: {
     backgroundColor: "#F5F5F7",
     borderRadius: s(16),
@@ -314,7 +295,7 @@ const h = StyleSheet.create({
   },
   emailRow: {
     flexDirection: "row",
-    alignItems: "center",           // vertically centres icon + text — no `top` offset needed
+    alignItems: "center",         
     justifyContent: "center",
     gap: s(6),
   },
@@ -324,8 +305,6 @@ const h = StyleSheet.create({
     fontWeight: "500",
   },
 });
-
-// ─── SettingsScreen ───────────────────────────────────────────────────────────
 export default function SettingsScreen() {
   const { user } = useAuthh();
   const { clearProfile } = useProfile();
@@ -337,62 +316,53 @@ export default function SettingsScreen() {
   const [helpVisible, setHelpVisible] = useState(false);
   const { openByKey } = useOpenLink();
   useAppLinks();
-
   const tap = useCallback(
     (key: any, name: any) => () => openByKey(key, name),
     [openByKey],
   );
-
   const T = { text: "#111827", sub: "#6B7280", icon: "#6D4AFF" };
-
-  const handleLogout = useCallback(async () => {
-    setShowLogout(false);
-    setLogoutLoading(true);
-    showLogoutLoader("Signing out…");
-    await waitForModalPaint();
-    const uid = user?.id;
-    if (uid) clearCache(uid).catch(() => {});
-    clearAppIconBadge().catch(() => {});
-    clearProfile();
-    try {
-      await logout();
-    } catch (e: any) {
-      console.warn("logout failed:", e);
-      hideLogoutLoader();
-    } finally {
-      setLogoutLoading(false);
-    }
-  }, [user?.id, clearProfile]);
-
-  const handleDelete = useCallback(async () => {
-    if (confirmText.toLowerCase() !== "delete") {
-      Toast.show({ type: "error", text1: "Type DELETE to confirm" });
-      return;
-    }
-    setShowDelete(false);
-    setDeleteLoading(true);
-    showLogoutLoader("Deleting account…");
-    await waitForModalPaint();
-    const uid = user?.id;
-    if (uid) clearCache(uid).catch(() => {});
-    clearAppIconBadge().catch(() => {});
-    clearProfile();
-    try {
-      await deleteAccount();
-    } catch (e: any) {
-      console.error("[handleDelete] error:", e?.message);
-      hideLogoutLoader();
-      Toast.show({
-        type: "error",
-        text1: "Something went wrong",
-        text2: "Please try again",
-      });
-    } finally {
-      setDeleteLoading(false);
-      setConfirmText("");
-    }
-  }, [confirmText, clearProfile]);
-
+const handleLogout = useCallback(async () => {
+  setShowLogout(false);
+  useAuthStore.getState().beginLogout();
+  const uid = user?.id;
+  if (uid) clearCache(uid).catch(() => {});
+  clearAppIconBadge().catch(() => {});
+  clearProfile();
+  try {
+    await logout();
+  } catch (e: any) {
+    console.warn('logout failed:', e);
+    useAuthStore.getState().setPhase('unauthenticated');
+  } finally {
+    setLogoutLoading(false);
+  }
+}, [user?.id, clearProfile]);
+const handleDelete = useCallback(async () => {
+  if (confirmText.toLowerCase() !== 'delete') {
+    Toast.show({ type: 'error', text1: 'Type DELETE to confirm' });
+    return;
+  }
+  setShowDelete(false);
+  useAuthStore.getState().beginDelete();
+  const uid = user?.id;
+  if (uid) clearCache(uid).catch(() => {});
+  clearAppIconBadge().catch(() => {});
+  clearProfile();
+  try {
+    await deleteAccount();
+  } catch (e: any) {
+    console.error('[handleDelete] error:', e?.message);
+    useAuthStore.getState().setPhase('unauthenticated');
+    Toast.show({
+      type: 'error',
+      text1: 'Something went wrong',
+      text2: 'Please try again',
+    });
+  } finally {
+    setDeleteLoading(false);
+    setConfirmText('');
+  }
+}, [confirmText, clearProfile]);
   const rows = [
     {
       icon: <Ionicons name="person-outline" size={s(24)} color={T.icon} />,
@@ -423,30 +393,21 @@ export default function SettingsScreen() {
       onPress: tap("TERMS_OF_SERVICE", "Terms of Service"),
     },
   ];
-
   return (
     <SafeAreaView style={st.safe}>
       <StatusBar barStyle="dark-content" />
-
-      {/* ── Header ── */}
       <View style={st.header}>
         <Pressable onPress={() => router.back()} style={st.headerBack}>
           {/* CHANGE: removed `top: vs(1)` — alignItems:"center" on header handles it */}
           <Ionicons name="chevron-back" size={s(18)} color={T.text} />
         </Pressable>
         <Text style={st.headerTitle}>Settings</Text>
-        {/* Spacer keeps title centred without absolute positioning */}
         <View style={{ width: s(36) }} />
       </View>
-
-      {/* ── Content ──
-          CHANGE: `flexGrow: 1` ensures version label is always below the last
-          row on short AND tall screens without a magic `top` offset. */}
       <ScrollView
         contentContainerStyle={st.scroll}
         showsVerticalScrollIndicator={false}
       >
-        {/* Primary settings rows */}
         <View style={st.section}>
           {rows.map((row) => (
             <React.Fragment key={row.label}>
@@ -464,8 +425,6 @@ export default function SettingsScreen() {
             </React.Fragment>
           ))}
         </View>
-
-        {/* Danger-zone rows */}
         <View style={st.section}>
           <TouchableOpacity
             style={st.row}
@@ -484,7 +443,6 @@ export default function SettingsScreen() {
               <ActivityIndicator size="small" color="#6D4AFF" />
             )}
           </TouchableOpacity>
-
           <TouchableOpacity
             style={st.row}
             onPress={() => setShowDelete(true)}
@@ -505,17 +463,9 @@ export default function SettingsScreen() {
             )}
           </TouchableOpacity>
         </View>
-
-        {/* CHANGE: replaced `top: vs(270)` with `marginTop: vs(32)`.
-            The old value was a magic number tuned for one specific device height
-            and broke on all others. marginTop composes correctly everywhere. */}
         <Text style={st.version}>MindMates V.11.33</Text>
       </ScrollView>
-
-      {/* ── Help Modal ── */}
       <HelpModal visible={helpVisible} onClose={() => setHelpVisible(false)} />
-
-      {/* ── Logout Dialog ── */}
       <Portal>
         <Dialog
           visible={showLogout}
@@ -547,8 +497,6 @@ export default function SettingsScreen() {
           </Dialog.Actions>
         </Dialog>
       </Portal>
-
-      {/* ── Delete Dialog ── */}
       <Portal>
         <Dialog
           visible={showDelete}
@@ -564,8 +512,6 @@ export default function SettingsScreen() {
               This is <Text style={{ fontWeight: "700" }}>permanent</Text>. All
               your data, connections and chats will be deleted.
             </Text>
-            {/* CHANGE: removed `bottom: vs(10)` from dialogText; replaced with
-                explicit marginTop so the gap is additive, not subtractive */}
             <Text style={[st.dialogText, { marginTop: vs(12) }]}>
               Type <Text style={{ fontWeight: "700" }}>DELETE</Text> to confirm:
             </Text>
@@ -577,8 +523,8 @@ export default function SettingsScreen() {
               autoCapitalize="characters"
               style={{
                 marginTop: vs(8),
-                backgroundColor: "#2d2b2b",
-                color: "#ffffff",
+                backgroundColor: "#ffffff",
+                color: "#000000",
                 fontSize: ms(14),
               }}
               outlineColor="#ffffff"
@@ -612,17 +558,14 @@ export default function SettingsScreen() {
     </SafeAreaView>
   );
 }
-
-// ─── Screen styles ────────────────────────────────────────────────────────────
 const st = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: "#fff",
   },
-
   header: {
     flexDirection: "row",
-    alignItems: "center",              // vertically centres chevron + title
+    alignItems: "center",          
     justifyContent: "space-between",
     paddingHorizontal: s(16),
     paddingVertical: vs(14),
@@ -638,27 +581,21 @@ const st = StyleSheet.create({
     fontWeight: "500",
     color: "#111827",
   },
-
-  // CHANGE: `flexGrow: 1` lets the version label always be below all rows
-  //         without a fixed `top` magic-number push.
   scroll: {
     flexGrow: 1,
     paddingBottom: vs(40),
   },
-
   section: {
     marginBottom: vs(8),
     backgroundColor: "#fff",
   },
-
   row: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: s(20),
     paddingVertical: vs(16),
-    minHeight: vs(64),              // ensures tap target ≥ 44 pt on all densities
+    minHeight: vs(64),             
   },
-
   iconWrap: {
     width: s(38),
     height: s(38),
@@ -666,10 +603,7 @@ const st = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: s(16),
-    // CHANGE: removed explicit backgroundColor "#ffffff" here — let section
-    //         background show through; specific rows override as needed
   },
-
   rowText: { flex: 1 },
   rowLabel: {
     fontSize: ms(14),
@@ -681,14 +615,10 @@ const st = StyleSheet.create({
     fontSize: ms(11),
     color: "#6B7280",
   },
-
-  // CHANGE: replaced `top: vs(270)` with `marginTop: vs(32)`.
-  //         Magic pixel offsets only work on the single device they were tuned
-  //         for. marginTop flows naturally after list content on every device.
   version: {
     textAlign: "center",
     fontSize: ms(12),
-    marginTop: vs(32),
+    marginTop: vs(50),
     color: "#6D4AFF",
     fontWeight: "500",
   },
@@ -710,7 +640,7 @@ const st = StyleSheet.create({
     fontSize: ms(14),
     lineHeight: ms(22),
     textAlign: "center",
-    color: "#201f1f",
+    color: "#000000",
   },
 
   dialogActions: {
