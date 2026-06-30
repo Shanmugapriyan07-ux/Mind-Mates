@@ -1,10 +1,3 @@
-/**
- * DiscoverScreen — Fully Responsive Refactor
- * ─────────────────────────────────────────────────────────────────────────────
- * All `bottom`, `top`, `left`, `right` positional hacks replaced with proper
- * Flexbox layout. Every change is annotated with a numbered CHANGE comment.
- */
-
 import { ProfileAvatar }          from "@/components/Profileavatar";
 import images                     from "@/constants/images";
 import { useAuthh }               from "@/Contexts/authContext";

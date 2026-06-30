@@ -1,46 +1,3 @@
-/**
- * SkillSelection.tsx — Production-Responsive Refactor
- *
- * Changes (zero visual design changes):
- *
- * 1. FIX: Dimensions.get('window') at module level → useWindowDimensions() inside component.
- *    Module-level Dimensions is computed once at bundle evaluation time. On foldables
- *    (Samsung Z Fold), split-screen, or orientation changes it returns a stale value.
- *    CARD_SIZE is now derived inside the component and passed as a prop to SkillCard.
- *
- * 2. FIX: row: { top: vs(5) } removed.
- *    This is a positional offset applied to EVERY grid row — it shifts all cards
- *    down by vs(5) without moving the column wrapper, creating a visual gap at the
- *    top of the grid and clipping the last row on small screens.
- *    → Replaced with paddingTop: vs(5) on gridContent so the grid has breathing
- *      room from the header without offsetting individual rows.
- *
- * 3. FIX: tabs: { width: "106%" } removed.
- *    This was a hack to let the horizontal ScrollView overflow past the header's
- *    paddingHorizontal boundary so the last tab isn't clipped. The correct fix is
- *    to set paddingRight in tabsContent and ensure marginHorizontal: 0 on the tabs
- *    ScrollView so it stretches to the full SafeAreaView width, with the header
- *    padding only applying to the search bar above it.
- *    → tabs now uses marginHorizontal: -s(20) to cancel the header padding, and
- *      tabsContent gets paddingHorizontal: s(20) so tabs still start from the same
- *      visual inset. This is the React Native Paper / Expo Go pattern.
- *
- * 4. FIX: bottomArea paddingBottom: vs(28) → useSafeAreaInsets().bottom + vs(12).
- *    vs(28) is not enough on iPhone 14 Pro (home indicator is ~34px) and too much
- *    on Android devices with button navigation (where inset is 0).
- *    The insets value handles all cases: 0 on old Androids, ~20px on gesture
- *    Androids (Pixel 7, Samsung S24), ~34px on iPhone X and later.
- *
- * 5. FIX: SkillCard cardSize prop — CARD_SIZE passed from parent as prop so the
- *    memo'd component always has the current screen width, not a stale module value.
- *
- * KEPT:
- * - All animation logic (press scale sequence) — untouched
- * - All handleContinue logic — untouched
- * - All SKILLS data and CATEGORIES — untouched
- * - All colors, typography, gradients — untouched
- */
-
 import { useAuthh } from "@/Contexts/authContext";
 import { useProfile } from "@/Contexts/profileContext";
 import { supabase, TABLES } from "@/lib/supabase";
@@ -67,16 +24,13 @@ import {
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { setProfileCompleting } from "../_layout";
-
 type Category = "Passion" | "Design" | "Tech" | "Sports" | "Business" | "Fun";
-
 interface Skill {
   id: number;
   name: string;
   category: Category;
   icon: string;
 }
-
 const CATEGORIES: Category[] = [
   "Passion",
   "Design",
@@ -85,7 +39,6 @@ const CATEGORIES: Category[] = [
   "Business",
   "Fun",
 ];
-
 const SKILLS: Skill[] = [
   { id: 1, name: "Art", category: "Passion", icon: "color-palette-outline" },
   { id: 2, name: "Painting", category: "Passion", icon: "brush-outline" },
@@ -157,10 +110,6 @@ const SKILLS: Skill[] = [
   { id: 124, name: "Music Production", category: "Passion", icon: "headset-outline" },
   { id: 128, name: "Skincare", category: "Passion", icon: "sparkles-outline" },
 ];
-
-// ─── SkillCard ────────────────────────────────────────────────────────────────
-// CHANGE 5: cardSize is now a prop (derived from live useWindowDimensions in parent)
-// instead of the module-level stale CARD_SIZE constant.
 const SkillCard = React.memo(
   ({
     skill,
@@ -174,7 +123,6 @@ const SkillCard = React.memo(
     cardSize: number;
   }) => {
     const scale = React.useRef(new Animated.Value(1)).current;
-
     const handlePress = useCallback(() => {
       Animated.sequence([
         Animated.timing(scale, { toValue: 0.93, duration: 80, useNativeDriver: true }),
@@ -204,7 +152,6 @@ const SkillCard = React.memo(
     );
 
     return (
-      // cardSize drives the width — reactive to screen dimensions
       <TouchableOpacity activeOpacity={0.85} onPress={handlePress} style={{ width: cardSize }}>
         <Animated.View style={{ transform: [{ scale }], opacity: 1 }}>
           {isSelected ? (
@@ -219,13 +166,8 @@ const SkillCard = React.memo(
     );
   },
 );
-
-// ─── SkillSelection ───────────────────────────────────────────────────────────
 export default function SkillSelection() {
-  // CHANGE 1: Live dimensions — reactive to foldables, orientation, split-screen
   const { width } = useWindowDimensions();
-
-  // CHANGE 4: Runtime safe area bottom inset
   const insets = useSafeAreaInsets();
   const CARD_SIZE = (width - s(52)) / 2;
 
@@ -531,8 +473,6 @@ const st = StyleSheet.create({
 
   emptyWrap: { alignItems: "center", paddingVertical: vs(40) },
   emptyText: { fontSize: ms(15), fontWeight: "600", color: "#aaa" },
-
-  // CHANGE 4: paddingBottom removed from StyleSheet — injected inline with insets
   bottomArea: {
     paddingHorizontal: s(20),
     paddingTop:        vs(10),

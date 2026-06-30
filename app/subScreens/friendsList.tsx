@@ -1,28 +1,3 @@
-/**
- * ConnectionsListScreen.tsx
- *
- * CHANGE: Added one-time swipe-hint nudge (same pattern as SwipeableRow
- * and NotificationsScreen).
- *
- * How it works here (different from the other two screens):
- *   • This screen uses react-native-gesture-handler's <Swipeable> — not a
- *     custom PanResponder. Swipeable exposes openLeft() / openRight() /
- *     close() on its ref, but NOT a partial-nudge API.
- *   • So we drive the hint with a plain Animated.Value (hintX) on the card
- *     wrapper, exactly like NotificationsScreen — fully independent of the
- *     Swipeable driver.
- *   • Sequence: 2 s delay → card slides right +18 px (spring, reveals left
- *     Remove action) → hold 350 ms → spring back → markSeen().
- *   • The Remove action panel sits behind the card (absolute, left: 0) and
- *     becomes visible during the nudge via its own opacity interpolation on
- *     hintX — same free-peek trick as NotificationsScreen.
- *   • isMyProfile guard: hint only plays when the viewer is on their own
- *     connections list (i.e. the Remove action actually exists).
- *   • Storage key: 'connections_swipe_hint_seen_v1' — independent of the
- *     other two screens.
- *   • Everything else (logic, Swipeable, styles) is UNCHANGED.
- */
-
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity,
@@ -40,13 +15,11 @@ import { s, vs, ms }                   from '@/utils/scale';
 import { callFn }                      from '@/lib/callFn';
 import AsyncStorage                    from '@react-native-async-storage/async-storage';
 
-// ─── Types (unchanged) ────────────────────────────────────────────────────────
 interface ConnectedUser {
   user_id: string; full_name: string; profile_image: string | null;
   location: string; skills: string; bio: string; connection_id: string;
 }
 
-// ─── Tokens (unchanged) ───────────────────────────────────────────────────────
 const C = {
   white:    '#FFFFFF',
   purple:   '#6D4AFF',
@@ -56,7 +29,6 @@ const C = {
   skeleton: '#F0F0F3',
 };
 
-// ─── Helpers (unchanged) ──────────────────────────────────────────────────────
 const parseSkills = (sk: string): string[] =>
   sk ? sk.split(',').map(x => x.trim()).filter(Boolean) : [];
 
@@ -107,7 +79,6 @@ const SwipeHintManager = (() => {
   return { tryRegister, markSeen };
 })();
 
-// ─── SkeletonRow (unchanged) ──────────────────────────────────────────────────
 const SkeletonRow = ({ opacity = 1 }: { opacity?: number }) => (
   <View style={[sl.card, { opacity }]}>
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: s(12) }}>
@@ -120,14 +91,12 @@ const SkeletonRow = ({ opacity = 1 }: { opacity?: number }) => (
   </View>
 );
 
-// ─── Swipe action buttons (unchanged) ─────────────────────────────────────────
 const ProfileAction = ({ onPress }: { onPress: () => void }) => (
   <TouchableOpacity style={sl.profileAction} onPress={onPress} activeOpacity={0.8}>
     <Ionicons name="person-outline" size={s(20)} color="#fff" />
     <Text style={sl.actionText}>Profile</Text>
   </TouchableOpacity>
 );
-
 const RemoveAction = ({ onPress }: { onPress: () => void }) => (
   <TouchableOpacity style={sl.removeAction} onPress={onPress} activeOpacity={0.8}>
     <Ionicons name="person-remove-outline" size={s(20)} color="#fff" />
@@ -135,7 +104,6 @@ const RemoveAction = ({ onPress }: { onPress: () => void }) => (
   </TouchableOpacity>
 );
 
-// ─── ConnectionCard ───────────────────────────────────────────────────────────
 const ConnectionCard = React.memo(({
   item, isMyProfile, onRemove, isFirstCard,
 }: {
@@ -147,33 +115,20 @@ const ConnectionCard = React.memo(({
   const skills      = parseSkills(item.skills).slice(0, 3);
   const ref         = useRef<Swipeable>(null);
   const hintPlaying = useRef(false);   // CHANGE
-
-  // CHANGE: separate Animated.Value drives the hint nudge only.
-  // The Swipeable itself is untouched — we never call openLeft() because
-  // Swipeable has no partial-open API and calling openLeft() then close()
-  // instantly would look like a flash rather than a smooth nudge.
   const hintX = useRef(new Animated.Value(0)).current;
-
-  // CHANGE: opacity of the hint peek panel, interpolated from hintX so the
-  // remove icon fades in as the card slides right — free, no extra animation.
   const hintPanelOpacity = hintX.interpolate({
     inputRange:  [0, HINT_NUDGE],
     outputRange: [0, 0.85],
     extrapolate: 'clamp',
   });
-
   const goToProfile = () => {
     ref.current?.close();
     router.push({ pathname: '/subScreens/userProfile', params: { userId: item.user_id } });
   };
   const handleRemove = () => { ref.current?.close(); onRemove?.(item); };
-
-  // CHANGE: playHint — card slides RIGHT to peek the left Remove panel.
-  // Sequence: 2 s delay → nudge right → hold 350 ms → spring back → markSeen.
   const playHint = useCallback(() => {
     if (hintPlaying.current) return;
     hintPlaying.current = true;
-
     setTimeout(() => {
       Animated.sequence([
         Animated.spring(hintX, {
@@ -197,10 +152,6 @@ const ConnectionCard = React.memo(({
       });
     }, 2000);
   }, [hintX]);
-
-  // CHANGE: only the first card AND only when it's the user's own list
-  // (Remove action only exists on isMyProfile). No point hinting a
-  // profile-only swipe since Profile is already reachable via tap.
   useEffect(() => {
     if (isFirstCard && isMyProfile) {
       SwipeHintManager.tryRegister(playHint);
@@ -208,17 +159,11 @@ const ConnectionCard = React.memo(({
   }, [isFirstCard, isMyProfile, playHint]);
 
   return (
-    // CHANGE: wrapper View clips the hint panel peek and holds both the
-    // absolute hint panel and the Animated card wrapper.
     <View style={sl.cardWrapper}>
-
-      {/* CHANGE: hint peek panel — Remove action colors, visible only during nudge */}
       <Animated.View style={[sl.hintPanel, { opacity: hintPanelOpacity }]}>
         <Ionicons name="person-remove-outline" size={s(20)} color="#fff" />
         <Text style={sl.actionText}>Remove</Text>
       </Animated.View>
-
-      {/* CHANGE: hintX wrapper slides the entire Swipeable card right during hint */}
       <Animated.View style={{ transform: [{ translateX: hintX }] }}>
         <Swipeable
           ref={ref}
@@ -253,7 +198,6 @@ const ConnectionCard = React.memo(({
     </View>
   );
 });
-
 // ─── Header (unchanged) ───────────────────────────────────────────────────────
 const Header = ({
   count, isMyProfile, ownerName,
@@ -280,7 +224,6 @@ const Header = ({
   </View>
 );
 
-// ─── Screen (unchanged except renderItem passes isFirstCard) ─────────────────
 export default function ConnectionsListScreen() {
   const params       = useLocalSearchParams<{ userId: string; name: string }>();
   const { user: me } = useAuthh();
@@ -353,7 +296,6 @@ export default function ConnectionsListScreen() {
     }
   }, [fetchConnections]);
 
-  // CHANGE: index passed so card[0] gets isFirstCard=true
   const renderItem = useCallback(({ item, index }: { item: ConnectedUser; index: number }) => (
     <ConnectionCard
       item={item}
@@ -430,7 +372,6 @@ export default function ConnectionsListScreen() {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const sl = StyleSheet.create({
   safe:      { flex: 1, backgroundColor: C.white },
   list:      { paddingBottom: vs(40) },
@@ -447,14 +388,11 @@ const sl = StyleSheet.create({
   headerTitle: { fontSize: ms(15), fontWeight: '600', color: C.text },
   headerSub:   { fontSize: ms(12), color: C.muted, marginTop: vs(1) },
 
-  // CHANGE: cardWrapper clips the hint panel and holds the hint overlay
   cardWrapper: {
     position:   'relative',
     overflow:   'hidden',
   },
 
-  // CHANGE: hint peek panel — sits behind the card, left-aligned (same
-  // position as the real RemoveAction that Swipeable renders on left-swipe)
   hintPanel: {
     position:        'absolute',
     left:            0,

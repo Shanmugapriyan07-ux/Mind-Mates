@@ -134,7 +134,6 @@ const useRemoteImageSize = (uri: string | null) => {
   return { size, loading, error };
 };
 
-// ─── StatusTick ──────────────────────────────────────────────────────────────
 const StatusTick = ({ status, pending, failed }: {
   status: string; pending?: boolean; failed?: boolean;
 }) => {
@@ -144,7 +143,6 @@ const StatusTick = ({ status, pending, failed }: {
   return <Ionicons name="checkmark" size={s(16)} color="rgba(255,255,255,0.7)" />;
 };
 
-// ─── DateDivider ─────────────────────────────────────────────────────────────
 const DateDivider = ({ ts }: { ts: number }) => {
   const d     = new Date(secToMs(ts));
   const today = new Date();
@@ -160,7 +158,6 @@ const DateDivider = ({ ts }: { ts: number }) => {
   );
 };
 
-// ─── ReplyQuote ───────────────────────────────────────────────────────────────
 const ReplyQuote = ({ replyToText, replyToSender, myId, otherName }: {
   replyToText: string; replyToSender: string; myId: string; otherName: string;
 }) => {
@@ -193,7 +190,6 @@ const ReplyQuote = ({ replyToText, replyToSender, myId, otherName }: {
   );
 };
 
-// ─── ReactionsRow ─────────────────────────────────────────────────────────────
 const ReactionsRow = ({ reactionsJson, onReact, msg }: {
   reactionsJson: string; onReact: (m: any, e: string) => void; msg: any;
 }) => {
@@ -219,7 +215,6 @@ const ReactionsRow = ({ reactionsJson, onReact, msg }: {
   );
 };
 
-// ─── TypingDots ───────────────────────────────────────────────────────────────
 const TypingDots = React.memo(() => {
   const dot1 = useRef(new RNAnimated.Value(0.3)).current;
   const dot2 = useRef(new RNAnimated.Value(0.3)).current;
@@ -250,7 +245,6 @@ const TypingBubble = React.memo(() => (
   </View>
 ));
 
-// ─── MediaBubble ─────────────────────────────────────────────────────────────
 const MediaBubble = React.memo(({ message, isMe, pending, onPress }: {
   message: string; isMe: boolean; pending: boolean; onPress: () => void;
 }) => {
@@ -318,7 +312,6 @@ const MediaBubble = React.memo(({ message, isMe, pending, onPress }: {
   );
 });
 
-// ─── MessageBubble ────────────────────────────────────────────────────────────
 const MessageBubble = React.memo(
   ({ item, isMe, onRetry, onLongPress, onReact, onReply, onOpenMedia, otherName, myId }: {
     item: ChatMessage; isMe: boolean;
@@ -442,7 +435,6 @@ const MessageBubble = React.memo(
     prev.otherName       === next.otherName,
 );
 
-// ─── ChatHeader ───────────────────────────────────────────────────────────────
 const ChatHeader = ({
   name, image, onMenuPress, userId, isOtherTyping, iBlockedThem,
 }: {
@@ -496,7 +488,6 @@ const ChatHeader = ({
   );
 };
 
-// ─── ChatScreen ───────────────────────────────────────────────────────────────
 export default function ChatScreen() {
   const { user } = useAuthh();
   const myId = user?.id ?? "";
@@ -645,9 +636,6 @@ export default function ChatScreen() {
     if (isOtherTyping && isNearBottomRef.current && !isPaginatingRef.current)
       setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 80);
   }, [isOtherTyping]);
-
-  // ─── Voice message handlers ───────────────────────────────────────────────
-
   const handleVoiceOptimistic = useCallback((
     tempId: string,
     durationMs: number,
@@ -867,8 +855,6 @@ export default function ChatScreen() {
         </>
       );
     }
-
-    // Text / media branch — unchanged
     return (
       <>
         {showD && <DateDivider ts={item.createdAt} />}
@@ -887,11 +873,8 @@ export default function ChatScreen() {
       </>
     );
   }, [
-    // CHANGE: Added handleVoiceLongPress to deps so the callback is always fresh.
     messages, myId, retryMessage, handleReact, handleReply, handleVoiceLongPress, resolvedName, user?.id,
   ]);
-
-  // ─── Loading / error states ───────────────────────────────────────────────
   if (chatState === "finding")
     return (
       <SafeAreaView style={ch.safe} edges={["top"]}>
@@ -994,8 +977,6 @@ export default function ChatScreen() {
         onSend={handleMediaConfirm} onClose={() => setPendingMedia(null)}
         sending={sendingMedia} otherName={resolvedName ?? "them"}
       />
-
-    
       <MessageActionSheet
         visible={!!actionMsg} message={actionMsg} isMine={actionMsg?.sender_id === user?.id}
         onClose={() => setActionMsg(null)}
@@ -1048,11 +1029,8 @@ export default function ChatScreen() {
     </SafeAreaView>
   );
 }
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const ch = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.white },
-
   header: {
     flexDirection:     "row",
     alignItems:        "center",
@@ -1191,7 +1169,6 @@ const t = StyleSheet.create({
     borderRadius:      s(5),
   },
   videoBadgeTxt: { color: "#fff", fontSize: ms(11), fontWeight: "600" },
-
   typingBubbleWrap: { paddingLeft: s(12), paddingVertical: vs(6), alignSelf: "flex-start" },
   typingBubble:     { backgroundColor: C.otherMsg, borderRadius: s(18), borderBottomLeftRadius: s(4), borderWidth: 1, borderColor: C.border, paddingHorizontal: s(14), paddingVertical: vs(10), elevation: 1 },
   typingDots:       { flexDirection: "row", alignItems: "center", gap: s(5) },

@@ -1191,7 +1191,6 @@ const t = StyleSheet.create({
     borderRadius:      s(5),
   },
   videoBadgeTxt: { color: "#fff", fontSize: ms(11), fontWeight: "600" },
-
   typingBubbleWrap: { paddingLeft: s(12), paddingVertical: vs(6), alignSelf: "flex-start" },
   typingBubble:     { backgroundColor: C.otherMsg, borderRadius: s(18), borderBottomLeftRadius: s(4), borderWidth: 1, borderColor: C.border, paddingHorizontal: s(14), paddingVertical: vs(10), elevation: 1 },
   typingDots:       { flexDirection: "row", alignItems: "center", gap: s(5) },

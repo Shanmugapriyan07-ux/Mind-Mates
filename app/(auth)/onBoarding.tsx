@@ -1,42 +1,3 @@
-/**
- * Onboarding.tsx — Production-Responsive Refactor
- *
- * Key architectural decisions (Instagram/Google pattern):
- *
- * 1. SCREEN DIMENSIONS via useWindowDimensions()
- *    – Reacts to orientation changes and foldables.
- *    – All sizing derived from live { width, height }, not hardcoded constants.
- *
- * 2. topHalf uses flex: IMAGE_FLEX (0.45 of screen) instead of fixed vs(340).
- *    – On a 5" phone this is ~310px. On a tablet it's ~430px. Both feel right.
- *
- * 3. Image sizing:
- *    – Width capped at Math.min(width * 0.9, 420) — never overflows, never looks tiny.
- *    – Height derived from width * IMAGE_ASPECT — preserves art direction ratio.
- *    – No marginTop, no left offset — centred by parent's justifyContent/alignItems.
- *
- * 4. bottomHalf layout (Instagram onboarding pattern):
- *    ┌──────────────────────┐
- *    │ topGroup             │ ← title + subtitle (flex-start, no fixed height)
- *    ├──────────────────────┤
- *    │ spacer (flex: 1)     │ ← absorbs ALL extra space
- *    ├──────────────────────┤
- *    │ dotContainer         │ ← always fixed distance above button via gap/marginBottom
- *    ├──────────────────────┤
- *    │ button               │ ← always visible at bottom
- *    └──────────────────────┘
- *    No top/bottom/left/right offsets anywhere.
- *
- * 5. textBlock drops fixed minHeight — uses paddingBottom instead so the
- *    spacer still fills correctly but text can never clip on small screens.
- *
- * 6. Dots moved OUTSIDE topGroup and placed right above the button in the
- *    natural flex column — this is the WhatsApp/Instagram pattern where dots
- *    sit in the lower section, not attached to text.
- *
- * 7. All SPACING tokens replaced with derived responsive values.
- */
-
 import images from "@/constants/images";
 import { ms, s, vs } from "@/utils/scale";
 import { Ionicons } from "@expo/vector-icons";
@@ -179,25 +140,19 @@ export default function Onboarding() {
       </View>
 
       <View style={styles.bottomHalf}>
-        {/* TOP GROUP — title + subtitle only. No dots here (they moved down). */}
         <View style={styles.topGroup}>
           <Animated.View style={[styles.textBlock, animatedTextStyle]}>
             <Text style={styles.title}>{slide.title}</Text>
             <Text style={styles.subtitle}>{slide.subtitle}</Text>
           </Animated.View>
         </View>
-
-        {/* SPACER — the only element that stretches. Everything else is fixed. */}
         <View style={styles.spacer} />
-
      
         <View style={styles.dotContainer}>
           {SLIDES.map((_, i) => (
             <Dot key={i} index={i} activeIndex={currentIndex} />
           ))}
         </View>
-
-        {/* BUTTON — always last in the column, paddingBottom on parent keeps it off the edge */}
         <TouchableOpacity
           style={styles.button}
           onPress={goToNext}
@@ -212,7 +167,6 @@ export default function Onboarding() {
     </SafeAreaView>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -233,7 +187,6 @@ const styles = StyleSheet.create({
     paddingBottom: vs(32),
     alignItems: "center",
   },
-
   topGroup: {
     width: "100%",
     alignItems: "center",

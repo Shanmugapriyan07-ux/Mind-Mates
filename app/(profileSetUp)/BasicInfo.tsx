@@ -1,41 +1,9 @@
-/**
- * BasicInfo.tsx — Production-Responsive Refactor
- *
- * Changes made (all surgical — zero visual design changes):
- *
- * 1. No layout issues found with the core flex structure — it already uses
- *    SafeAreaView + KeyboardAvoidingView + ScrollView + fixed bottom bar correctly.
- *
- * 2. FIX: ScrollView paddingBottom was vs(100).
- *    On small phones (5") this creates excessive dead space below the bio field.
- *    On tablets it looks proportionally tiny.
- *    → Changed to vs(32) since the button container is a fixed bar outside the
- *      ScrollView. The content just needs clearance from the bottom bar, not 100px.
- *
- * 3. FIX: KeyboardAvoidingView behavior on Android was "height".
- *    "height" shrinks the entire KAV container which can clip the fixed
- *    bottom button bar on Xiaomi/Oppo/Vivo devices with custom gesture bars.
- *    → Changed to "padding" on Android too. "padding" is the Google/WhatsApp
- *      pattern — it pushes content up without resizing the container.
- *    → keyboardVerticalOffset on Android set to 0 (was 5 — no effect needed).
- *
- * 4. FIX: buttonContainer paddingBottom was SPACING.xl (fixed token).
- *    On iPhones with home indicator (iPhone X and later) this isn't enough.
- *    On Android with gesture navigation (Pixel, Samsung One UI 5+) it clips.
- *    → Replaced with useSafeAreaInsets().bottom + SPACING.md so the button
- *      always clears the system UI on every device. This is the Instagram pattern.
- *
- * 5. Everything else (inputWrapper height: 50, SPACING tokens, TYPOGRAPHY tokens,
- *    RADIUS tokens, flex layout, maxWidth centering) is already responsive — kept as-is.
- */
-
 import LocationPicker from "@/components/LocationPicker";
 import { useAuthh } from "@/Contexts/authContext";
 import { useProfile } from "@/Contexts/profileContext";
 import { useResponsive } from "@/hooks/useResponsive";
 import { readDraft, saveDraft } from "@/lib/profileDraft";
 import { RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
-import { vs } from "@/utils/scale";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
@@ -43,7 +11,6 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -58,8 +25,6 @@ const BasicInfo = () => {
   const { profile, updateProfile } = useProfile();
   const { user } = useAuthh();
   const { isSmallPhone, contentMaxWidth } = useResponsive();
-
-  // CHANGE 4: Read bottom inset at runtime — reacts to gesture bar / home indicator
   const insets = useSafeAreaInsets();
 
   const [formData, setFormData] = useState({
@@ -139,12 +104,6 @@ const BasicInfo = () => {
 
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
-      {/*
-        CHANGE 3: Both platforms use "padding" behavior.
-        "height" on Android collapses the container and can hide the sticky
-        bottom button on Xiaomi MIUI, Oppo ColorOS, and Vivo FunTouch OS
-        which all have custom gesture bar heights.
-      */}
       <KeyboardAvoidingView
         style={s.kav}
         behavior="padding"
@@ -156,7 +115,6 @@ const BasicInfo = () => {
           </Text>
           <Text style={s.stepLabel}>Step 1 of 3</Text>
         </View>
-
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{

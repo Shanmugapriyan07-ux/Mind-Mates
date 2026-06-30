@@ -108,7 +108,7 @@ export const FriendsSearchModal: React.FC<Props> = ({
       onClose();
       setTimeout(() => {
         router.push({
-          pathname: "/subScreens/chatScreen/[chatId]",
+          pathname: "/subScreens/chatScreen",
           params: {
             chatId: f.chat_id ?? "",
             userId: f.user_id,
@@ -315,7 +315,7 @@ const sr = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingTop: s(80),
+   alignSelf:'center'
   },
   emptyTitle: {
     fontSize: ms(16),

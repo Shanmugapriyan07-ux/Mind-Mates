@@ -1,13 +1,3 @@
-/**
- * ProfileScreen — Fully Responsive Refactor
- * ─────────────────────────────────────────────────────────────────────────────
- * Tested mental model: Android phones (360–412 dp), iPhones (375–430 pt),
- * Samsung/Oppo/Vivo/Xiaomi foldables, Pixel, and iPad / Android tablets.
- *
- * Every change is annotated with a numbered CHANGE comment so you can
- * diff against the original easily.
- */
-
 import { useAuthh } from "@/Contexts/authContext";
 import { useProfile } from "@/Contexts/profileContext";
 import { useConnectionCount } from "@/hooks/useConnectionCount";

@@ -66,8 +66,6 @@ function resolveTarget(
     case "booting":
     case "reading_storage":
       return null;
-
-    // CHANGE: navigate immediately on these phases, don't wait for 'unauthenticated'
     case "logging_out":
     case "deleting":
     case "unauthenticated":
@@ -119,9 +117,6 @@ function RootLayoutNav({
     return () => clearTimeout(t);
   }, []);
 
-  // CHANGE: removed the hideLogoutLoader useEffect — no longer needed.
-  // LogoutLoadingModal manages its own visibility via phase subscription.
-
   useEffect(() => {
     if (phase === "authenticated" || phase === "profile_incomplete") {
       AsyncStorage.setItem(STORAGE_KEY_ONBOARDING, "1").catch(() => {});
@@ -164,9 +159,6 @@ function RootLayoutNav({
           try {
             if (router.canDismiss()) router.dismissAll();
           } catch {}
-          // CHANGE: removed the 50ms setTimeout — navigate immediately.
-          // The overlay is already covering the screen, delay only prolongs
-          // the time the spinner is visible without any benefit.
           try {
             router.replace(target as any);
           } catch {}

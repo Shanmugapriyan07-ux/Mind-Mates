@@ -13,20 +13,14 @@ import {
   Text,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context"; // ← FIX 1
-
-// ─── Constants ────────────────────────────────────────────────────────────────
+import { useSafeAreaInsets } from "react-native-safe-area-context"; 
 const BAR_HEIGHT = 64;
 const SIDE_MARGIN = 24;
-const POLL_INTERVAL = 30_000; // 30 s fallback poll when RT is broken
-
-// ─── useUnreadCount ───────────────────────────────────────────────────────────
+const POLL_INTERVAL = 30_000; 
 const useUnreadCount = (myUserId: string | undefined) => {
   const [count, setCount] = useState(0);
   const markTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // ── Fetch from DB (source of truth) ────────────────────────────────────────
   const fetchCount = useCallback(async () => {
     if (!myUserId) return;
     try {
@@ -40,12 +34,9 @@ const useUnreadCount = (myUserId: string | undefined) => {
       console.warn("[Badge] fetch failed:", e?.message);
     }
   }, [myUserId]);
-
-  // ── RT subscription ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (!myUserId) return;
-
-    fetchCount(); // initial load
+    fetchCount(); 
     const channelName = `badge_${myUserId}_${Date.now()}`;
     const channel = supabase
       .channel(channelName)
@@ -59,44 +50,35 @@ const useUnreadCount = (myUserId: string | undefined) => {
         },
         (payload: any) => {
           const { eventType, new: n, old: o } = payload;
-
           if (eventType === "INSERT") {
-            // Optimistic: increment instead of re-fetching
             if (n?.is_read === false) {
               setCount((prev) => prev + 1);
             }
             return;
           }
-
           if (eventType === "UPDATE") {
-            // Only re-fetch if is_read changed (avoids spurious re-renders)
             const wasRead = o?.is_read;
             const isRead = n?.is_read;
             if (wasRead !== isRead) fetchCount();
             return;
           }
-
           if (eventType === "DELETE") {
-            // A notification was hard-deleted — re-sync
             fetchCount();
           }
         },
       )
       .subscribe((status: string) => {
         if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-          // RT broke — fall back to polling every 30 s
           if (!pollingRef.current) {
             pollingRef.current = setInterval(fetchCount, POLL_INTERVAL);
           }
         } else if (status === "SUBSCRIBED") {
-          // RT recovered — stop polling
           if (pollingRef.current) {
             clearInterval(pollingRef.current);
             pollingRef.current = null;
           }
         }
       });
-
     return () => {
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
@@ -105,12 +87,8 @@ const useUnreadCount = (myUserId: string | undefined) => {
       supabase.removeChannel(channel);
     };
   }, [myUserId, fetchCount]);
-
-  // ── Mark all read (debounced — fires once even if user tab-switches fast) ──
   const markAllRead = useCallback(() => {
     if (!myUserId || count === 0) return;
-
-    // Optimistic clear immediately so badge disappears on tap
     setCount(0);
 
     if (markTimerRef.current) clearTimeout(markTimerRef.current);
@@ -123,15 +101,13 @@ const useUnreadCount = (myUserId: string | undefined) => {
           .eq("is_read", false);
       } catch (e: any) {
         console.warn("[Badge] markAllRead failed:", e?.message);
-        fetchCount(); // rollback on error
+        fetchCount(); 
       }
     }, 300);
   }, [myUserId, count, fetchCount]);
 
   return { count, markAllRead };
 };
-
-// ─── Badge pill ───────────────────────────────────────────────────────────────
 const Badge = React.memo(({ count }: { count: number }) => {
   if (count <= 0) return null;
   const label = count > 99 ? "99+" : String(count);
@@ -143,12 +119,11 @@ const Badge = React.memo(({ count }: { count: number }) => {
   );
 });
 
-// ─── FloatingBlurTabBar ───────────────────────────────────────────────────────
 const FloatingBlurTabBar = React.memo(({ state, navigation }: any) => {
   const { profile } = useProfile();
   const { user } = useAuthh();
   const { count, markAllRead } = useUnreadCount(user?.id);
-  const insets = useSafeAreaInsets(); 
+  const insets = useSafeAreaInsets();
   const bottomOffset =
     Math.max(insets.bottom, 8) + (Platform.OS === "ios" ? 4 : 6);
 
@@ -163,7 +138,7 @@ const FloatingBlurTabBar = React.memo(({ state, navigation }: any) => {
       style={[
         t.outerWrapper,
         {
-          bottom: bottomOffset + 16, // extra breathing room above system bar
+          bottom: bottomOffset + 16, 
           left: SIDE_MARGIN,
           right: SIDE_MARGIN,
           pointerEvents: "box-none",
@@ -245,7 +220,7 @@ const FloatingBlurTabBar = React.memo(({ state, navigation }: any) => {
 export default function TabsLayout() {
   return (
     <Tabs
-      screenOptions={{     
+      screenOptions={{
         headerShown: false,
         tabBarStyle: { display: "none" },
         lazy: false,
@@ -372,6 +347,3 @@ const bs = StyleSheet.create({
     lineHeight: 13,
   },
 });
-
-
-

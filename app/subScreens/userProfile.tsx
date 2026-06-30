@@ -19,8 +19,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
 interface UserProfile {
   user_id: string;
   full_name: string;
@@ -31,7 +29,6 @@ interface UserProfile {
   skills: string | null;
 }
 
-// ─── Skill → icon map (unchanged) ────────────────────────────────────────────
 const SKILL_ICONS: Record<string, string> = {
   Art: "color-palette-outline",
   Painting: "brush-outline",
@@ -108,7 +105,6 @@ const SKILL_ICONS: Record<string, string> = {
 };
 const DEFAULT_ICON = "flash-outline";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 const parseSkills = (sk: string | null): string[] =>
   sk
     ? sk
@@ -117,7 +113,6 @@ const parseSkills = (sk: string | null): string[] =>
         .filter(Boolean)
     : [];
 
-// ─── SkeletonBox ──────────────────────────────────────────────────────────────
 const SkeletonBox = ({
   width,
   height,
@@ -156,7 +151,6 @@ const SkeletonBox = ({
   );
 };
 
-// ─── ProfileSkeleton ──────────────────────────────────────────────────────────
 const ProfileSkeleton = () => (
   <ScrollView
     contentContainerStyle={st.scroll}
@@ -213,7 +207,6 @@ const ProfileSkeleton = () => (
   </ScrollView>
 );
 
-// ─── SkillPill ────────────────────────────────────────────────────────────────
 const SkillPill = React.memo(
   ({ skill, active }: { skill: string; active?: boolean }) => (
     <View style={[st.pill, active && st.pillActive]}>
@@ -228,7 +221,6 @@ const SkillPill = React.memo(
   ),
 );
 
-// ─── SkillCard ────────────────────────────────────────────────────────────────
 const SkillCard = React.memo(({ skill }: { skill: string }) => (
   <View style={st.skillCard}>
     <View style={st.skillIconWrap}>
@@ -244,18 +236,10 @@ const SkillCard = React.memo(({ skill }: { skill: string }) => (
   </View>
 ));
 
-// ─── ScrollablePills ──────────────────────────────────────────────────────────
 const ScrollablePills = ({ skills }: { skills: string[] }) => {
   const scrollRef = useRef<ScrollView>(null);
   const scrollX = useRef(0);
   return (
-    /**
-     * CHANGE: removed `width: "110%"` and `right: s(18)`.
-     * Use negative horizontal margins instead — this is the standard React
-     * Native pattern for "full-bleed horizontal scroll inside padded parent"
-     * (used by WhatsApp story rail, Instagram story bar, etc.).
-     * Works correctly at every screen width including tablets.
-     */
     <View style={st.pillsWrapper}>
       <ScrollView
         ref={scrollRef}
@@ -277,7 +261,6 @@ const ScrollablePills = ({ skills }: { skills: string[] }) => {
   );
 };
 
-// ─── ConnectBtn ───────────────────────────────────────────────────────────────
 const ConnectBtn = ({
   targetUserId,
   fullName,
@@ -313,14 +296,12 @@ const ConnectBtn = ({
       border: "#6D4AFF",
     },
   }[status];
-
   const handlePress = () => {
     if (loading || status === "accepted") return;
     if (status === "none" || status === "rejected")
       sendRequest({ userId: targetUserId, fullName, profileImage, skills });
     else if (status === "pending") cancelRequest(targetUserId);
   };
-
   return (
     <TouchableOpacity
       style={[
@@ -340,18 +321,15 @@ const ConnectBtn = ({
   );
 };
 
-// ─── UserProfileScreen ────────────────────────────────────────────────────────
 export default function UserProfileScreen() {
   const params = useLocalSearchParams<{ userId: string }>();
   const { user: me } = useAuthh();
   const { loadStatuses } = useConnection();
   const targetUserId = params.userId?.trim() ?? "";
   const { count } = useConnectionCount(targetUserId);
-
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   const fetchProfile = useCallback(async () => {
     if (!targetUserId) {
       setError("No user ID provided");
@@ -398,11 +376,9 @@ export default function UserProfileScreen() {
       setLoading(false);
     }
   }, [targetUserId, loadStatuses]);
-
   useEffect(() => {
     fetchProfile();
   }, [fetchProfile]);
-
   const isOwnProfile = me?.id === targetUserId;
   const HeaderBar = () => (
     <View style={st.header}>
@@ -417,8 +393,6 @@ export default function UserProfileScreen() {
       <View style={{ width: s(32) }} />
     </View>
   );
-
-  // ── Loading state ──
   if (loading)
     return (
       <SafeAreaView style={st.safe} edges={["top"]}>
@@ -433,8 +407,6 @@ export default function UserProfileScreen() {
         <ProfileSkeleton />
       </SafeAreaView>
     );
-
-  // ── Error state ──
   if (error || !profile)
     return (
       <SafeAreaView style={st.safe} edges={["top"]}>
@@ -454,7 +426,6 @@ export default function UserProfileScreen() {
         </View>
       </SafeAreaView>
     );
-
   const imageUrl = profile.profile_image?.trim() || null;
   const skills = parseSkills(profile.skills);
 
@@ -529,8 +500,6 @@ export default function UserProfileScreen() {
             </View>
           </Pressable>
         </View>
-
-        {/* ── Actions ── */}
         {!isOwnProfile ? (
           <View style={st.actionsRow}>
             <ConnectBtn
@@ -571,7 +540,6 @@ export default function UserProfileScreen() {
             <Text style={st.editBtnText}>Edit Profile</Text>
           </TouchableOpacity>
         )}
-
         {skills.length > 0 && <ScrollablePills skills={skills} />}
         {skills.length > 0 && (
           <View style={st.skillsCard}>
@@ -582,7 +550,6 @@ export default function UserProfileScreen() {
             </View>
           </View>
         )}
-
         {profile.bio && profile.bio.length > 80 && (
           <View style={st.bioSection}>
             <Text style={st.bioSectionTitle}>About</Text>
@@ -593,13 +560,11 @@ export default function UserProfileScreen() {
     </SafeAreaView>
   );
 }
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const st = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#FFFFFF" },
   header: {
     flexDirection: "row",
-    alignItems: "center", // vertically centres chevron + title
+    alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: s(25),
     paddingVertical: vs(8),
@@ -608,16 +573,14 @@ const st = StyleSheet.create({
   headerTitle: { fontSize: ms(18), fontWeight: "700", color: "#17191B" },
   scroll: { paddingBottom: vs(60), paddingTop: vs(8) },
   friend: { flexDirection: "row", alignItems: "center" },
-
   avatarBlock: { alignItems: "center", paddingBottom: vs(8) },
   avatarWrap: { position: "relative", marginBottom: vs(3) },
   avatar: {
-    width: s(102),
-    height: s(102),
-    borderRadius: s(54),
+    width: s(105),
+    height: s(105),
+    borderRadius: s(55),
     borderWidth: 3,
     borderColor: "#fff",
-    // resizeMode added inline on the Image component above
   },
   avatarPlaceholder: {
     width: s(105),
@@ -723,7 +686,7 @@ const st = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: s(8),
-    paddingHorizontal: s(18), // padding inside the scroll keeps first/last pill inset
+    paddingHorizontal: s(18),
   },
 
   pill: {
@@ -757,7 +720,6 @@ const st = StyleSheet.create({
     flex: 0,
     minWidth: s(70),
   },
-
   skillIconWrap: {
     width: s(56),
     height: s(56),

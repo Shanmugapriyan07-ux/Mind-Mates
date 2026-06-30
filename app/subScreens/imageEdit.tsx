@@ -132,8 +132,6 @@ export default function ImageEditScreen() {
           <View style={[StyleSheet.absoluteFill, st.androidBlur]} />
         )}
       </Animated.View>
-
-      {/* Top bar — original: paddingHorizontal 20, paddingTop 8 */}
       <SafeAreaView style={st.topBar} edges={["top"]}>
         <TouchableOpacity
           style={st.closeBtn}
@@ -157,8 +155,6 @@ export default function ImageEditScreen() {
           </TouchableOpacity>
         )}
       </SafeAreaView>
-
-      {/* Image */}
       <View style={st.imageSection}>
         <Animated.View style={{ transform: [{ scale: imageScale }] }}>
           {displayImage ? (
@@ -183,8 +179,6 @@ export default function ImageEditScreen() {
         </Animated.View>
         {!!error && <Text style={st.errorText}>{error}</Text>}
       </View>
-
-      {/* Bottom sheet */}
       {isOwnProfile && (
         <Animated.View
           style={[
@@ -239,9 +233,7 @@ export default function ImageEditScreen() {
     </View>
   );
 }
-
 const SHEET_RADIUS = s(24);
-
 const st = StyleSheet.create({
   root: { flex: 1, backgroundColor: "transparent" },
   backdrop: { ...StyleSheet.absoluteFillObject, zIndex: 0 },
@@ -281,7 +273,6 @@ const st = StyleSheet.create({
     marginTop: vs(15),
   },
   saveTopBtnText: { color: "#6D4AFF", fontSize: ms(14), fontWeight: "600" },
-
   imageSection: {
     flex: 1,
     alignItems: "center",
@@ -317,10 +308,7 @@ const st = StyleSheet.create({
     justifyContent: "center",
     gap: vs(8),
   },
-  // original: fontSize 18, fontWeight 700
   uploadPercent: { color: "#6D4AFF", fontSize: ms(18), fontWeight: "700" },
-
-  // original: marginTop 10, fontSize 13
   errorText: {
     marginTop: vs(10),
     color: "#FCA5A5",
@@ -345,8 +333,6 @@ const st = StyleSheet.create({
     shadowOpacity: 0.8,
     shadowRadius: s(8),
   },
-
-  // original: paddingVertical 14, paddingHorizontal 4, borderRadius 14
   sheetBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -356,8 +342,6 @@ const st = StyleSheet.create({
   },
   sheetBtnEdit: {},
   sheetBtnDelete: {},
-
-  // original: width 44, height 44, borderRadius 12, marginRight 14
   sheetBtnIcon: {
     width: s(44),
     height: s(44),
@@ -368,10 +352,7 @@ const st = StyleSheet.create({
     marginRight: s(13),
   },
   sheetBtnIconRed: { backgroundColor: "#6D4AFF" },
-
   sheetBtnContent: { flex: 1 },
-
-  // original: fontSize 16, fontWeight 600, marginBottom 2
   sheetBtnTitle: {
     fontSize: ms(15),
     fontWeight: "600",
@@ -379,11 +360,8 @@ const st = StyleSheet.create({
     marginBottom: vs(2),
   },
   sheetBtnTitleRed: { color: "#ed4e4e" },
-  // original: fontSize 12
   sheetBtnSub: { fontSize: ms(12), color: "#6B7280" },
-  // original: fontSize 22, marginLeft 8
   sheetBtnArrow: { fontSize: ms(20), color: "#4B5563", marginLeft: s(8) },
-
   divider: {
     height: 1,
     backgroundColor: "rgba(37,36,36,0.07)",

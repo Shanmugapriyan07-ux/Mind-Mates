@@ -104,7 +104,6 @@ const rowToUser = (row: any): SearchUser => ({
   skills: row.skills ?? "",
 });
 
-// ─── SkeletonCard ─────────────────────────────────────────────────────────────
 const SkeletonCard = ({ opacity = 1 }: { opacity?: number }) => (
   <View style={[st.card, { opacity }]}>
     <View style={{ flexDirection: "row", alignItems: "center", gap: s(12) }}>
@@ -154,7 +153,6 @@ const SkeletonCard = ({ opacity = 1 }: { opacity?: number }) => (
   </View>
 );
 
-// ─── ConnectButton ────────────────────────────────────────────────────────────
 const ConnectButton = React.memo(
   ({
     user_id,
@@ -224,8 +222,6 @@ const ConnectButton = React.memo(
     );
   },
 );
-
-// ─── UserCard ─────────────────────────────────────────────────────────────────
 const UserCard = React.memo(({ item }: { item: SearchUser }) => {
   const skillDots = useMemo(
     () => parseSkills(item.skills).slice(0, 3).join(" · "),
@@ -276,8 +272,6 @@ const UserCard = React.memo(({ item }: { item: SearchUser }) => {
     </TouchableOpacity>
   );
 });
-
-// ─── EmptyState ───────────────────────────────────────────────────────────────
 const EmptyState = React.memo(
   ({
     query,
@@ -349,12 +343,9 @@ const EmptyState = React.memo(
     </View>
   ),
 );
-
-// ─── SearchScreen ─────────────────────────────────────────────────────────────
 export default function SearchScreen() {
   const { user } = useAuthh();
   const { loadStatuses } = useConnection();
-
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterTab>("people");
   const [users, setUsers] = useState<SearchUser[]>([]);
@@ -362,7 +353,6 @@ export default function SearchScreen() {
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [offset, setOffset] = useState(0);
-
   const inputRef = useRef<TextInput>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const running = useRef(false);
@@ -370,7 +360,6 @@ export default function SearchScreen() {
   const isFocused = useRef(false);
   const lastScrollY = useRef(0);
   const scrollDown = useRef(false);
-
   const showTabs = useCallback(() => {
     tabsVisible.value = withSpring(1, {
       damping: 400,
@@ -533,7 +522,6 @@ export default function SearchScreen() {
       <StatusBar barStyle="dark-content" />
 
       <View style={st.headerWrap}>
-        {/* Search row */}
         <View style={st.searchRow}>
           <View style={st.searchBar}>
             {loading ? (
@@ -565,8 +553,6 @@ export default function SearchScreen() {
             )}
           </View>
         </View>
-
-        {/* Animated tabs */}
         <View style={st.tabsClip}>
           <Animated.View style={tabsAnimStyle}>
             <ScrollView
@@ -638,7 +624,6 @@ export default function SearchScreen() {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const st = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.white },
   headerWrap: {
@@ -646,7 +631,6 @@ const st = StyleSheet.create({
     paddingTop: vs(9),
     paddingBottom: vs(4),
   },
-
   searchRow: {
     flexDirection: "row",
     alignItems: "center",

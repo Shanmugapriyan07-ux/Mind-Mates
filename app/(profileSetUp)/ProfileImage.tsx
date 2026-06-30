@@ -1,46 +1,3 @@
-/**
- * ProfileImageScreen.tsx — Production-Responsive Refactor
- *
- * Changes made (zero visual design changes):
- *
- * 1. FIX: Dimensions.get('window') → useWindowDimensions()
- *    Dimensions.get is called once at module load time and returns a stale value
- *    on foldables, split-screen mode, and orientation changes.
- *    AVATAR_SIZE is now derived inside the component from the live width,
- *    matching exactly the same ratio (width * 0.38) but reactively.
- *
- * 2. FIX: avatarSection had `bottom: s(13)` — a positional offset that shifted
- *    the avatar upward. This breaks on tall phones (S24 Ultra, iPhone 15 Pro Max)
- *    where it creates a gap, and on small phones (Redmi 5A) where it clips.
- *    → Removed. The section uses flex:1 + justifyContent/alignItems:center which
- *      naturally centres the avatar in the available space on every screen size.
- *
- * 3. FIX: tapHint had `marginBottom: vs(37)` — an arbitrary large gap between
- *    the hint text and the actions area. On small phones this pushes the actions
- *    off-screen; on tablets it looks like a gap in the design.
- *    → Replaced with marginBottom: vs(16). The actions section is outside the
- *      avatar section, so spacing is controlled by the flex column, not a margin hack.
- *
- * 4. FIX: skipBtn had `bottom: vs(5)` — floating the button upward inside its
- *    container. This is a ghost offset that does nothing on some devices and
- *    misaligns on others.
- *    → Removed entirely. The gap between nextBtn and skipBtn is handled by the
- *      `gap: vs(8)` on the actions container, which is correct.
- *
- * 5. FIX: actions marginBottom was vs(15) — not enough clearance on iPhones with
- *    home indicators or Android gesture-nav devices.
- *    → Replaced with useSafeAreaInsets().bottom + SPACING.sm (same pattern as
- *      Instagram's profile setup screen). The safe area inset is 0 on old Androids,
- *      ~20px on newer gesture Androids, and ~34px on iPhone X and later.
- *
- * 6. FIX: sheet paddingBottom was hardcoded for iOS: vs(36) and Android: vs(24).
- *    → Now uses insets.bottom + vs(16) for both platforms — correctly handles
- *      both the home indicator on iPhone and the gesture bar on Android.
- *
- * 7. KEPT: sheetTranslate outputRange [300, 0] — this is fine since the sheet
- *    itself sizes to content. If it ever needs to be dynamic it can use onLayout.
- */
-
 import { useAuthh } from "@/Contexts/authContext";
 import { useProfile } from "@/Contexts/profileContext";
 import {
@@ -73,20 +30,12 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
-
 export default function ProfileImageScreen() {
   const { user } = useAuthh();
   const { updateProfile, profile } = useProfile();
-
-  // CHANGE 1: Live dimensions — reactive to orientation + foldables
   const { width } = useWindowDimensions();
-
-  // CHANGE 2: AVATAR_SIZE derived from live width — same 0.38 ratio, now reactive
   const AVATAR_SIZE = width * 0.38;
-
-  // CHANGE 5: Runtime safe area bottom inset
   const insets = useSafeAreaInsets();
-
   const [imageUri, setImageUri] = useState<string | null>(
     profile?.profileImage ?? null,
   );
@@ -98,14 +47,12 @@ export default function ProfileImageScreen() {
   const sheetAnim = useRef(new Animated.Value(0)).current;
   const isMounted = useRef(true);
   const webFileRef = useRef<File | null>(null);
-
   useEffect(
     () => () => {
       isMounted.current = false;
     },
     [],
   );
-
   const handleAvatarPressIn = () =>
     Animated.spring(avatarScale, {
       toValue: 0.94,
@@ -113,7 +60,6 @@ export default function ProfileImageScreen() {
       speed: 50,
       bounciness: 8,
     }).start();
-
   const handleAvatarPressOut = () => {
     Animated.spring(avatarScale, {
       toValue: 1,
@@ -127,7 +73,6 @@ export default function ProfileImageScreen() {
     }
     openSheet();
   };
-
   const triggerWebFilePicker = () => {
     const input = document.createElement("input");
     input.type = "file";
@@ -144,7 +89,6 @@ export default function ProfileImageScreen() {
     input.oncancel = () => document.body.removeChild(input);
     input.click();
   };
-
   const openSheet = () => {
     setShowPicker(true);
     Animated.spring(sheetAnim, {
@@ -161,7 +105,6 @@ export default function ProfileImageScreen() {
       useNativeDriver: true,
     }).start(() => setShowPicker(false));
   };
-
   const processImage = async (uri: string) => {
     const result = await ImageManipulator.manipulateAsync(
       uri,
@@ -170,7 +113,6 @@ export default function ProfileImageScreen() {
     );
     return result.uri;
   };
-
   const pickFromGallery = useCallback(async () => {
     if (typeof document !== "undefined") {
       triggerWebFilePicker();
@@ -317,13 +259,6 @@ export default function ProfileImageScreen() {
           Help others recognize you. You can change this any time.
         </Text>
       </View>
-
-      {/*
-        CHANGE 2 + 3: avatarSection no longer has `bottom: s(13)`.
-        flex:1 + justifyContent/alignItems:center perfectly centres the avatar
-        in the available space between the header and the actions bar,
-        on every screen from 5" Redmi to 6.9" Samsung Ultra to iPad.
-      */}
       <View style={st.avatarSection}>
         <Animated.View style={{ transform: [{ scale: avatarScale }] }}>
           <TouchableOpacity
@@ -366,23 +301,10 @@ export default function ProfileImageScreen() {
             )}
           </TouchableOpacity>
         </Animated.View>
-
-        {/*
-          CHANGE 3: marginBottom: vs(37) removed from tapHint.
-          The actions block below sits in the normal flex column and handles
-          its own spacing via the gap on the actions container.
-        */}
         <Text style={st.tapHint}>
           {imageUri ? "Tap to change photo" : "Tap to add photo"}
         </Text>
       </View>
-
-      {/*
-        CHANGE 4 + 5: `bottom: vs(5)` removed from skipBtn.
-        `marginBottom: vs(15)` replaced with runtime inset value.
-        This ensures the skip button never hides behind gesture bars on
-        Android or the home indicator on iPhone.
-      */}
       <View style={[st.actions, { marginBottom: insets.bottom + vs(8) }]}>
         <TouchableOpacity
           style={[st.nextBtn, isBusy && st.nextBtnDisabled]}
@@ -409,8 +331,6 @@ export default function ProfileImageScreen() {
           <Text style={st.skipText}>Skip for now</Text>
         </TouchableOpacity>
       </View>
-
-      {/* Bottom sheet modal */}
       <Modal
         visible={showPicker}
         transparent
@@ -422,9 +342,6 @@ export default function ProfileImageScreen() {
           style={[
             st.sheet,
             {
-              // CHANGE 6: Runtime paddingBottom — replaces the hardcoded
-              // Platform.OS === 'ios' ? vs(36) : vs(24) ternary.
-              // insets.bottom handles both iPhone home indicator and Android gesture bar.
               paddingBottom: insets.bottom + vs(16),
               transform: [{ translateY: sheetTranslate }],
             },
@@ -432,7 +349,6 @@ export default function ProfileImageScreen() {
         >
           <View style={st.sheetHandle} />
           <Text style={st.sheetTitle}>Profile photo</Text>
-
           {Platform.OS !== "web" && (
             <TouchableOpacity style={st.sheetOption} onPress={takePhoto}>
               <View style={st.iconBox}>
@@ -441,14 +357,12 @@ export default function ProfileImageScreen() {
               <Text style={st.sheetOptionText}>Take photo</Text>
             </TouchableOpacity>
           )}
-
           <TouchableOpacity style={st.sheetOption} onPress={pickFromGallery}>
             <View style={st.iconBox}>
               <Ionicons name="images" size={s(22)} color="#ffffff" />
             </View>
             <Text style={st.sheetOptionText}>Choose from gallery</Text>
           </TouchableOpacity>
-
           {imageUri && (
             <TouchableOpacity style={st.sheetOption} onPress={removePhoto}>
               <View style={st.iconBox}>
@@ -459,7 +373,6 @@ export default function ProfileImageScreen() {
               </Text>
             </TouchableOpacity>
           )}
-
           <TouchableOpacity style={st.sheetCancel} onPress={closeSheet}>
             <Text style={st.sheetCancelText}>Cancel</Text>
           </TouchableOpacity>
@@ -508,15 +421,11 @@ const st = StyleSheet.create({
     color: "#666",
     lineHeight: ms(22),
   },
-
-  // CHANGE 2: `bottom: s(13)` removed — flex centering is the correct tool
   avatarSection: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
   },
-
-  // width/height/borderRadius injected inline from live AVATAR_SIZE
   avatarWrapper: {
     shadowColor: "#000",
     shadowOffset: { width: 0, height: vs(8) },
@@ -532,7 +441,6 @@ const st = StyleSheet.create({
   },
 
   initialsText: {
-    // fontSize injected inline as AVATAR_SIZE * 0.32
     fontWeight: "700",
     color: "#fff",
     letterSpacing: 2,
@@ -555,7 +463,6 @@ const st = StyleSheet.create({
 
   uploadOverlay: {
     ...StyleSheet.absoluteFillObject,
-    // borderRadius injected inline as AVATAR_SIZE / 2
     backgroundColor: "rgba(0,0,0,0.55)",
     alignItems: "center",
     justifyContent: "center",
@@ -567,22 +474,14 @@ const st = StyleSheet.create({
     fontSize: ms(13),
     fontWeight: "600",
   },
-
-  // CHANGE 3: marginBottom: vs(37) removed — this was the magic number
-  // that tried to push the hint text away from the actions block.
-  // vs(12) is the natural gap that matches the header's marginBottom rhythm.
   tapHint: {
     marginTop: vs(12),
     fontSize: ms(14),
     color: "#888",
     marginBottom: vs(12),
   },
-
-  // CHANGE 4: marginBottom removed from StyleSheet (injected inline with insets)
-  // CHANGE gap kept — controls spacing between nextBtn and skipBtn
   actions: {
     gap: vs(8),
-    // marginBottom injected inline via useSafeAreaInsets
   },
 
   nextBtn: {
@@ -605,9 +504,6 @@ const st = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 0.3,
   },
-
-  // CHANGE 4: `bottom: vs(5)` removed — the gap between this and nextBtn
-  // is already handled by the `gap: vs(8)` on the actions container
   skipBtn: {
     height: vs(40),
     alignItems: "center",
@@ -631,7 +527,6 @@ const st = StyleSheet.create({
     borderTopLeftRadius: s(24),
     borderTopRightRadius: s(24),
     paddingTop: vs(12),
-    // paddingBottom injected inline via useSafeAreaInsets — see Change 6
     paddingHorizontal: s(20),
   },
 

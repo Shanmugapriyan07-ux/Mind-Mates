@@ -103,8 +103,6 @@ const SwipeHintManager = (() => {
 
   return { tryRegister, markSeen };
 })();
-
-// ─── Helpers (unchanged) ──────────────────────────────────────────────────────
 const timeAgo = (ts: string | number): string => {
   const ms =
     typeof ts === "string"
@@ -138,7 +136,6 @@ const dedup = (items: NotifItem[]) => {
   });
 };
 
-// ─── ActionSheet (unchanged) ──────────────────────────────────────────────────
 const ActionSheet = ({
   item, onClose, onDelete, onViewProfile,
 }: {
@@ -296,8 +293,6 @@ const SwipeableNotifCard = React.memo(({
       });
     }, 2000);
   }, [translateX]);
-
-  // CHANGE: only the first card registers for the hint
   useEffect(() => {
     if (isFirstCard) SwipeHintManager.tryRegister(playHint);
   }, [isFirstCard, playHint]);
@@ -307,12 +302,11 @@ const SwipeableNotifCard = React.memo(({
       onMoveShouldSetPanResponder: (_, g) =>
         Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
       onPanResponderGrant: () => {
-        // CHANGE: if user swipes while hint is playing, stop the hint cleanly
         if (hintPlaying.current) {
           translateX.stopAnimation();
           translateX.setValue(0);
           hintPlaying.current = false;
-          SwipeHintManager.markSeen(); // user already discovered swipe — count as seen
+          SwipeHintManager.markSeen(); 
         }
       },
       onPanResponderMove: (_, g) => {

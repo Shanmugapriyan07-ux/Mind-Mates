@@ -24,7 +24,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 const IMAGE_PANEL_FLEX = 0.42;
 
 const Welcome = () => {
-  // CHANGE 1: Live dimensions — responds to orientation and foldables
   const { width, height } = useWindowDimensions();
 
   const { openByKey } = useOpenLink();
@@ -38,7 +37,6 @@ const Welcome = () => {
   const contentTranslate = useRef(new Animated.Value(24)).current;
   const topPanelHeight = height * IMAGE_PANEL_FLEX;
   const splashImageHeight = Math.min(topPanelHeight * 0.80, 280);
-
   useEffect(() => {
     const task = InteractionManager.runAfterInteractions(() => {
       useAuthStore.getState().setTransitioning?.(false);
@@ -58,7 +56,6 @@ const Welcome = () => {
     });
     return () => task.cancel();
   }, []);
-
   useEffect(() => {
     if (isTransitioning) {
       Animated.timing(contentOpacity, {
@@ -68,23 +65,18 @@ const Welcome = () => {
       }).start();
     }
   }, [isTransitioning]);
-
   useEffect(() => {
     setError(null);
   }, []);
-
   const tap = useCallback(
     (key: string, name: string) => () => openByKey(key, name),
     [openByKey],
   );
-
   const handleLogin = useCallback(async () => {
     await signInWithGoogle();
   }, []);
-
   return (
     <SafeAreaView style={styles.container}>
-
       <View style={[styles.topHalf, { height: topPanelHeight }]}>
         <Image
           source={images.splash}

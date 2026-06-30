@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  Animated, PanResponder, Pressable,
+  Animated, PanResponder,
 } from 'react-native';
 import Reanimated, {
   useSharedValue,
@@ -18,8 +18,6 @@ import { Ionicons }                from '@expo/vector-icons';
 import { ProfileAvatar }           from '@/components/Profileavatar';
 import { useOnlineStatus }         from '@/hooks/useOnlineStatus';
 import { s, vs, ms }               from '@/utils/scale';
-
-// ─── Types ────────────────────────────────────────────────────────────────────
 export interface Friend {
   connection_id:         string;
   user_id:               string;
@@ -39,31 +37,26 @@ export interface Friend {
   cleared_at_p2?:        string | null;
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
 const DELETE_W         = s(80);
 const CLEAR_W          = s(10);
 const DELETE_THRESHOLD = -(DELETE_W * 0.55);
 const CLEAR_THRESHOLD  = CLEAR_W * 0.1;
 const HINT_NUDGE       = -s(25);
 const HINT_STORAGE_KEY = 'swipe_hint_seen_v1';
-
 const C = {
   white:'#FFFFFF', purple:'#6D4AFF', blue:'#3B82F6',
   text:'#111827', muted:'#6B7280', border:'#F3F4F6',
   red:'#6D4AFF', yellow:'#FBC234', green:'#6D4AFF', skeleton:'#E9EAEC',
 };
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 const formatPreview = (msg?: string | null): string => {
   if (msg == null) return 'Tap to say hello';
   if (msg === '')  return 'Tap to say hello';
-  if (msg.startsWith('__IMG__')) return '📷 Photo';
-  if (msg.startsWith('__VID__')) return '🎥 Video';
+  if (msg.startsWith('__IMG__')) return ' Photo';
+  if (msg.startsWith('__VID__')) return ' Video';
   if (msg === '🎤 Voice message') return '🎤 Voice message';
   const f = msg.split('\n')[0];
   return f.length > 38 ? f.slice(0, 38) + '…' : f;
 };
-
 const timeAgo = (ts?: string | null): string => {
   if (!ts) return '';
   const diff = Date.now() - new Date(ts).getTime();
@@ -77,7 +70,6 @@ const timeAgo = (ts?: string | null): string => {
   return new Date(ts).toLocaleDateString();
 };
 
-// ─── SwipeHintManager ─────────────────────────────────────────────────────────
 const SwipeHintManager = (() => {
   let _checked   = false;
   let _seen      = false;
@@ -124,7 +116,6 @@ const SwipeHintManager = (() => {
   return { tryRegister, markSeen };
 })();
 
-// ─── Props ────────────────────────────────────────────────────────────────────
 interface Props {
   item:             Friend;
   onDelete:         (f: Friend) => void;
@@ -136,7 +127,6 @@ interface Props {
   onMarkRead:       (chatId: string) => void;
 }
 
-// ─── SwipeableRow ─────────────────────────────────────────────────────────────
 export const SwipeableRow = React.memo(({
   item, onDelete, onClear, onSwipeLeftOpen, onSwipeLeftClose,
   registerClose, onAnyPress, onMarkRead,
@@ -157,25 +147,16 @@ export const SwipeableRow = React.memo(({
   const restingX    = useRef(0);
   const dragging    = useRef(false);
   const hintPlaying = useRef(false);
-  // FIX: track whether the delete panel is open so the TouchableOpacity
-  // press actually registers — we need to know if we're in open state.
   const [panelOpen, setPanelOpen] = useState(false);
-
   const { isOnline: userIsOnline } = useOnlineStatus(item.user_id);
   const unread = item.unread_count ?? 0;
-
   useEffect(() => {
     const id = tx.addListener(({ value }) => {
       restingX.current = value;
-      // FIX: track open state via listener so delete button knows it's visible
       setPanelOpen(value < -DELETE_W * 0.4);
     });
     return () => tx.removeListener(id);
   }, []);
-
-  // FIX: deleteOpacity now correctly covers the full swipe range
-  // Old: inputRange [-DELETE_W, -DELETE_W * 0.2, 0] caused the panel to be
-  // invisible at exactly -DELETE_W (fully open), making the button untappable.
   const deleteOpacity = tx.interpolate({
     inputRange:  [-DELETE_W, -DELETE_W * 0.5, 0],
     outputRange: [1, 0.85, 0],
@@ -187,19 +168,16 @@ export const SwipeableRow = React.memo(({
     outputRange: [1, 0.72],
     extrapolate: 'clamp',
   });
-
   const spring = useCallback((v: number, cb?: () => void) =>
     Animated.spring(tx, {
       toValue: v, useNativeDriver: true, damping: 22, stiffness: 220, mass: 0.75,
     }).start(cb), []);
-
   const close = useCallback(() => {
     spring(0);
     setPanelOpen(false);
     if (restingX.current < -10) onSwipeLeftClose(item.connection_id);
     setTimeout(() => { restingX.current = 0; }, 300);
   }, [item.connection_id, onSwipeLeftClose, spring]);
-
   useEffect(() => {
     registerClose(item.connection_id, close);
   }, [close, item.connection_id, registerClose]);
@@ -266,13 +244,12 @@ export const SwipeableRow = React.memo(({
     },
     onPanResponderTerminate: () => { dragging.current = false; close(); },
   })).current;
-
   const handlePress = () => {
     onAnyPress(item.connection_id);
     if (Math.abs(restingX.current) > 5) { close(); return; }
     if (item.chat_id) onMarkRead(item.chat_id);
     router.push({
-      pathname: '/subScreens/chatScreen/[chatId]',
+      pathname: '/subScreens/chatScreen',
       params: {
         chatId:   item.chat_id       ?? '',
         userId:   item.user_id,
@@ -369,8 +346,6 @@ export const SwipeableRow = React.memo(({
     </View>
   );
 });
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const sw = StyleSheet.create({
   wrapper:    { position:'relative', backgroundColor:C.white },
   rightPanel: {

@@ -1,48 +1,3 @@
-/**
- * SettingsScreen.tsx — Production-Grade Responsive Refactor
- *
- * KEY CHANGES vs original:
- * ─────────────────────────────────────────────────────────────────────────────
- * 1.  REMOVED all hard-coded `top`, `bottom`, `left`, `right` positional
- *     offsets that caused misalignment on different screen densities.
- *     Every layout now flows from Flexbox direction alone.
- *
- * 2.  `version` text: replaced `top: vs(270)` (a magic pixel push that broke
- *     on tablets/small phones) with `marginTop: vs(32)` so it always sits a
- *     comfortable distance below the last list row, regardless of screen height.
- *
- * 3.  `headerRow` in HelpModal: removed `bottom: vs(10)` offset (caused the
- *     row to visually clip on small phones). Now uses `marginBottom: vs(8)`
- *     and proper flex alignment.
- *
- * 4.  `subtitle` in HelpModal: removed `bottom: vs(14)` offset. Uses only
- *     `marginBottom: vs(14)` so spacing is additive rather than subtractive.
- *
- * 5.  `contactBox` in HelpModal: removed `bottom: vs(14)`. Spacing handled
- *     entirely by `marginBottom`.
- *
- * 6.  `dialogText`: removed `bottom: vs(10)`. Dialog content now uses
- *     `paddingBottom` / `marginTop` where needed.
- *
- * 7.  `iconWrap`: removed default `backgroundColor: "#ffffff"` override for
- *     each row so the section-level background (#fff) handles it — avoids
- *     double-stacking whites that could ghost on AMOLED screens.
- *
- * 8.  `ScrollView` in main screen: added `flexGrow: 1` to contentContainerStyle
- *     so the version label is always pushed to the end of content on tall screens.
- *
- * 9.  All `TouchableOpacity` / `Pressable` hit areas verified ≥ 44 × 44 pt
- *     (Apple HIG / Material Design minimums).
- *
- * 10. No color, font size, font weight, animation, or visual token was changed.
- * ─────────────────────────────────────────────────────────────────────────────
- */
-
-import {
-  hideLogoutLoader,
-  showLogoutLoader,
-  waitForModalPaint,
-} from "@/components/logoutLoadingModel";
 import { useAppLinks } from "@/Contexts/AppLinksContexts";
 import { useAuthh } from "@/Contexts/authContext";
 import { useProfile } from "@/Contexts/profileContext";
@@ -71,15 +26,12 @@ import {
 import { Button, Dialog, Portal, TextInput } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
-
-// ─── Support constants ────────────────────────────────────────────────────────
 const SUPPORT = {
   phone: "+917812874383",
   whatsappId: "917812874383",
   email: "shanmugapriyancse582@gmail.com",
 };
 
-// ─── Cache clearing ───────────────────────────────────────────────────────────
 const clearCache = async (userId: string) => {
   const keys = [
     `profile_cache_${userId}`,
@@ -99,7 +51,6 @@ const clearCache = async (userId: string) => {
   } catch {}
 };
 
-// ─── Deep-link helpers ────────────────────────────────────────────────────────
 const openCall = async () => {
   const url =
     Platform.OS === "ios"
@@ -154,7 +105,9 @@ const HelpModal = ({
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             style={h.closeBtn}
           >
-            <Ionicons name="close" size={s(20)} color="#6D4AFF" />
+            <View style={{ alignItems: "center", justifyContent: "center" ,height:25,width:25, borderRadius:25,backgroundColor:"#F5F5F7"}}>
+            <Ionicons name="close" size={s(19)} color="#6D4AFF" />
+            </View>
           </TouchableOpacity>
         </View>
         <Text style={h.subtitle}>How would you like to contact us?</Text>
@@ -170,7 +123,6 @@ const HelpModal = ({
               }}
               activeOpacity={0.85}
             >
-              {/* CHANGE: removed `top: vs(3)` from icon style — flex centering handles it */}
               <Ionicons name="call" size={s(26)} color="#fff" />
               <Text style={h.bigBtnTxt}>Call</Text>
             </TouchableOpacity>
@@ -183,7 +135,6 @@ const HelpModal = ({
               }}
               activeOpacity={0.85}
             >
-              {/* CHANGE: removed `top: vs(3)` from icon style */}
               <Ionicons name="logo-whatsapp" size={s(26)} color="#fff" />
               <Text style={h.bigBtnTxt}>WhatsApp</Text>
             </TouchableOpacity>
@@ -198,7 +149,6 @@ const HelpModal = ({
           }}
           activeOpacity={0.75}
         >
-          {/* CHANGE: removed `top: vs(1)` — alignItems:"center" on emailRow handles it */}
           <Ionicons name="mail" size={s(17)} color="#6D4AFF" />
           <Text style={h.emailTxt}>{SUPPORT.email}</Text>
         </TouchableOpacity>
@@ -207,7 +157,6 @@ const HelpModal = ({
   </Modal>
 );
 
-// ─── HelpModal styles ─────────────────────────────────────────────────────────
 const h = StyleSheet.create({
   backdrop: {
     flex: 1,
@@ -222,16 +171,13 @@ const h = StyleSheet.create({
     borderRadius: s(12),
     padding: s(27),
     elevation: 14,
-    // CHANGE: added overflow hidden so card content never clips on small screens
     overflow: "hidden",
   },
-
-  // CHANGE: removed `bottom: vs(10)` — pure marginBottom flow
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: vs(4),
+    marginBottom: vs(3),
     bottom:vs(2)
   },
   title: {
@@ -634,15 +580,12 @@ const st = StyleSheet.create({
     fontSize: ms(18),
     color: "#201f1f",
   },
-
-  // CHANGE: removed `bottom: vs(10)` — dialog content uses marginTop for gaps
   dialogText: {
     fontSize: ms(14),
     lineHeight: ms(22),
     textAlign: "center",
     color: "#000000",
   },
-
   dialogActions: {
     justifyContent: "space-between",
     paddingHorizontal: s(8),
