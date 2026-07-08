@@ -12,7 +12,6 @@ import React, {
   useState,
 } from "react";
 import { Platform } from "react-native";
-
 const NAV_INTENT_KEY = "auth_nav_intent";
 const storage = {
   clear: async () => {
@@ -62,9 +61,6 @@ const storage = {
     } catch {}
   },
 };
-
-// ─── Types (UNCHANGED) ────────────────────────────────────────────────────────
-
 export interface AuthUser {
   id: string;
   email: string;
@@ -92,14 +88,13 @@ const toAuthUser = (u: User | null): AuthUser | null => {
 };
 export const AuthProvider = ({
   children,
-  initialSession,
 }: {
   children: React.ReactNode;
   initialSession: StoredSession | null;
 }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [authStatus, setAuthStatus] = useState<
+  const [, setAuthStatus] = useState<
     "loading" | "authenticated" | "unauthenticated"
   >("loading");
   const [loading] = useState(false);

@@ -18,6 +18,7 @@ import { Ionicons }                from '@expo/vector-icons';
 import { ProfileAvatar }           from '@/components/Profileavatar';
 import { useOnlineStatus }         from '@/hooks/useOnlineStatus';
 import { s, vs, ms }               from '@/utils/scale';
+
 export interface Friend {
   connection_id:         string;
   user_id:               string;
@@ -36,7 +37,6 @@ export interface Friend {
   cleared_at_p1?:        string | null;
   cleared_at_p2?:        string | null;
 }
-
 const DELETE_W         = s(80);
 const CLEAR_W          = s(10);
 const DELETE_THRESHOLD = -(DELETE_W * 0.55);
@@ -51,8 +51,8 @@ const C = {
 const formatPreview = (msg?: string | null): string => {
   if (msg == null) return 'Tap to say hello';
   if (msg === '')  return 'Tap to say hello';
-  if (msg.startsWith('__IMG__')) return ' Photo';
-  if (msg.startsWith('__VID__')) return ' Video';
+  if (msg.startsWith('__IMG__')) return '📷 Photo';
+  if (msg.startsWith('__VID__')) return '🎥 Video';
   if (msg === '🎤 Voice message') return '🎤 Voice message';
   const f = msg.split('\n')[0];
   return f.length > 38 ? f.slice(0, 38) + '…' : f;
@@ -75,7 +75,6 @@ const SwipeHintManager = (() => {
   let _seen      = false;
   let _fired     = false;
   let _pending: (() => void) | null = null;
-
   const _init = async () => {
     try {
       const val = await AsyncStorage.getItem(HINT_STORAGE_KEY);
@@ -90,7 +89,6 @@ const SwipeHintManager = (() => {
       cb();
     }
   };
-
   const tryRegister = (onHint: () => void) => {
     if (_fired || _seen) return;
     if (!_checked) {
@@ -107,15 +105,12 @@ const SwipeHintManager = (() => {
       onHint();
     }
   };
-
   const markSeen = () => {
     _seen = true;
     AsyncStorage.setItem(HINT_STORAGE_KEY, 'true').catch(() => {});
   };
-
   return { tryRegister, markSeen };
 })();
-
 interface Props {
   item:             Friend;
   onDelete:         (f: Friend) => void;
@@ -126,23 +121,18 @@ interface Props {
   onAnyPress:       (id: string) => void;
   onMarkRead:       (chatId: string) => void;
 }
-
 export const SwipeableRow = React.memo(({
   item, onDelete, onClear, onSwipeLeftOpen, onSwipeLeftClose,
   registerClose, onAnyPress, onMarkRead,
 }: Props) => {
-
   const cardX           = useSharedValue(0);
   const hintPeekOpacity = useSharedValue(0);
-
   const cardStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: cardX.value }],
   }));
-
   const hintPanelStyle = useAnimatedStyle(() => ({
     opacity: hintPeekOpacity.value,
   }));
-
   const tx          = useRef(new Animated.Value(0)).current;
   const restingX    = useRef(0);
   const dragging    = useRef(false);
@@ -162,7 +152,6 @@ export const SwipeableRow = React.memo(({
     outputRange: [1, 0.85, 0],
     extrapolate: 'clamp',
   });
-
   const deleteScale = tx.interpolate({
     inputRange:  [-DELETE_W, -DELETE_W * 0.5],
     outputRange: [1, 0.72],
@@ -181,7 +170,6 @@ export const SwipeableRow = React.memo(({
   useEffect(() => {
     registerClose(item.connection_id, close);
   }, [close, item.connection_id, registerClose]);
-
   const playHint = useCallback(() => {
     if (hintPlaying.current) return;
     hintPlaying.current = true;
@@ -208,11 +196,9 @@ export const SwipeableRow = React.memo(({
       )
     );
   }, [cardX, hintPeekOpacity]);
-
   useEffect(() => {
     SwipeHintManager.tryRegister(playHint);
   }, [playHint]);
-
   const pan = useRef(PanResponder.create({
     onMoveShouldSetPanResponder: (_, g) =>
       !dragging.current && Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy) * 2.2,

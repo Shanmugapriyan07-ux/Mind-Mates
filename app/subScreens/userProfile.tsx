@@ -235,7 +235,6 @@ const SkillCard = React.memo(({ skill }: { skill: string }) => (
     </Text>
   </View>
 ));
-
 const ScrollablePills = ({ skills }: { skills: string[] }) => {
   const scrollRef = useRef<ScrollView>(null);
   const scrollX = useRef(0);

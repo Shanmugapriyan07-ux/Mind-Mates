@@ -4,7 +4,6 @@ import { useAuthStore } from '@/stores/authStore';
 import { notificationService } from '@/services/notificationService';
 import { realtimeService } from '@/services/realtimeService';
 import { flushPendingNavigation } from '@/services/deepLinkService';
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { setSession, setProfile, setHydrated, logout } = useAuthStore();
   const hydrated = useAuthStore(s => s.hydrated);
@@ -16,10 +15,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await loadProfile(session.user.id);
         await notificationService.registerForPushNotifications(session.user.id);
       }
-      setHydrated(); // this triggers the useEffect below
-      // ❌ DO NOT call flushPendingNavigation() here — router may not be ready
+      setHydrated(); 
     });
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         setSession(session);
@@ -33,17 +30,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
     );
-
     return () => subscription.unsubscribe();
   }, []);
-
-  // ✅ Flush AFTER hydrated becomes true — inside React, after render cycle
   useEffect(() => {
     if (hydrated) {
       flushPendingNavigation();
     }
   }, [hydrated]);
-
   async function loadProfile(userId: string) {
     const { data } = await supabase
       .from('profiles')
@@ -52,6 +45,5 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .single();
     if (data) setProfile(data);
   }
-
   return <>{children}</>;
 }

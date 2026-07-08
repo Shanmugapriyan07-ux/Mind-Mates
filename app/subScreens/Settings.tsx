@@ -181,7 +181,7 @@ const h = StyleSheet.create({
     bottom:vs(2)
   },
   title: {
-    fontSize: ms(19),
+    fontSize: ms(20),
     fontWeight: "700",
     color: "#6D4AFF",
   },

@@ -27,7 +27,6 @@ const compressOnWeb = (blob: Blob): Promise<Blob> =>
     img.onerror = reject;
     img.src = URL.createObjectURL(blob);
   });
-
 export const useProfileImage = () => {
   const { user }                   = useAuthh();
   const { profile, updateProfile } = useProfile();
@@ -96,7 +95,6 @@ export const useProfileImage = () => {
         (pct) => setProgress(pct),
       );
       const cdnUrl = cdnProfileUrl(result.secureUrl);
-      console.log('[profile] CDN URL:', cdnUrl.slice(0, 100));
       const { error: dbErr } = await supabase
         .from('users')
         .update({ profile_image: cdnUrl })

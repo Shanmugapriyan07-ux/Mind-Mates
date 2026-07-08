@@ -2,8 +2,6 @@ import { selPhase, useAuthStore } from '@/stores/authStore';
 import { s } from '@/utils/scale';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
-
-// No-ops kept so existing import sites compile unchanged
 export function showLogoutLoader(_message?: string) {}
 export function hideLogoutLoader() {}
 export function waitForModalPaint(): Promise<void> {
@@ -11,7 +9,6 @@ export function waitForModalPaint(): Promise<void> {
     requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
   });
 }
-
 function SpinnerRing({ active }: { active: boolean }) {
   const rotation = useRef(new Animated.Value(0)).current;
   const loopRef  = useRef<Animated.CompositeAnimation | null>(null);
@@ -57,7 +54,7 @@ export function LogoutLoadingModal() {
     if (isActive) {
       everActive.current = true;
       setMounted(true);
-      fadeAnim.setValue(1); // instant — no fade-in delay at all
+      fadeAnim.setValue(1); 
     } else if (everActive.current) {
       animRef.current?.stop();
       animRef.current = Animated.timing(fadeAnim, {

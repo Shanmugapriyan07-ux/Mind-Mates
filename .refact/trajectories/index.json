@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-07-03T10:12:22.003879800+00:00",
+  "entries": [
+    {
+      "id": "c882cc43-371d-42d4-b6ad-b075334498a3",
+      "file_name": "c882cc43-371d-42d4-b6ad-b075334498a3.json",
+      "source": {
+        "kind": "normal"
+      },
+      "created_at": "2026-06-25T09:20:38.786715200+00:00",
+      "updated_at": "2026-06-25T09:41:52.785933800+00:00",
+      "title": "[NotificationService] Token registration failed: Make sure t...",
+      "model": "openai/gpt-3.5-turbo",
+      "mode": "agent",
+      "message_count": 5,
+      "root_chat_id": "c882cc43-371d-42d4-b6ad-b075334498a3",
+      "is_title_generated": true,
+      "total_lines_added": 0,
+      "total_lines_removed": 0,
+      "tasks_total": 0,
+      "tasks_done": 0,
+      "tasks_failed": 0,
+      "total_prompt_tokens": 0,
+      "total_completion_tokens": 0,
+      "total_tokens": 0,
+      "total_cache_read_tokens": 0,
+      "total_cache_creation_tokens": 0,
+      "displayable_chat": true,
+      "waiting_for_card_ids": [],
+      "file_len": 48090,
+      "file_modified_unix_ms": 1782380512786
+    }
+  ]
+}

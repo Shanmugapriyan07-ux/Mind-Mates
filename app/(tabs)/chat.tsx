@@ -198,8 +198,6 @@ const sh = StyleSheet.create({
   cancelBtn:  { marginHorizontal: 16, marginTop: 14, paddingVertical: 14, borderRadius: 14, backgroundColor: "#DDD", alignItems: "center" },
   cancelText: { fontSize: 16, fontWeight: "600", color: "#000000" },
 });
-
-// ─── Skeleton (unchanged) ─────────────────────────────────────────────────────
 const Skeleton = ({ opacity = 1 }: { opacity?: number }) => (
   <View style={[s.card, { opacity }]}>
     <View style={s.cardRow}>
@@ -215,12 +213,10 @@ const Skeleton = ({ opacity = 1 }: { opacity?: number }) => (
     </View>
   </View>
 );
-
-// ─── SwipeableNotifCard ───────────────────────────────────────────────────────
 const SwipeableNotifCard = React.memo(({
   item, onAccept, onReject, actionLoading, onMenu,
   onSwipeDelete, onSwipeOpen, onSwipeClose, deleteThreshold,
-  isFirstCard,   // CHANGE: flag so only card[0] attempts the hint
+  isFirstCard,   
 }: {
   item: NotifItem;
   onAccept: (i: NotifItem) => void;
@@ -231,11 +227,11 @@ const SwipeableNotifCard = React.memo(({
   onSwipeOpen: (id: string) => void;
   onSwipeClose: (id: string) => void;
   deleteThreshold: number;
-  isFirstCard: boolean;   // CHANGE
+  isFirstCard: boolean;  
 }) => {
   const translateX = useRef(new Animated.Value(0)).current;
   const isOpen     = useRef(false);
-  const hintPlaying = useRef(false);   // CHANGE: guard against double-play
+  const hintPlaying = useRef(false);  
 
   const skills   = parseSkills(item.sender_skills);
   const skillDots = skills.slice(0, 3).join(" · ");
@@ -266,8 +262,6 @@ const SwipeableNotifCard = React.memo(({
   const playHint = useCallback(() => {
     if (hintPlaying.current) return;
     hintPlaying.current = true;
-
-    // Step 1: wait 2 s then nudge left
     setTimeout(() => {
       Animated.sequence([
         Animated.spring(translateX, {
@@ -277,9 +271,7 @@ const SwipeableNotifCard = React.memo(({
           stiffness: 260,
           mass: 0.6,
         }),
-        // Step 2: hold 350 ms
         Animated.delay(350),
-        // Step 3: spring back
         Animated.spring(translateX, {
           toValue: 0,
           useNativeDriver: true,
@@ -429,7 +421,6 @@ const SwipeableNotifCard = React.memo(({
     </View>
   );
 });
-
 const sw = StyleSheet.create({
   wrapper:     { position: "relative", overflow: "hidden" },
   deleteBehind: {
@@ -440,8 +431,6 @@ const sw = StyleSheet.create({
   deleteBtnText:{ color: "#fff", fontSize: 12, fontWeight: "700" },
   cardSlide:    { backgroundColor: C.white },
 });
-
-// ─── BulkDeleteBar (unchanged) ────────────────────────────────────────────────
 const BulkDeleteBar = ({ count, onDeleteAll }: { count: number; onDeleteAll: () => void }) => {
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -466,7 +455,6 @@ const BulkDeleteBar = ({ count, onDeleteAll }: { count: number; onDeleteAll: () 
     </Animated.View>
   );
 };
-
 const bk = StyleSheet.create({
   bar: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
@@ -482,15 +470,11 @@ const bk = StyleSheet.create({
   deleteBtn:  { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#6D4AFF", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
   deleteTxt:  { color: "#ffffff", fontWeight: "700", fontSize: 13 },
 });
-
-// ─── Header (unchanged) ───────────────────────────────────────────────────────
 const Header = ({}: { count: number }) => (
   <View style={s.header}>
     <Text style={s.headerTitle}>Notifications</Text>
   </View>
 );
-
-// ─── NotificationsScreen ─────────────────────────────────────────────────────
 export default function NotificationsScreen() {
   const { user } = useAuthh();
   const { acceptRequest, rejectRequest, setStatus } = useConnection();
@@ -524,7 +508,7 @@ export default function NotificationsScreen() {
       if (error) throw error;
       setNotifs(dedup((data ?? []) as unknown as NotifItem[]));
     } catch (e: any) {
-      console.error("❌ loadNotifs:", e?.message);
+      console.warn(" loadNotifs:", e?.message);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -570,7 +554,7 @@ export default function NotificationsScreen() {
     const { error } = await supabase
       .from(TABLES.notifications).delete().eq("id", item.id).eq("user_id", user?.id ?? "");
     if (error) {
-      console.error("❌ Notif delete failed:", error.message);
+      console.warn(" Notif delete failed:", error.message);
       setNotifs((prev: any) =>
         dedup([item, ...prev].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())),
       );
@@ -586,7 +570,7 @@ export default function NotificationsScreen() {
       ids.map((id) => supabase.from(TABLES.notifications).delete().eq("id", id).eq("user_id", user?.id ?? "")),
     );
     const failed = results.reduce<NotifItem[]>((acc, res, i) => {
-      if (res.error) { console.error("❌ Bulk delete failed for", ids[i]); acc.push(toDelete[i]); }
+      if (res.error) { console.warn(" Bulk delete failed for", ids[i]); acc.push(toDelete[i]); }
       return acc;
     }, []);
     if (failed.length) {
@@ -633,7 +617,6 @@ export default function NotificationsScreen() {
       <FlatList
         data={notifs}
         keyExtractor={(item) => item.id}
-        // CHANGE: pass index so card[0] receives isFirstCard=true
         renderItem={({ item, index }) => (
           <SwipeableNotifCard
             item={item}
@@ -645,7 +628,7 @@ export default function NotificationsScreen() {
             onSwipeOpen={handleSwipeOpen}
             onSwipeClose={handleSwipeClose}
             deleteThreshold={deleteThreshold}
-            isFirstCard={index === 0}   // CHANGE
+            isFirstCard={index === 0}  
           />
         )}
         contentContainerStyle={[s.list, { paddingBottom: insets.bottom + 80 }]}
@@ -674,8 +657,6 @@ export default function NotificationsScreen() {
     </SafeAreaView>
   );
 }
-
-// ─── Styles (unchanged) ───────────────────────────────────────────────────────
 const s = StyleSheet.create({
   safe:        { flex: 1, backgroundColor: C.white },
   list:        {},

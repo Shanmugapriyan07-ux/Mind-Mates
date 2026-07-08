@@ -82,11 +82,9 @@ export const syncDraftToAppwrite = async (
       })
     );
     await clearDraft(userId);
-
-    console.log("✅ Profile fully synced to Appwrite:", docId);
     return docId;
   } catch (error) {
-    console.warn("⚠️ Final sync failed — draft preserved for retry");
+    console.warn(" Final sync failed — draft preserved for retry");
     throw error;
   }
 };

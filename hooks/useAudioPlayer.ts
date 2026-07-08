@@ -2,7 +2,6 @@ import { Audio, AVPlaybackStatus } from "expo-av";
 import { AppState, AppStateStatus } from "react-native";
 import { File, Directory, Paths } from "expo-file-system/next"; 
 import { useCallback, useEffect, useRef, useState } from "react";
-
 const MAX_CACHE_FILES = 100;    
 const PROGRESS_INTERVAL_MS = 250;  
 const DOWNLOAD_RETRIES = 3;        
@@ -44,23 +43,21 @@ const downloadToCache = async (url: string): Promise<string> => {
           `[useAudioPlayer] download failed after ${DOWNLOAD_RETRIES} retries, streaming`,
           e
         );
-        return url; // stream fallback
+        return url; 
       }
     }
   }
   return url;
 };
-
-// ─── Singleton state ──────────────────────────────────────────────────────────
 type Listener = () => void;
 
 interface PlayerSingleton {
   sound: Audio.Sound | null;
   playingId: string | null;
   isPlaying: boolean;
-  isLoading: boolean;   // CHANGE 9
-  isLoaded: boolean;    // CHANGE 11
-  error: string | null; // CHANGE 10
+  isLoading: boolean; 
+  isLoaded: boolean;   
+  error: string | null; 
   positionMs: number;
   durationMs: number;
   speed: number;
@@ -80,10 +77,8 @@ const ps: PlayerSingleton = {
   listeners: new Set(),
 };
 
-// CHANGE 13: Global operation counter to cancel stale async chains
 let operationId = 0;
 
-// CHANGE 3: Loading guard to prevent duplicate play requests
 let loadingGuard = false;
 
 const notifyListeners = () => ps.listeners.forEach((fn) => fn());
@@ -92,14 +87,12 @@ const updateState = (patch: Partial<Omit<PlayerSingleton, "sound" | "listeners">
   Object.assign(ps, patch);
   notifyListeners();
 };
-
-// ─── Internal: unload current sound ──────────────────────────────────────────
 const unloadSound = async () => {
   if (ps.sound) {
     try {
       await ps.sound.stopAsync();
       await ps.sound.unloadAsync();
-    } catch { /* ignore */ }
+    } catch {  }
     ps.sound = null;
   }
   updateState({
@@ -112,19 +105,18 @@ const unloadSound = async () => {
     durationMs: 0,
   });
 };
-
-// ─── Playback status callback ─────────────────────────────────────────────────
 const onPlaybackStatus = (status: AVPlaybackStatus) => {
   if (!status.isLoaded) {
     if ((status as any).error) {
-      updateState({ error: (status as any).error, isLoading: false, isLoaded: false }); // CHANGE 10
+      console.warn("[useAudioPlayer] playback error:", (status as any).error);
+      updateState({ error: (status as any).error, isLoading: false, isLoaded: false }); 
     }
     return;
   }
   updateState({
     isPlaying: status.isPlaying,
-    isLoaded: true,       // CHANGE 11
-    isLoading: false,     // CHANGE 9
+    isLoaded: true,   
+    isLoading: false,    
     error: null,
     positionMs: status.positionMillis,
     durationMs: status.durationMillis ?? 0,
@@ -137,7 +129,7 @@ let lastAppState: AppStateStatus = "active";
 AppState.addEventListener("change", async (nextState: AppStateStatus) => {
   if (nextState === "background" || nextState === "inactive") {
     if (ps.sound && ps.isPlaying) {
-      try { await ps.sound.pauseAsync(); } catch { /* ignore */ }
+      try { await ps.sound.pauseAsync(); } catch { }
     }
   }
   if (nextState === "active" && lastAppState !== "active") {
@@ -145,7 +137,7 @@ AppState.addEventListener("change", async (nextState: AppStateStatus) => {
       try {
         const status = await ps.sound.getStatusAsync();
         if (!status.isLoaded) {
-          await unloadSound(); // stale — clean up
+          await unloadSound(); 
         }
       } catch {
         await unloadSound();
@@ -191,26 +183,23 @@ export const useAudioPlayer = () => {
     await unloadSound();
     updateState({
       playingId: messageId,
-      isLoading: true,  // CHANGE 9
+      isLoading: true,  
       isLoaded: false,
       error: null,
       positionMs: 0,
       durationMs: 0,
     });
-
     try {
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: false,
         playsInSilentModeIOS: true,
-        staysActiveInBackground: false, // CHANGE 12: flip to true for WhatsApp-style
+        staysActiveInBackground: false, 
       });
 
       let resolvedUri = url;
       if (url.startsWith("http")) {
-        resolvedUri = await downloadToCache(url); // CHANGE 1 + 14
+        resolvedUri = await downloadToCache(url);
       }
-
-      // CHANGE 13: Bail if a newer play() call started while we were downloading
       if (myOp !== operationId) return;
 
       const { sound } = await Audio.Sound.createAsync(
@@ -220,74 +209,57 @@ export const useAudioPlayer = () => {
       );
 
       if (myOp !== operationId) {
-        // Superseded — clean up silently
-        try { await sound.unloadAsync(); } catch { /* ignore */ }
+        try { await sound.unloadAsync(); } catch { }
         return;
       }
-
-      // CHANGE 4: Throttle progress updates to 250 ms
       await sound.setProgressUpdateIntervalAsync(PROGRESS_INTERVAL_MS);
 
       ps.sound = sound;
       updateState({ isPlaying: true, isLoading: false, isLoaded: true });
     } catch (e: any) {
-      console.error("[useAudioPlayer] play failed:", e);
-      // CHANGE 10: Expose error to UI
+      console.warn("[useAudioPlayer] play failed:", e);
       updateState({ error: e?.message ?? "Playback failed", isLoading: false });
       await unloadSound();
     } finally {
-      loadingGuard = false; // CHANGE 3
+      loadingGuard = false;
     }
   }, []);
-
-  // ── Pause ─────────────────────────────────────────────────────────────────
   const pause = useCallback(async () => {
     if (ps.sound && ps.isPlaying) {
       await ps.sound.pauseAsync();
     }
   }, []);
-
-  // ── Resume ────────────────────────────────────────────────────────────────
   const resume = useCallback(async () => {
     if (ps.sound && !ps.isPlaying) {
       await ps.sound.playAsync();
     }
   }, []);
-
-  // ── Stop ──────────────────────────────────────────────────────────────────
   const stop = useCallback(async () => {
     await unloadSound();
   }, []);
-
-  // ── Seek ──────────────────────────────────────────────────────────────────
   const seek = useCallback(async (positionMs: number) => {
     if (ps.sound) {
       await ps.sound.setPositionAsync(positionMs);
       updateState({ positionMs });
     }
   }, []);
-
-  // ── Speed ─────────────────────────────────────────────────────────────────
   const setSpeed = useCallback(async (rate: number) => {
     updateState({ speed: rate });
     if (ps.sound) {
       await ps.sound.setRateAsync(rate, true);
     }
   }, []);
-
-  // CHANGE 15: Derived progress (0–1)
   const progress =
     ps.durationMs > 0 ? ps.positionMs / ps.durationMs : 0;
-
   return {
     playingId:  ps.playingId,
     positionMs: ps.positionMs,
     durationMs: ps.durationMs,
-    progress,           // CHANGE 15
+    progress,         
     isPlaying:  ps.isPlaying,
-    isLoading:  ps.isLoading,  // CHANGE 9
-    isLoaded:   ps.isLoaded,   // CHANGE 11
-    error:      ps.error,      // CHANGE 10
+    isLoading:  ps.isLoading, 
+    isLoaded:   ps.isLoaded,  
+    error:      ps.error,     
     speed:      ps.speed,
     play,
     pause,

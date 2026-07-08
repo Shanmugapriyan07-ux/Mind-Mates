@@ -21,8 +21,8 @@ export interface ConfirmModalProps {
   confirmDestructive?: boolean;
   icon?: keyof typeof Ionicons.glyphMap;
   onConfirm: () => void;
-  onCancel?: () => void; // Make optional, for explicit cancel button
-  onDismiss?: () => void; // For back button / tap outside
+  onCancel?: () => void; 
+  onDismiss?: () => void;  
 }
 const PURPLE = "#6D4AFF";
 const WHITE = "#FFFFFF";
@@ -30,7 +30,6 @@ const TEXT = "#111827";
 const MUTED = "#6B7280";
 const BG = "rgba(0,0,0,0.45)";
 const OPEN_CONFIG = { duration: 20, useNativeDriver: true } as const;
-const CLOSE_CONFIG = { duration: 100, useNativeDriver: true } as const;
 const ConfirmModal: React.FC<ConfirmModalProps> = ({
   visible,
   title,
@@ -40,8 +39,8 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   confirmDestructive = true,
   icon = "trash-outline",
   onConfirm,
-  onCancel, // This is for the explicit cancel button
-  onDismiss, // This is for modal dismissal (back button, tap outside)
+  onCancel,  
+  onDismiss, 
 }) => {
   const [internalVisible, setInternalVisible] = useState(false);
   const executingRef = useRef(false);
@@ -70,7 +69,6 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   const animateClose = useCallback(
     (afterClose: () => void) => {
       Animated.parallel([
-        // Use a shorter duration for dismissal animation
         Animated.timing(backdropOpacity, {
           toValue: 0,
           duration: 150,
@@ -95,7 +93,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   );
   const handleCancel = useCallback(() => {
     if (executingRef.current) return;
-    animateClose(onCancel || (() => {})); // Call onCancel if provided, else do nothing
+    animateClose(onCancel || (() => {})); 
   }, [animateClose, onCancel]);
   const handleConfirm = useCallback(() => {
     if (executingRef.current) return;
@@ -104,16 +102,15 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   }, [animateClose, onConfirm]);
   const handleDismiss = useCallback(() => {
     if (executingRef.current) return;
-    animateClose(onDismiss || (() => {})); // Call onDismiss if provided, else do nothing
+    animateClose(onDismiss || (() => {})); 
   }, [animateClose, onDismiss]);
-
   return (
     <Modal
       transparent
       statusBarTranslucent
       visible={internalVisible}
       animationType="none"
-      onRequestClose={handleDismiss} // onRequestClose now calls handleDismiss
+      onRequestClose={handleDismiss}
       hardwareAccelerated
     >
       <Pressable style={StyleSheet.absoluteFill} onPress={handleDismiss}>

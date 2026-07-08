@@ -106,7 +106,6 @@ export const config = {
   connectionFunctionId: "mindmates",
   getMatchesFnId: "mindmates",
 };
-
 export const TABLES = {
   users: "users",
   connections: "connections",

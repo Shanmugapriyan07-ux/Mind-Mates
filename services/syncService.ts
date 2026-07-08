@@ -153,7 +153,6 @@ const setupAppStateListener = (userId: string): void => {
         nextState === 'active';
 
       if (comingToForeground && activeUserId === userId) {
-        console.log('[SyncService] App foregrounded — re-syncing counts');
         await fetchAndApplyCounts(userId);
       }
 
@@ -169,31 +168,23 @@ export const onChatOpened = async (chatId: string, userId: string): Promise<void
     .eq('chat_id', chatId)
     .eq('receiver_id', userId)
     .eq('is_read', false);
-
-  // Immediate badge re-sync after marking read
   await fetchAndApplyCounts(userId);
   const total = useUnreadStore.getState().totalUnread;
   await updateAppIconBadgeImmediate(total);
 };
-
-// Call when user opens the notifications screen
 export const onNotifScreenOpened = async (userId: string): Promise<void> => {
   useUnreadStore.getState().clearNotifBadge();
-
   await supabase
     .from('notifications')
     .update({ is_read: true })
     .eq('user_id', userId)
     .eq('is_read', false);
-
   await fetchAndApplyCounts(userId);
   const total = useUnreadStore.getState().totalUnread;
   await updateAppIconBadgeImmediate(total);
 };
-
-// Force a full re-sync (call from pull-to-refresh or error recovery)
 export const forceResync = async (): Promise<void> => {
   if (!activeUserId) return;
-  isSyncing = false;  // override guard for force sync
+  isSyncing = false; 
   await fetchAndApplyCounts(activeUserId);
 };

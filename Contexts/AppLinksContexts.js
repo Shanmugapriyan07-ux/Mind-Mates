@@ -8,7 +8,6 @@ import React, {
   useState,
 } from "react";
 import { AppState } from "react-native";
-
 import { FETCH_CONFIG, STATIC_LINKS } from "@/config/appLinks";
 import { readCache, readStaleCache, writeCache } from "@/services/linkCache";
 import { fetchAllLinks } from "@/services/linkFetcher";

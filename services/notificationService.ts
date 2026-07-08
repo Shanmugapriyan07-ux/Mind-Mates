@@ -19,7 +19,6 @@ Notifications.setNotificationHandler({
     const activeChatId = useChatStore.getState().activeChatId;
     if ((data?.type as string) === 'badge_sync') {
       return {
-        shouldShowAlert:  false,
         shouldPlaySound:  false,
         shouldSetBadge:   false,
         shouldShowBanner: false,
@@ -32,7 +31,6 @@ Notifications.setNotificationHandler({
       activeChatId === data.chatId;
     if (suppressForActiveChat) {
       return {
-        shouldShowAlert:  false,
         shouldPlaySound:  false,
         shouldSetBadge:   false,
         shouldShowBanner: false,
@@ -40,7 +38,6 @@ Notifications.setNotificationHandler({
       };
     }
     return {
-      shouldShowAlert:  true,
       shouldPlaySound:  true,
       shouldSetBadge:   true,
       shouldShowBanner: true,
@@ -54,33 +51,26 @@ class NotificationService {
   private _retryCount  = 0;
   private _maxRetries  = 3;
   private _retryBaseMs = 1000;
-
-  // ── Token validation ────────────────────────────────────────────────────────
   private _isValidToken(token: unknown): token is string {
     if (!token || typeof token !== 'string') return false;
     return /^ExponentPushToken\[[A-Za-z0-9_-]+\]$/.test(token.trim());
   }
 
-  // ── Register for push notifications ────────────────────────────────────────
   async registerForPushNotifications(userId: string): Promise<string | null> {
     try {
       if (!Device.isDevice) {
         console.warn('[Notif] Skipping — not a physical device');
         return null;
       }
-
-      // Resolve EAS project ID
       const projectId =
         (process.env.EXPO_PUBLIC_EAS_PROJECT_ID as string | undefined) ||
         (Constants.expoConfig?.extra?.eas?.projectId as string | undefined) ||
         null;
 
       if (!projectId) {
-        console.error('[Notif] EAS projectId not configured');
+        console.warn('[Notif] EAS projectId not configured');
         return null;
       }
-
-      // Request permission
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
       if (existingStatus !== 'granted') {
@@ -91,65 +81,45 @@ class NotificationService {
         console.warn('[Notif] Permission denied by user');
         return null;
       }
-
-      // Create Android channels
       if (Platform.OS === 'android') {
         await this._createAndroidChannels();
       }
-
-      // Get Expo push token — expo-notifications handles FCM internally
       const { data: rawToken } = await Notifications.getExpoPushTokenAsync({ projectId });
       const token = typeof rawToken === 'string' ? rawToken.trim() : rawToken;
 
       if (!this._isValidToken(token)) {
-        console.error('[Notif] Invalid token received:', token);
+        console.warn('[Notif] Invalid token received:', token);
         return null;
       }
-
-      // Save to Supabase
       await this._saveTokenToSupabase(userId, token);
       useNotificationStore.getState().setExpoPushToken(token);
-
       this._retryCount = 0;
-      console.log('[Notif] ✓ Token registered for', userId);
       return token;
-
     } catch (err: any) {
   const msg  = err?.message ?? '';
   const code = err?.code   ?? '';
-
   const isFirebaseError = msg.includes('FirebaseApp is not initialized') ||
                           msg.includes('FirebaseApp.initializeApp') ||
                           code === 'E_REGISTRATION_FAILED';
-
-  // ✅ Firebase not initialized = native build issue, NEVER retry
   if (isFirebaseError) {
     console.warn('[Notif] Firebase not initialized — native rebuild required');
-    return null; // bail immediately, no retry
+    return null; 
   }
-
   const isMissingUser  = msg === 'USER_RECORD_NOT_FOUND';
   const isUnavailable  = msg.includes('SERVICE_NOT_AVAILABLE');
-
   if (isUnavailable || isMissingUser) return null;
-
-  // Only retry truly transient errors
   if (this._retryCount < this._maxRetries) {
     this._retryCount++;
     const delay = this._retryBaseMs * Math.pow(2, this._retryCount - 1);
-    console.log(`[Notif] Retry ${this._retryCount}/${this._maxRetries} in ${delay}ms`);
     setTimeout(() => {
       this.registerForPushNotifications(userId).catch(() => {});
     }, delay);
   }
-
   return null;
 }
   }
-  // ── Android notification channels ──────────────────────────────────────────
   private async _createAndroidChannels(): Promise<void> {
     await Promise.all([
-      // Chat messages — highest priority
       Notifications.setNotificationChannelAsync('messages', {
         name:             'Messages',
         importance:       Notifications.AndroidImportance.HIGH,
@@ -159,7 +129,6 @@ class NotificationService {
         showBadge:        true,
         enableLights:     true,
       }),
-      // Connection requests and accepts
       Notifications.setNotificationChannelAsync('social', {
         name:             'Social Activity',
         importance:       Notifications.AndroidImportance.HIGH,
@@ -169,7 +138,6 @@ class NotificationService {
         showBadge:        true,
         enableLights:     true,
       }),
-      // Daily motivational — lower priority, no vibration
       Notifications.setNotificationChannelAsync('daily', {
         name:             'Daily Motivation',
         importance:       Notifications.AndroidImportance.DEFAULT,
@@ -177,7 +145,6 @@ class NotificationService {
         enableVibrate:    false,
         showBadge:        false,
       }),
-      // Internal badge sync — completely invisible to users
       Notifications.setNotificationChannelAsync('badge_sync_silent', {
         name:          'Badge Sync',
         importance:    Notifications.AndroidImportance.MIN,
@@ -187,10 +154,7 @@ class NotificationService {
       }),
     ]);
   }
-
-  // ── Save token to Supabase ─────────────────────────────────────────────────
   private async _saveTokenToSupabase(userId: string, token: string): Promise<void> {
-    // Verify user record exists first (prevents FK violation)
     const { data: userRow } = await supabase
       .from('users')
       .select('user_id')
@@ -210,41 +174,30 @@ class NotificationService {
     );
 
     if (error) {
-      console.error('[Notif] Token save error:', error.message);
+      console.warn('[Notif] Token save error:', error.message);
       throw error;
     }
-
-    console.log('[Notif] Token saved for', userId, 'on', Platform.OS);
   }
-
-  // ── Get initial notification (cold start) ─────────────────────────────────
   async getInitialNotification(): Promise<NotificationPayload | null> {
     try {
       const response = await Notifications.getLastNotificationResponseAsync();
       if (!response) return null;
       return response.notification.request.content.data as NotificationPayload;
     } catch (e) {
-      console.error('[Notif] getInitialNotification error:', e);
+      console.warn('[Notif] getInitialNotification error:', e);
       return null;
     }
   }
-
-  // ── Delete token on logout ─────────────────────────────────────────────────
   async deleteTokenForUser(userId: string): Promise<void> {
     try {
       await supabase.from('push_tokens').delete().eq('user_id', userId);
       useNotificationStore.getState().setExpoPushToken('');
-      console.log('[Notif] Token deleted for', userId);
     } catch (e) {
-      console.error('[Notif] deleteToken error:', e);
+      console.warn('[Notif] deleteToken error:', e);
     }
   }
-
-  // ── Listen for notification taps (background → foreground) ────────────────
-  // ONE listener only — never register twice
   listenForNotificationTaps(onTap: (payload: NotificationPayload) => void): void {
     if (this._tapListener) return;
-
     this._tapListener = Notifications.addNotificationResponseReceivedListener(response => {
       try {
         const data = response.notification.request.content.data as NotificationPayload;
@@ -255,14 +208,8 @@ class NotificationService {
       }
     });
   }
-
-  // ── Listen for foreground notifications (badge update only) ───────────────
-  // IMPORTANT: Do NOT call scheduleNotificationAsync here.
-  // setNotificationHandler above already handles showing the notification.
-  // This listener is ONLY for side effects like updating badge count.
   listenForForegroundNotifications(onReceive: (payload: NotificationPayload) => void): void {
     if (this._foregroundListener) return;
-
     this._foregroundListener = Notifications.addNotificationReceivedListener(notification => {
       try {
         const data = notification.request.content.data as NotificationPayload;
@@ -273,8 +220,6 @@ class NotificationService {
       }
     });
   }
-
-  // ── Cleanup ────────────────────────────────────────────────────────────────
   destroy(): void {
     this._tapListener?.remove();
     this._foregroundListener?.remove();

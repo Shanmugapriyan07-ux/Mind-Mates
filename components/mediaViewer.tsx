@@ -37,19 +37,14 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-// ── expo-video (new API) ──────────────────────────────────────────────────────
 let ExpoVideo: any = null;
 try {
-  // Using require to prevent top-level import crash if module is missing
   ExpoVideo = require("expo-video");
 } catch (e) {
   console.warn(
     "[MediaViewer] expo-video native module not found. Rebuild your app.",
   );
 }
-
-// Helper to check if native video is available
 const isVideoAvailable = !!(ExpoVideo?.useVideoPlayer && ExpoVideo?.VideoView);
 const { useVideoPlayer, VideoView } = ExpoVideo || {};
 
@@ -61,8 +56,6 @@ interface Props {
   type: "image" | "video";
   onClose: () => void;
 }
-
-// ─── BufferingDots ────────────────────────────────────────────────────────────
 const BufferingDots = () => {
   const d1 = useSharedValue(0.3);
   const d2 = useSharedValue(0.3);
@@ -98,10 +91,6 @@ const BufferingDots = () => {
     </View>
   );
 };
-
-// ─── VideoPlayer (inner component — needed so useVideoPlayer hook is stable) ──
-// expo-video requires useVideoPlayer to be called with a stable URI.
-// We isolate it in a child so the hook re-mounts cleanly when URI changes.
 const VideoPlayerInner = ({
   videoUri,
   videoPoster,
@@ -124,16 +113,11 @@ const VideoPlayerInner = ({
 
   const controlsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const videoViewRef = useRef<any>(null);
-
-  // ── expo-video player ─────────────────────────────────────────────────────
   const player = useVideoPlayer(videoUri, (p: any) => {
     p.loop = false;
     p.muted = false;
     p.volume = 1.0;
-    // Don't autoplay — wait for user tap
   });
-
-  // ── Subscribe to player events ────────────────────────────────────────────
   useEffect(() => {
     if (!player) return;
 
@@ -159,8 +143,6 @@ const VideoPlayerInner = ({
         resetControlsTimer();
       }
     });
-
-    // Poll position for scrubber (expo-video doesn't have onProgress callback)
     const poller = setInterval(() => {
       if (!player) return;
       const pos = (player.currentTime ?? 0) * 1000;
@@ -242,7 +224,6 @@ const VideoPlayerInner = ({
 
   return (
     <>
-      {/* Video view */}
       <TouchableWithoutFeedback onPress={handleTapMedia}>
         <View style={vw.media}>
           <VideoView
@@ -250,12 +231,10 @@ const VideoPlayerInner = ({
             player={player}
             style={vw.media}
             contentFit="contain"
-            nativeControls={false} // ← we build our own controls
+            nativeControls={false} 
             allowsFullscreen={false}
             allowsPictureInPicture={false}
           />
-
-          {/* Poster while loading */}
           {!videoReady && videoPoster && !videoError && (
             <Image
               source={{ uri: videoPoster }}
@@ -263,15 +242,11 @@ const VideoPlayerInner = ({
               resizeMode="cover"
             />
           )}
-
-          {/* Buffering dots */}
           {isBuffering && !videoError && (
             <View style={vw.bufferingOverlay}>
               <BufferingDots />
             </View>
           )}
-
-          {/* Error state */}
           {videoError && (
             <View style={vw.errorOverlay}>
               <Ionicons
@@ -289,8 +264,6 @@ const VideoPlayerInner = ({
               </TouchableOpacity>
             </View>
           )}
-
-          {/* Centre play button when paused */}
           {!isPlaying && !videoError && showControls && (
             <TouchableOpacity
               style={vw.playCenter}
@@ -299,7 +272,6 @@ const VideoPlayerInner = ({
             >
               <View style={vw.playBtn}>
                 {isBuffering ? (
-                  // ActivityIndicator from RN (no expo-av needed)
                   <View style={vw.spinnerWrap}>
                     <BufferingDots />
                   </View>
@@ -316,8 +288,6 @@ const VideoPlayerInner = ({
           )}
         </View>
       </TouchableWithoutFeedback>
-
-      {/* Controls overlay */}
       {showControls && (
         <Animated.View
           style={StyleSheet.absoluteFill}
@@ -325,7 +295,6 @@ const VideoPlayerInner = ({
           exiting={FadeOut.duration(220)}
           pointerEvents="box-none"
         >
-          {/* Top bar */}
           <View style={[vw.topBar, { paddingTop: insets.top + 6 }]}>
             <TouchableOpacity
               style={vw.closeBtn}
@@ -336,12 +305,9 @@ const VideoPlayerInner = ({
               <Ionicons name="close" size={22} color="#fff" />
             </TouchableOpacity>
           </View>
-
-          {/* Bottom scrubber */}
           {videoReady && !videoError && (
             <View style={[vw.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
               <Text style={vw.timeTxt}>{fmt(positionMs)}</Text>
-
               <TouchableOpacity
                 style={vw.progressTrack}
                 activeOpacity={1}
@@ -381,13 +347,9 @@ const VideoPlayerInner = ({
     </>
   );
 };
-
-// ─── MediaViewer ──────────────────────────────────────────────────────────────
 export const MediaViewer = ({ uri, type, onClose }: Props) => {
   const backdropOpacity = useSharedValue(0);
   const mediaScale = useSharedValue(0.96);
-
-  // ── Clean URI ─────────────────────────────────────────────────────────────
   const cleanUri = useMemo(() => {
     if (!uri) return null;
     return uri
@@ -399,7 +361,6 @@ export const MediaViewer = ({ uri, type, onClose }: Props) => {
 
   const isCloudinary = !!cleanUri?.includes("cloudinary.com");
 
-  // ── Fallback for missing native module ────────────────────────────────────
   const Fallback = () => (
     <View style={[vw.media, vw.fallback]}>
       <Ionicons
@@ -411,14 +372,11 @@ export const MediaViewer = ({ uri, type, onClose }: Props) => {
       <Text style={vw.fallbackTxtSub}>Please run: npx expo run:android</Text>
     </View>
   );
-
-  // ── Video URLs ────────────────────────────────────────────────────────────
   const videoUri = useMemo(() => {
     if (!cleanUri || type !== "video") return null;
     if (Platform.OS === "web") {
       return isCloudinary ? cdnVideoUrl(cleanUri) : cleanUri;
     }
-    // Try HLS stream first, fallback to progressive MP4
     return isCloudinary
       ? (cdnVideoStreamUrl(cleanUri) ?? cdnVideoUrl(cleanUri) ?? cleanUri)
       : cleanUri;
@@ -433,8 +391,6 @@ export const MediaViewer = ({ uri, type, onClose }: Props) => {
     if (!cleanUri || type !== "image") return null;
     return isCloudinary ? cdnFullUrl(cleanUri) : cleanUri;
   }, [cleanUri, type, isCloudinary]);
-
-  // ── Entrance animation ────────────────────────────────────────────────────
   useEffect(() => {
     if (cleanUri) {
       backdropOpacity.value = withTiming(1, { duration: 150 });
@@ -452,8 +408,6 @@ export const MediaViewer = ({ uri, type, onClose }: Props) => {
   }));
 
   if (!cleanUri) return null;
-
-  // ── Image ─────────────────────────────────────────────────────────────────
   if (type === "image") {
     return (
       <ImageView
@@ -468,10 +422,7 @@ export const MediaViewer = ({ uri, type, onClose }: Props) => {
       />
     );
   }
-
-  // ── Video ─────────────────────────────────────────────────────────────────
   if (!videoUri) return null;
-
   return (
     <Modal
       visible
@@ -487,7 +438,6 @@ export const MediaViewer = ({ uri, type, onClose }: Props) => {
           pointerEvents="box-none"
         >
           {Platform.OS === "web" ? (
-            // Web: use native <video> element
             <View style={vw.media}>
               {React.createElement("video", {
                 src: videoUri,
@@ -509,8 +459,6 @@ export const MediaViewer = ({ uri, type, onClose }: Props) => {
               </View>
             </View>
           ) : isVideoAvailable ? (
-            // Native: expo-video
-            // Key prop forces remount when URI changes — critical for expo-video
             <VideoPlayerInner
               key={videoUri}
               videoUri={videoUri}
@@ -527,8 +475,6 @@ export const MediaViewer = ({ uri, type, onClose }: Props) => {
 };
 
 export default MediaViewer;
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const vw = StyleSheet.create({
   backdrop: {
     flex: 1,

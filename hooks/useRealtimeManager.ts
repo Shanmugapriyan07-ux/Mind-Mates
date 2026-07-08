@@ -1,4 +1,3 @@
-// hooks/useRealtimeManager.ts
 import { useEffect }        from 'react';
 import { useAuthh }          from '@/Contexts/authContext';
 import { realtimeManager }  from '@/lib/realtimeManager';
@@ -7,24 +6,18 @@ import { supabase }         from '@/lib/supabase';
 export const useRealtimeManager = () => {
   const { user }           = useAuthh();
   const setConversations   = useChatStore(s => s.setConversations);
-
   useEffect(() => {
     if (!user?.id) return;
     const uid = user.id;
-
-    // Initial load of conversation list with unread counts
     loadConversations(uid, setConversations);
-
     realtimeManager.init(uid);
     return () => realtimeManager.destroy();
   }, [user?.id]);
 };
-
 async function loadConversations(
   userId: string,
   setConversations: (c: any[]) => void
 ) {
-  // Join conversation_members → chats → other user's profile
   const { data } = await supabase
     .from('conversation_members')
     .select(`
@@ -44,11 +37,9 @@ async function loadConversations(
       )
     `)
     .eq('user_id', userId)
-    .neq('other_member.user_id', userId)   // exclude self
+    .neq('other_member.user_id', userId)
     .order('chats(last_message_at)', { ascending: false });
-
   if (!data) return;
-
   const mapped = data.map((row: any) => {
     const other = row.other_member?.[0]?.users;
     const chat  = row.chats;
@@ -65,6 +56,5 @@ async function loadConversations(
       lastSeen:        other?.last_seen,
     };
   });
-
   setConversations(mapped);
 }

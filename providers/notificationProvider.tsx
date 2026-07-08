@@ -12,21 +12,14 @@ import {
 import { useAuthStore } from "@/stores/authStore";
 import * as Notifications from "expo-notifications";
 import React, { useEffect, useRef } from "react";
-
-// Module-level — survives unmount/remount
 let _foregroundListenerSub: Notifications.Subscription | null = null;
-let _registrationInFlight = false; // ✅ prevents concurrent registration attempts
-
+let _registrationInFlight = false; 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const { hydrated } = useAuthStore();
   const userId = useAuthStore((s) => s.user?.id ?? null);
   const registeredForRef = useRef<string | null>(null);
-
-  // ── Foreground listener — registered ONCE ever ────────────────────────────
   useEffect(() => {
     if (_foregroundListenerSub) return;
-
-    console.log('[NotificationProvider] registering foreground listener ONCE');
     initBadgeService();
 
     _foregroundListenerSub = Notifications.addNotificationReceivedListener(() => {
@@ -34,10 +27,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         updateAppIconBadge(current + 1);
       });
     });
-    // NO cleanup — intentional
   }, []);
-
-  // ── Token registration — ONCE per userId, never retried from here ─────────
   useEffect(() => {
     if (!userId) {
       clearAppIconBadge();
@@ -49,13 +39,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       registeredForRef.current = null;
       return;
     }
-
-    // ✅ Already registered for this user — skip
     if (registeredForRef.current === userId) return;
-
-    // ✅ Another registration already in-flight — skip
     if (_registrationInFlight) return;
-
     registeredForRef.current = userId;
     _registrationInFlight = true;
 
@@ -70,13 +55,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       });
 
   }, [userId]);
-
-  // ── Flush pending deep-link once auth hydrates ────────────────────────────
   useEffect(() => {
     if (hydrated) flushPendingNavigation();
   }, [hydrated]);
-
-  // ✅ REMOVED: AppState foreground retry — was causing infinite error loop
 
   return <>{children}</>;
 }

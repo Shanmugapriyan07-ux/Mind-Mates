@@ -1,4 +1,3 @@
-// hooks/useBadgeSync.ts
 import { useAuthh } from '@/Contexts/authContext';
 import { callFn } from '@/lib/callFn';
 import { useEffect, useRef } from 'react';
@@ -20,7 +19,7 @@ export function useChatBadge(chatId: string | null | undefined) {
         console.log('[Badge] mark_chat_read success');
       })
       .catch((err) => {
-        console.error('[Badge] mark_chat_read failed:', err?.message ?? err);
+        console.warn('[Badge] mark_chat_read failed:', err?.message ?? err);
       });
   }, [chatId, user?.id]);
 

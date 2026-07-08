@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-
 const unreadStorage = createJSONStorage(() => {
   if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
     return {

@@ -22,14 +22,12 @@ export const registerNavRef = (ref: { isReady: () => boolean }) => {
 const safeNavigate = (url: string, fullData?: NotificationData) => {
   const now = Date.now();
   if (url === _lastNavigatedUrl && now - _lastNavigatedAt < 2000) {
-    console.log('[DeepLink] duplicate blocked:', url);
     return;
   }
   _lastNavigatedUrl = url;
   _lastNavigatedAt  = now;
 
-  const route = resolveRoute(url, fullData); // ← pass fullData
-  console.log('[DeepLink] pushing route:', JSON.stringify(route));
+  const route = resolveRoute(url, fullData);
 
   const tryPush = (attempts: number) => {
     try {
@@ -55,7 +53,6 @@ const safeNavigate = (url: string, fullData?: NotificationData) => {
   };
   tryPush(20);
 };
-
 const resolveRoute = (url: string, fullData?: NotificationData): object => {
   const chatMatch = url.match(/^\/subScreens\/chatScreen\/([^/]+)$/);
   if (chatMatch) {
@@ -69,7 +66,6 @@ const resolveRoute = (url: string, fullData?: NotificationData): object => {
       },
     };
   }
-
   const userMatch = url.match(/^\/subScreens\/userProfile\/([^/]+)$/);
   if (userMatch) {
     return {
@@ -77,10 +73,8 @@ const resolveRoute = (url: string, fullData?: NotificationData): object => {
       params:   { userId: userMatch[1] },
     };
   }
-
   return { pathname: url };
 };
-// ─── Pending navigation storage ───────────────────────────────────────────────
 const _setPending = (url: string) =>
   useNotificationStore.getState().setPendingNavigation({ screen: url, params: {} });
 
@@ -91,32 +85,23 @@ const _getPending = (): string | null => {
   const p = useNotificationStore.getState().pendingNavigation;
   return p?.screen ?? null;
 };
-
-// ─── Flush — called after auth hydrates ──────────────────────────────────────
 export const flushPendingNavigation = () => {
   const url = _getPending();
   if (!url) return;
   _clearPending();
   safeNavigate(url);
 };
-
-// ─── Main entry — notification tapped ────────────────────────────────────────
 export const navigateFromNotification = (data: NotificationData) => {
   const url = data?.url;
   if (!url || data?.type === 'badge_sync') return;
-  console.log('[DeepLink] navigating to:', url);
-  safeNavigate(url, data); // ← pass full data
+  safeNavigate(url, data); 
 };
-
-// ─── Cold start handler ───────────────────────────────────────────────────────
 export const handleColdStartNotification = async () => {
   try {
     const response = await Notifications.getLastNotificationResponseAsync();
     if (!response) return;
     const data = response.notification.request.content.data as unknown as NotificationData;
-    console.log('[DeepLink] cold start payload:', JSON.stringify(data));
     if (!data?.url) return;
-    // Store it — flushPendingNavigation() will fire after auth hydrates
     _setPending(data.url);
   } catch (e) {
     console.warn('[DeepLink] cold start check failed:', e);

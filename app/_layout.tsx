@@ -147,7 +147,6 @@ function RootLayoutNav({
     log.nav(`[Layout] "${phase}" → "${target}"`);
 
     const isLoggingIn  = phase === "authenticated" || phase === "profile_incomplete";
-    // CHANGE: logging_out and deleting are now treated as logout for navigation
     const isLoggingOut =
       phase === "unauthenticated" ||
       phase === "logging_out"     ||

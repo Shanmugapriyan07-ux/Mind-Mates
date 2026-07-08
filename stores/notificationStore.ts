@@ -1,4 +1,3 @@
-// stores/notificationStore.ts
 import { create } from 'zustand';
 
 interface PendingNavigation {

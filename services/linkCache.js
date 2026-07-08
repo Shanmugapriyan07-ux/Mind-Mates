@@ -1,9 +1,8 @@
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { CACHE_CONFIG } from "../config/appLinks";
 import { log as logger } from "../utils/logger";
 const memoryCache = {
-  data: null, // { [key]: url }
+  data: null,
   fetchedAt: 0,
 };
 function isExpired(fetchedAt, ttl = CACHE_CONFIG.TTL_MS) {

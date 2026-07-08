@@ -643,11 +643,11 @@ const st = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: s(7),
+    gap: s(5),
     backgroundColor: C.bg,
     borderRadius: s(50),
     paddingHorizontal: s(15),
-    height: vs(43),
+    height: vs(42),
     marginHorizontal: s(17),
   },
   searchInput: {
@@ -665,7 +665,7 @@ const st = StyleSheet.create({
   tabsScroll: {
     paddingHorizontal: s(16),
     paddingBottom: vs(6),
-    paddingTop: vs(2),
+    paddingTop: vs(4),
     gap: s(8),
     flexDirection: "row",
     alignItems: "center",

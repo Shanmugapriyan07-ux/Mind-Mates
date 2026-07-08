@@ -58,7 +58,6 @@ const WaveformBars = memo(({ bars }: { bars: number[] }) => {
     </View>
   );
 });
-
 const wv = StyleSheet.create({
   container: {
     flexDirection: "row",
@@ -71,11 +70,8 @@ const wv = StyleSheet.create({
     borderRadius: s(2),
   },
 });
-
-// ─── RecordDot (pulsing red dot) ─────────────────────────────────────────────
 const RecordDot = memo(() => {
   const scale = useSharedValue(1);
-
   useEffect(() => {
     scale.value = withRepeat(
       withSequence(
@@ -98,7 +94,6 @@ const RecordDot = memo(() => {
     <Animated.View style={[rd.dot, dotStyle]} />
   );
 });
-
 const rd = StyleSheet.create({
   dot: {
     width: s(10),
@@ -107,27 +102,20 @@ const rd = StyleSheet.create({
     backgroundColor: T.purple,
   },
 });
-
-// ─── VoiceRecordingOverlay ────────────────────────────────────────────────────
 export const VoiceRecordingOverlay = memo(
   ({ visible, elapsedMs, liveBars, translateX, cancelThreshold }: Props) => {
     const mountAnim = useSharedValue(0);
-
     useEffect(() => {
       mountAnim.value = visible
         ? withSpring(1, { damping: 18, stiffness: 260 })
         : withTiming(0, { duration: 150 });
     }, [visible]);
-
-    // Slide hint fades out as user slides left
     const slideHintStyle = useAnimatedStyle(() => {
       const progress = Math.min(1, Math.abs(translateX.value) / cancelThreshold);
       return {
         opacity: interpolate(progress, [0, 0.5, 1], [0.7, 0.3, 0]),
       };
     });
-
-    // Trash icon fades in as user slides left
     const trashStyle = useAnimatedStyle(() => {
       const progress = Math.min(1, Math.abs(translateX.value) / cancelThreshold);
       return {
@@ -137,16 +125,12 @@ export const VoiceRecordingOverlay = memo(
         ],
       };
     });
-
-    // Container slides in from bottom
     const containerStyle = useAnimatedStyle(() => ({
       opacity: mountAnim.value,
       transform: [
         { translateY: interpolate(mountAnim.value, [0, 1], [12, 0]) },
       ],
     }));
-
-    // Mic button follows finger horizontally
     const micBtnStyle = useAnimatedStyle(() => ({
       transform: [
         {
@@ -159,9 +143,7 @@ export const VoiceRecordingOverlay = memo(
         },
       ],
     }));
-
     if (!visible) return null;
-
     return (
       <Animated.View style={[st.container, containerStyle]}>
         <View style={st.leftSection}>

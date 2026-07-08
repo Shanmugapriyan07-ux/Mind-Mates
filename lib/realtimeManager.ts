@@ -1,12 +1,6 @@
-// lib/RealtimeManager.ts
 import { supabase }     from '@/lib/supabase';
 import { useChatStore } from '@/stores/chatStore';
 import { RealtimeChannel } from '@supabase/supabase-js';
-
-/**
- * One singleton that owns ALL realtime subscriptions for the logged-in user.
- * Prevents duplicate channels, memory leaks, and stale listeners.
- */
 class RealtimeManager {
   private channels: Map<string, RealtimeChannel> = new Map();
   private userId: string | null = null;
@@ -24,9 +18,6 @@ class RealtimeManager {
     this.channels.clear();
     this.userId = null;
   }
-
-  // ─── Subscribe to conversation_members for this user ─────────────────────
-  // This fires whenever unread_count changes (via the Postgres trigger).
   private subscribeToConversationMembers(userId: string) {
     const key = `conv_members:${userId}`;
     if (this.channels.has(key)) return;
@@ -53,8 +44,6 @@ class RealtimeManager {
 
     this.channels.set(key, channel);
   }
-
-  // ─── Subscribe to chats table for last_message preview updates ───────────
   private subscribeToChats(userId: string) {
     const key = `chats_preview:${userId}`;
     if (this.channels.has(key)) return;
@@ -85,19 +74,14 @@ class RealtimeManager {
 
     this.channels.set(key, channel);
   }
-
-  // ─── Per-chat message channel (call from ChatScreen) ─────────────────────
   subscribeToMessages(
     chatId: string,
     onMessage: (msg: any) => void
   ): () => void {
     const key = `messages:${chatId}`;
-
-    // Reuse existing if already subscribed
     if (this.channels.has(key)) {
       return () => this.unsubscribeChat(chatId);
     }
-
     const channel = supabase
       .channel(key)
       .on(

@@ -1,10 +1,9 @@
-// lib/presenceService.ts
 import { supabase } from '@/lib/supabase';
 import { AppState, AppStateStatus } from 'react-native';
 
-const HEARTBEAT_MS     = 20_000;   // ping every 20s while active
-const BACKGROUND_DELAY = 8_000;    // go offline 8s after backgrounding
-const INIT_RETRY_MS    = 2_000;    // retry setOnline if first attempt fails
+const HEARTBEAT_MS     = 20_000;   
+const BACKGROUND_DELAY = 8_000;  
+const INIT_RETRY_MS    = 2_000;  
 const MAX_INIT_RETRIES = 3;
 
 class PresenceService {
@@ -15,29 +14,19 @@ class PresenceService {
   private isDestroyed     = false;
   private currentState:   AppStateStatus = 'active';
   private initInProgress  = false;
-
-  // ── init ──────────────────────────────────────────────────────────────────
-  // Safe to call multiple times. Re-entrant calls with the same userId while
-  // already live are ignored. If the user changed, we cleanly tear down first.
   async init(userId: string) {
-    // Already live for this user — just make sure we're online
-    // (handles the notification-wake case where AppState fired before init)
     if (this.userId === userId && !this.isDestroyed) {
       const currentAppState = AppState.currentState;
       if (currentAppState === 'active') {
-        // Re-assert online in case the RT heartbeat missed the wake
         this.beat();
       }
       return;
     }
-
-    // Guard against concurrent inits (e.g. StrictMode double-invoke)
     if (this.initInProgress) return;
     this.initInProgress = true;
 
     try {
-      // Tear down any previous session
-      await this.teardown(/* silent */ true);
+      await this.teardown( true);
 
       this.isDestroyed = false;
       this.userId      = userId;
@@ -46,7 +35,7 @@ class PresenceService {
       this.currentState = AppState.currentState as AppStateStatus;
 
       if (this.currentState === 'active') {
-        this.setOnlineWithRetry(true).catch(() => {}); // Non-blocking
+        this.setOnlineWithRetry(true).catch(() => {});
         this.startHeartbeat();
       }
       this.listenAppState();
@@ -60,7 +49,6 @@ class PresenceService {
   }
   enterChat(chatId: string): void {
     if (!this.userId) return;
-    console.log('[Presence] enterChat:', chatId.slice(0, 8));
     supabase
       .from('users')
       .update({ active_chat_id: chatId })
@@ -71,7 +59,6 @@ class PresenceService {
   }
   leaveChat(): void {
     if (!this.userId) return;
-    console.log('[Presence] leaveChat');
     supabase
       .from('users')
       .update({ active_chat_id: null })
@@ -102,7 +89,7 @@ class PresenceService {
         await new Promise(r => setTimeout(r, INIT_RETRY_MS * (attempt + 1)));
         return this.setOnlineWithRetry(online, attempt + 1);
       }
-      console.error('[Presence] setOnline failed after retries:', e?.message);
+      console.warn('[Presence] setOnline failed after retries:', e?.message);
     }
   }
   private async setOnline(online: boolean) {
@@ -163,26 +150,19 @@ class PresenceService {
       'change',
       (nextState: AppStateStatus) => {
         if (this.isDestroyed) return;
-        // Ignore non-changes (iOS can fire duplicate events)
         if (nextState === this.currentState) return;
-
-        console.log('[Presence] AppState:', this.currentState, '→', nextState);
         const prevState   = this.currentState;
         this.currentState = nextState;
 
         if (nextState === 'active') {
-          // ── Foreground resume (from bg, notification tap, or task switcher)
           this.stopBgTimer();
-          this.stopHeartbeat();           // reset — avoids duplicate interval
+          this.stopHeartbeat();         
           this.setOnlineWithRetry(true);
           this.startHeartbeat();
 
         } else if (nextState === 'background') {
-          // ── App moved to background
           this.stopHeartbeat();
           this.stopBgTimer();
-
-          // Clear active_chat_id immediately so push notifications resume
           if (this.userId) {
             supabase
               .from('users')
@@ -192,8 +172,6 @@ class PresenceService {
                 if (error) console.warn('[Presence] bg sync failed');
               });
           }
-
-          // Delay going offline — user may be in app switcher and return quickly
           this.bgTimer = setTimeout(() => {
             if (this.currentState === 'background' && !this.isDestroyed) {
               this.setOnline(false).catch(() => {});
@@ -201,13 +179,7 @@ class PresenceService {
           }, BACKGROUND_DELAY);
 
         } else if (nextState === 'inactive') {
-          // iOS-only: briefly inactive during notification centre swipe,
-          // control centre open, incoming call overlay, etc.
-          // Do NOT stop heartbeat — user hasn't left the app.
-          // If they actually switch away, 'background' follows shortly.
           if (prevState === 'active') {
-            // Just entering inactive from active (iOS swipe-down etc.)
-            // Keep heartbeat running for now.
           }
         }
       }

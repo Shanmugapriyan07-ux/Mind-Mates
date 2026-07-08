@@ -35,7 +35,6 @@ export function classifyGoogleError(err: any): {
   if (msg.includes('network') || msg.includes('fetch')) {
     return { cancelled: false, message: 'No internet connection.' };
   }
-
   return { cancelled: false, message: 'Sign-in failed. Please try again.' };
 }
 export async function performGoogleSignIn(): Promise<GoogleAuthResult> {
@@ -52,7 +51,6 @@ export async function performGoogleSignIn(): Promise<GoogleAuthResult> {
     });
     try {
       await GoogleSignin.signOut();
-      console.log('[GoogleAuth] Cleared previous session');
     } catch {
     }
     const signInResult = await GoogleSignin.signIn();
@@ -70,7 +68,7 @@ export async function performGoogleSignIn(): Promise<GoogleAuthResult> {
     if (!idToken) {
       const fallbackIdToken = (signInResult as any)?.data?.idToken;
       if (!fallbackIdToken) {
-        console.error('[GoogleAuth] ❌ No idToken from signIn() or getTokens()');
+        console.warn('[GoogleAuth] No idToken from signIn() or getTokens()');
         return {
           success:   false,
           cancelled: false,

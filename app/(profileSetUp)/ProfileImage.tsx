@@ -242,8 +242,6 @@ export default function ProfileImageScreen() {
     inputRange: [0, 1],
     outputRange: [300, 0],
   });
-
-  // Derived styles that depend on runtime AVATAR_SIZE
   const avatarStyle = {
     width: AVATAR_SIZE,
     height: AVATAR_SIZE,

@@ -1,12 +1,7 @@
 
 export const QUALITY_PRESETS = {
-  // Camera capture quality (balance between speed and quality)
   camera: 0.60,
-  
-  // Photo library picker quality
   photoLibrary: 0.85,
-  
-  // Video quality from camera
   videoQuality: 'medium' as const,
 };
 

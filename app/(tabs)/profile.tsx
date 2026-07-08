@@ -18,8 +18,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-// ─── helpers ─────────────────────────────────────────────────────────────────
 const toPublicImageUrl = (url: string | null): string | null => {
   if (!url) return null;
   if (url.includes("/preview")) {
@@ -448,7 +446,7 @@ const st = StyleSheet.create({
     color: "#6B7280",
     marginBottom: vs(4),
   },
-  locationRow: { flexDirection: "row", alignItems: "center", gap: s(4) }, // CHANGE 3
+  locationRow: { flexDirection: "row", alignItems: "center", gap: s(4) },
   locationText: { fontSize: ms(12), color: "#6B7280", fontWeight: "500" },
   statsRow: {
     alignSelf: "flex-start",
@@ -529,15 +527,12 @@ const st = StyleSheet.create({
     textAlign: "center",
     lineHeight: ms(15),
   },
-
-  // CHANGE 5 (style): `left:s(2)` removed from bioText — see inline comment.
   bioText: {
     fontSize: ms(14),
     color: "#6B7280",
     lineHeight: ms(20),
     marginTop: vs(15),
   },
-
   errorState: {
     flex: 1,
     justifyContent: "center",
@@ -553,5 +548,4 @@ const st = StyleSheet.create({
   },
   retryText: { color: "#fff", fontWeight: "600" },
 });
-
 export default ProfileScreen;

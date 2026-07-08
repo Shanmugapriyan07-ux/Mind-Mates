@@ -121,8 +121,8 @@ const rowToProfile = (row: any): Profile => {
   };
 };
 const toInsertPayload = (p: Profile, authId: string): Record<string, any> => ({
-  id: authId, // PRIMARY KEY = Supabase auth UUID ✅
-  user_id: authId, // text copy for compat
+  id: authId,
+  user_id: authId, 
   full_name: p.fullName ?? "",
   bio: p.bio ?? "",
   location: p.location ?? "",
@@ -152,8 +152,6 @@ const toUpdatePayload = (updates: Partial<Profile>): Record<string, any> => {
   if ("connections" in updates) p.connections = updates.connections ?? 0;
   return p;
 };
-
-// ── Write queue ───────────────────────────────────────────────
 class WriteQueue {
   private q: { task: () => Promise<void>; retries: number }[] = [];
   private running = false;
@@ -172,9 +170,8 @@ class WriteQueue {
       try {
         await job.task();
         this.q.shift();
-        console.log("✅ DB write success");
       } catch (e: any) {
-        console.error(`❌ Write failed (${job.retries + 1}):`, e?.message);
+        console.warn(`❌ Write failed (${job.retries + 1}):`, e?.message);
         job.retries++;
         if (job.retries >= 5) {
           this.q.shift();
@@ -202,16 +199,13 @@ export const ProfileProvider = ({
   const [isLoading, setIsLoading] = useState(false);
   const [profileStatus, setProfileStatus] = useState<ProfileStatus>("idle");
   const [error, setError] = useState<string | null>(null);
-
   const profileRef = useRef<Profile | null>(null);
   const hasFired = useRef(false);
   const isLoadingRef = useRef(false);
-
   profileRef.current = profile;
   const saveCache = useCallback((uid: string, p: Profile) => {
     storage.set(CACHE_KEY(uid), JSON.stringify({ ...p, _at: Date.now() }));
   }, []);
-
   const clearProfile = useCallback(() => {
     setProfile(null);
     profileRef.current = null;
@@ -231,7 +225,6 @@ export const ProfileProvider = ({
           .maybeSingle();
 
         if (error) {
-          // Popular apps strategy: log locally, but don't crash the UI
           console.warn("[fetchFromDB] Supabase error:", error.message);
           if (attempt >= 3) return null;
           throw error;
@@ -246,12 +239,10 @@ export const ProfileProvider = ({
         }
         return null;
       } catch (err: any) {
-        // popular apps strategy: exponential backoff for network/transient failures
         const isNetworkError =
           err?.message?.includes("Network request failed") ||
           err?.name === "TypeError" ||
-          err?.code === "PGRST301"; // Server unreachable
-
+          err?.code === "PGRST301";
         if (attempt < 4) {
           const delay = isNetworkError ? Math.pow(2, attempt) * 1000 : 800;
           console.log(
@@ -284,30 +275,23 @@ export const ProfileProvider = ({
           });
 
           if (cp.userId === userId) {
-            // Fast path: complete + has DB id → route instantly
             if (cp.isProfileComplete && cp.$id) {
               setProfile(cp);
               profileRef.current = cp;
               setIsLoading(false);
               isLoadingRef.current = false;
-              setProfileStatus("loaded"); // ← _layout fires here → home ✅
-
-              // Stale cache? Refresh silently in background
+              setProfileStatus("loaded"); 
               if (Date.now() - (_at ?? 0) >= CACHE_TTL) {
                 fetchFromDB(userId).catch(() => {});
               }
               return;
             }
-
-            // Incomplete cache → must verify before routing
             setProfile(cp);
             profileRef.current = cp;
             try {
               const fresh = await fetchFromDB(userId);
               setProfileStatus(fresh ? "loaded" : "not_found");
             } catch (e) {
-              // If network fails but we have a cached profile with an ID,
-              // allow them into the app (Offline Mode)
               setProfileStatus(cp.$id ? "loaded" : "not_found");
             }
             setIsLoading(false);
@@ -316,8 +300,6 @@ export const ProfileProvider = ({
           }
           await storage.remove(CACHE_KEY(userId));
         }
-
-        // No cache → fresh fetch
         try {
           const fresh = await fetchFromDB(userId);
           setProfileStatus(fresh ? "loaded" : "not_found");
@@ -345,8 +327,6 @@ export const ProfileProvider = ({
   const updateProfile = useCallback(
     (updates: Partial<Profile>): void => {
       if (!user?.id) return;
-
-      // Normalize both naming conventions
       if (updates.skillsArray !== undefined) {
         updates.skills = toStr(updates.skillsArray);
         updates.skillsArray = toArr(updates.skillsArray);
@@ -386,22 +366,16 @@ export const ProfileProvider = ({
         ...current,
         ...updates,
       };
-
-      // Step 1 + 2: instant state + cache update
       setProfile(updated);
       profileRef.current = updated;
       saveCache(user.id, updated);
       setProfileStatus("loaded");
-
-      // Step 3: background DB write
       const snap = { ...updated };
       const authId = user.id;
-
       wq.add(async () => {
         const docId = snap.$id;
 
         if (docId) {
-          // UPDATE — profile exists
           const payload = toUpdatePayload(updates);
           if (!Object.keys(payload).length) return;
           const { error } = await supabase
@@ -410,12 +384,11 @@ export const ProfileProvider = ({
             .eq("id", docId);
           if (error)
             throw new Error(`UPDATE failed: ${error.message} (${error.code})`);
-          console.log("✅ Profile updated");
         } else {
           const payload = toInsertPayload(snap, authId);
           const { data, error } = await supabase
             .from(TABLES.users)
-            .upsert(payload, { onConflict: "user_id" }) // safe re-run
+            .upsert(payload, { onConflict: "user_id" })
             .select("id")
             .single();
           if (error)
@@ -426,18 +399,15 @@ export const ProfileProvider = ({
             setProfile(withId);
             saveCache(authId, withId);
           }
-          console.log("✅ Profile created");
         }
       });
     },
     [user?.id, saveCache],
   );
-
   const completeProfile = useCallback(
     () => updateProfile({ isProfileComplete: true, is_profile_complete: true }),
     [updateProfile],
   );
-
   const reloadProfile = useCallback(async () => {
     if (user?.id) {
       isLoadingRef.current = false;
@@ -476,7 +446,6 @@ export const ProfileProvider = ({
     </ProfileContext.Provider>
   );
 };
-
 export const useProfile = () => {
   const ctx = useContext(ProfileContext);
   if (!ctx) throw new Error("useProfile must be used within ProfileProvider");

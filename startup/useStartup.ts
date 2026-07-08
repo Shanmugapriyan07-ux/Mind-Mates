@@ -33,7 +33,7 @@ export function useStartup(): UseStartupReturn {
         const result = await runCriticalPreloads();
         setPreloadData(result);
       } catch (e) {
-        console.error("[Startup] Preload failed:", e);
+        console.warn("[Startup] Preload failed:", e);
         setPreloadData({ session: null, fontsReady: false, elapsed: 0 });
       }
 

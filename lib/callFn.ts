@@ -10,7 +10,6 @@ export const callFn = async (body: Record<string, any>): Promise<any> => {
     invokeOptions.headers = { Authorization: `Bearer ${accessToken}` };
   }
   const { data, error } = await supabase.functions.invoke('mindmates', invokeOptions);
-
   if (error) {
     let detail = error.message;
     try {

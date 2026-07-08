@@ -25,8 +25,6 @@ export default {
   plugins: [
     "expo-router",
     "expo-secure-store",
-
-    // ✅ expo-notifications — closed properly with its own ]
     [
       "expo-notifications",
       {
@@ -66,20 +64,16 @@ export default {
           },
         ],
       },
-    ],  // ✅ expo-notifications ends HERE
-
-    // ✅ Firebase plugins — separate entries, not inside expo-notifications
+    ],
     "@react-native-firebase/app",
     "@react-native-firebase/auth",
     "@react-native-google-signin/google-signin",
-
     [
       "expo-build-properties",
       {
         android: {
-          compileSdkVersion: 35,
-          targetSdkVersion: 35,
-          buildToolsVersion: "35.0.0",
+          compileSdkVersion: 36,
+          targetSdkVersion: 36,
           packagingOptions: {
             pickFirst: [
               "**/libc++_shared.so",
@@ -92,7 +86,6 @@ export default {
         },
       },
     ],
-
     [
       "expo-splash-screen",
       {
@@ -103,7 +96,6 @@ export default {
     "expo-asset",
     "expo-video",
   ],
-
   extra: {
     eas: {
       projectId: "05f96db8-13d5-4f92-a49f-974b74fbc249",

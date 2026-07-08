@@ -1,12 +1,7 @@
 import { Alert, Linking, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Device from 'expo-device';
-
-
 const KEY_BATTERY_PROMPTED = 'mm_battery_opt_prompted';
-
-// OEM-specific settings deep links
-// These open the exact screen where user can whitelist the app
 const OEM_SETTINGS: Record<string, { action: string; label: string }> = {
   xiaomi: {
     action: 'com.miui.securitycenter',
@@ -37,7 +32,7 @@ const OEM_SETTINGS: Record<string, { action: string; label: string }> = {
     label:  'Battery → Battery Optimisation → MindMates → Don\'t Optimise',
   },
   samsung: {
-    action: 'com.samsung.android.lool',  // Device Care
+    action: 'com.samsung.android.lool', 
     label:  'Settings → Battery → Background Usage Limits → Never Sleeping Apps → Add MindMates',
   },
   huawei: {
@@ -61,22 +56,13 @@ class BatteryOptimizationService {
       this._manufacturer = '';
     }
   }
-
-  /** Returns true if this device has known OEM battery restrictions */
   get hasOEMRestrictions(): boolean {
     return this._manufacturer in OEM_SETTINGS;
   }
-
-  /** Returns OEM-specific instructions, or null if stock Android */
   get oemInstructions(): string | null {
     return OEM_SETTINGS[this._manufacturer]?.label ?? null;
   }
 
-  /**
-   * Show battery optimization guide on first launch.
-   * Call this after notification permission is granted.
-   * Only shows once — never nags the user.
-   */
   async showGuideIfNeeded(): Promise<void> {
     if (!this.hasOEMRestrictions) return;
 
@@ -89,7 +75,7 @@ class BatteryOptimizationService {
     const brand        = this._manufacturer.charAt(0).toUpperCase() + this._manufacturer.slice(1);
 
     Alert.alert(
-      '📱 Enable Notifications',
+      ' Enable Notifications',
       `To receive notifications on ${brand} devices, you need to enable background activity:\n\n${instructions}\n\nThis ensures you never miss a message.`,
       [
         { text: 'Do It Later', style: 'cancel' },
@@ -102,32 +88,26 @@ class BatteryOptimizationService {
     );
   }
 
-  
-  
   private async _openOEMSettings(): Promise<void> {
     const pkg = OEM_SETTINGS[this._manufacturer]?.action;
     if (!pkg) return;
-
-    // Try the OEM-specific package first
     const oemUrl = `intent://#Intent;package=${pkg};end`;
     const canOpen = await Linking.canOpenURL(oemUrl).catch(() => false);
 
     if (canOpen) {
       await Linking.openURL(oemUrl).catch(() => this._openAndroidSettings());
     } else {
-      // Fall back to general Android battery optimization settings
       await this._openAndroidSettings();
     }
   }
 
   private async _openAndroidSettings(): Promise<void> {
-    // Android standard battery optimization settings
     await Linking.openSettings().catch(() => {});
   }
   async showGuide(): Promise<void> {
     if (!this.hasOEMRestrictions) {
       Alert.alert(
-        '✅ Notifications Ready',
+        ' Notifications Ready',
         'Your device supports notifications out of the box. No extra steps needed!',
         [{ text: 'OK' }],
       );

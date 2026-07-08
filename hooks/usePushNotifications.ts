@@ -1,4 +1,3 @@
-// hooks/usePushNotifications.ts
 import supabase, { TABLES } from '@/lib/supabase';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
@@ -8,7 +7,6 @@ import { Platform } from 'react-native';
 import { useAuthh } from '@/Contexts/authContext';
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert:  true,
     shouldPlaySound:  true,
     shouldSetBadge:   true,
     shouldShowBanner: true,
@@ -37,7 +35,6 @@ const registerAndSaveToken = async (userId: string) => {
       finalStatus = status;
     }
     if (finalStatus !== 'granted') {
-      console.log('❌ Push notification permission denied');
       return;
     }
     if (Platform.OS === 'android') {
@@ -67,15 +64,13 @@ const registerAndSaveToken = async (userId: string) => {
       } catch (err: any) {
         retries++;
         if (retries >= MAX_RETRIES) throw err;
-        
         const delay = 2000 * retries;
         console.warn(`[usePushNotifications] Retry ${retries}/${MAX_RETRIES} due to error: ${err.message}`);
         await new Promise(res => setTimeout(res, delay));
       }
     }
-
     if (!tokenData?.data) {
-      console.warn('⚠️ Failed to retrieve Expo push token after retries');
+      console.warn(' Failed to retrieve Expo push token after retries');
       return;
     }
     const token     = tokenData.data;
@@ -84,7 +79,6 @@ const registerAndSaveToken = async (userId: string) => {
       .select('id, pushToken')
       .eq('user_id', userId)
       .single();
-
     if (userData) {
       if (userData.pushToken !== token) {
         await supabase
@@ -94,7 +88,7 @@ const registerAndSaveToken = async (userId: string) => {
       } else {
       }
     } else {
-      console.warn('⚠️ User doc not found for userId:', userId);
+      console.warn(' User doc not found for userId:', userId);
     }
   } catch (e: any) {
   }

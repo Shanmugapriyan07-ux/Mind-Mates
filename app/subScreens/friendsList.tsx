@@ -14,12 +14,10 @@ import { Swipeable }                   from 'react-native-gesture-handler';
 import { s, vs, ms }                   from '@/utils/scale';
 import { callFn }                      from '@/lib/callFn';
 import AsyncStorage                    from '@react-native-async-storage/async-storage';
-
 interface ConnectedUser {
   user_id: string; full_name: string; profile_image: string | null;
   location: string; skills: string; bio: string; connection_id: string;
 }
-
 const C = {
   white:    '#FFFFFF',
   purple:   '#6D4AFF',
@@ -28,14 +26,11 @@ const C = {
   border:   '#EAECF0',
   skeleton: '#F0F0F3',
 };
-
 const parseSkills = (sk: string): string[] =>
   sk ? sk.split(',').map(x => x.trim()).filter(Boolean) : [];
-
 const CARD_H = vs(80);
 const HINT_STORAGE_KEY = 'connections_swipe_hint_seen_v1';
 const HINT_NUDGE = s(25);
-
 const SwipeHintManager = (() => {
   let _checked = false;
   let _seen    = false;
@@ -56,7 +51,6 @@ const SwipeHintManager = (() => {
       cb();
     }
   };
-
   const tryRegister = (onHint: () => void) => {
     if (_fired || _seen) return;
     if (!_checked) {
@@ -70,12 +64,10 @@ const SwipeHintManager = (() => {
     }
     if (!_fired && !_seen) { _fired = true; onHint(); }
   };
-
   const markSeen = () => {
     _seen = true;
     AsyncStorage.setItem(HINT_STORAGE_KEY, 'true').catch(() => {});
   };
-
   return { tryRegister, markSeen };
 })();
 
@@ -110,11 +102,11 @@ const ConnectionCard = React.memo(({
   item:         ConnectedUser;
   isMyProfile:  boolean;
   onRemove?:    (i: ConnectedUser) => void;
-  isFirstCard:  boolean;   // CHANGE
+  isFirstCard:  boolean; 
 }) => {
   const skills      = parseSkills(item.skills).slice(0, 3);
   const ref         = useRef<Swipeable>(null);
-  const hintPlaying = useRef(false);   // CHANGE
+  const hintPlaying = useRef(false); 
   const hintX = useRef(new Animated.Value(0)).current;
   const hintPanelOpacity = hintX.interpolate({
     inputRange:  [0, HINT_NUDGE],
@@ -198,7 +190,6 @@ const ConnectionCard = React.memo(({
     </View>
   );
 });
-// ─── Header (unchanged) ───────────────────────────────────────────────────────
 const Header = ({
   count, isMyProfile, ownerName,
 }: {
@@ -223,7 +214,6 @@ const Header = ({
     </View>
   </View>
 );
-
 export default function ConnectionsListScreen() {
   const params       = useLocalSearchParams<{ userId: string; name: string }>();
   const { user: me } = useAuthh();
@@ -231,11 +221,9 @@ export default function ConnectionsListScreen() {
   const targetUserId = paramUserId || me?.id || '';
   const ownerName    = params.name ?? 'Connections';
   const isMyProfile  = !paramUserId || paramUserId === me?.id;
-
   const [connections, setConnections] = useState<ConnectedUser[]>([]);
   const [loading,     setLoading]     = useState(true);
   const [refreshing,  setRefreshing]  = useState(false);
-
   const fetchConnections = useCallback(async (isRefresh = false) => {
     if (!targetUserId) return;
     if (isRefresh) setRefreshing(true); else setLoading(true);
@@ -277,7 +265,7 @@ export default function ConnectionsListScreen() {
       enriched.sort((a, b) => a.full_name.localeCompare(b.full_name));
       setConnections(enriched);
     } catch (e: any) {
-      console.error('❌ fetchConnections:', e?.message);
+      console.warn(' fetchConnections:', e?.message);
     } finally {
       setLoading(false);
       setRefreshing(false);

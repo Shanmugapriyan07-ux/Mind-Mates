@@ -260,7 +260,6 @@ const ScrollablePills = ({ skills }: { skills: string[] }) => {
     </View>
   );
 };
-
 const ConnectBtn = ({
   targetUserId,
   fullName,
@@ -428,7 +427,6 @@ export default function UserProfileScreen() {
     );
   const imageUrl = profile.profile_image?.trim() || null;
   const skills = parseSkills(profile.skills);
-
   return (
     <SafeAreaView style={st.safe} edges={["top"]}>
       <StatusBar barStyle="dark-content" />

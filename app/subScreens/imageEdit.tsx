@@ -24,7 +24,6 @@ import {
 } from "react-native-safe-area-context";
 
 const { width: W } = Dimensions.get("window");
-// original: W * 0.78 — ratio kept, scales automatically with device width
 const IMAGE_SIZE = W * 0.78;
 
 export default function ImageEditScreen() {

@@ -1,41 +1,27 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Dimensions, ScaledSize } from 'react-native';
-import { BREAKPOINTS, getDeviceTier, DeviceTier } from '../theme/breakPoints';
-
+import { Dimensions } from 'react-native';
+import { getDeviceTier, DeviceTier } from '../theme/breakPoints';
 export interface ResponsiveState {
-  // Raw dimensions
   screenWidth:  number;
   screenHeight: number;
-
-  // Device flags
   isSmallPhone:  boolean;
   isMediumPhone: boolean;
   isLargePhone:  boolean;
   isFoldable:    boolean;
   isTablet:      boolean;
   tier:          DeviceTier;
-
-  // Orientation
   isPortrait:  boolean;
   isLandscape: boolean;
-
-  // Helpers
-  wp: (percent: number) => number;   // % of screen width
-  hp: (percent: number) => number;   // % of screen height
+  wp: (percent: number) => number;   
+  hp: (percent: number) => number; 
   clampW: (min: number, preferred: number, max: number) => number;
-
-  // Chat bubble max width
   bubbleMaxWidth: number;
-
-  // Content max width (for tablets / foldables)
   contentMaxWidth: number;
 }
-
 export function useResponsive(): ResponsiveState {
   const getDimensions = useCallback(() => {
     const { width, height } = Dimensions.get('window');
     const tier = getDeviceTier(width);
-
     return {
       screenWidth:  width,
       screenHeight: height,
@@ -51,27 +37,22 @@ export function useResponsive(): ResponsiveState {
       hp:  (pct: number) => (height * pct) / 100,
       clampW: (min: number, preferred: number, max: number) =>
         Math.min(Math.max(preferred, min), max),
-      // Chat bubbles: 72% on phones, 60% on tablets
       bubbleMaxWidth:
         tier === 'tablet' || tier === 'foldable'
           ? width * 0.6
           : width * 0.72,
-      // Max content width — prevents over-stretching on tablets
       contentMaxWidth:
         tier === 'tablet'   ? 680 :
         tier === 'foldable' ? 560 :
         width,
     };
   }, []);
-
   const [state, setState] = useState(getDimensions);
-
   useEffect(() => {
-    const sub = Dimensions.addEventListener('change', ({ window }: { window: ScaledSize }) => {
+    const sub = Dimensions.addEventListener('change', () => {
       setState(getDimensions());
     });
     return () => sub.remove();
   }, [getDimensions]);
-
   return state;
 }

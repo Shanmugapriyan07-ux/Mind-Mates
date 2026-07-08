@@ -1,8 +1,7 @@
-import { useState, useCallback, useEffect, createContext, useRef, ReactNode } from 'react';
-import { Platform }   from 'react-native';
-import { supabase }   from '@/lib/supabase';
-import { useAuthh }    from '@/Contexts/authContext';
-import Toast          from 'react-native-toast-message';
+import { useAuthh } from '@/Contexts/authContext';
+import { supabase } from '@/lib/supabase';
+import { useCallback, useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 export type ConnectStatus = 'none' | 'pending' | 'accepted' | 'rejected';
 const CACHE_KEY = (uid: string) => `conn_status_v3_${uid}`;
 export interface ConnectTarget {
@@ -48,7 +47,7 @@ const callFn = async (body: Record<string, any>): Promise<any> => {
     err.existingStatus = parsed.status         ?? 'pending';
     err.connectionId   = parsed.connectionId   ?? null;
     if (err.statusCode !== 409) {
-      console.error(`🔴 callFn error [${err.statusCode}]:`, message, parsed);
+      console.warn(` callFn error [${err.statusCode}]:`, message, parsed);
     }
     throw err;
   }
@@ -58,7 +57,7 @@ const callFn = async (body: Record<string, any>): Promise<any> => {
     err.alreadyExists  = data.alreadyExists  ?? false;
     err.existingStatus = data.status         ?? 'pending';
     err.connectionId   = data.connectionId   ?? null;
-    console.error('🔴 callFn data.error:', data.error, data);
+    console.warn(' callFn data.error:', data.error, data);
     throw err;
   }
   return data;
@@ -111,7 +110,10 @@ export const useConnection = () => {
         }
       } else {
         setStatus(tid, 'none');
-        Toast.show({ type: 'error', text1: 'Failed to send request', text2: e?.message });
+        const isServerError = e?.statusCode >= 500 && e?.statusCode <= 599;
+        if (!isServerError) {
+          console.warn({ type: 'error', text1: 'Failed to send request', text2: e?.message });
+        }
       }
     } finally {
       setLoadingMap(p => ({ ...p, [tid]: false }));
@@ -126,7 +128,7 @@ export const useConnection = () => {
       const result = await callFn({ action: 'accept_request', connectionId, notifId });
       return result?.chatId ?? null;
     } catch (e: any) {
-      console.error('❌ acceptRequest:', e?.message);
+      console.warn(' acceptRequest:', e?.message);
       setStatus(fromUserId, 'pending');
       throw e;
     }
@@ -138,7 +140,7 @@ export const useConnection = () => {
     setStatus(fromUserId, 'none');
     try { await callFn({ action: 'reject_request', connectionId, notifId }); }
     catch (e: any) {
-      console.error('❌ rejectRequest:', e?.message);
+      console.warn(' rejectRequest:', e?.message);
       setStatus(fromUserId, 'pending');
     }
   }, [user?.id, setStatus]);
@@ -150,7 +152,7 @@ export const useConnection = () => {
       const connId = raw ? JSON.parse(raw)[`conn_${targetId}`] : null;
       if (connId) await callFn({ action: 'cancel_request', connectionId: connId });
     } catch (e: any) {
-      console.error('❌ cancelRequest:', e?.message);
+      console.warn(' cancelRequest failed, reverting status:', e?.message);
       setStatus(targetId, 'pending');
     }
   }, [user?.id, statusMap, setStatus]);

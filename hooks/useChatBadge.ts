@@ -1,4 +1,3 @@
-// hooks/useChatBadge.ts
 import { useAuthh } from '@/Contexts/authContext';
 import { callFn } from '@/lib/callFn';
 import { useEffect } from 'react';

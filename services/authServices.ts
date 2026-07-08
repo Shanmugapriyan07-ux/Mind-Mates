@@ -16,7 +16,6 @@ export function mapUser(raw: any, isProfileComplete: boolean): AuthUser {
     is_profileComplete: isProfileComplete,
   };
 }
- 
   
 export async function checkProfileComplete(userId: string): Promise<boolean> {
   try {
@@ -31,7 +30,7 @@ export async function checkProfileComplete(userId: string): Promise<boolean> {
 
 export async function restoreSession(): Promise<void> {
   const store = useAuthStore.getState();
-  if (store.isSigningIn) return;  // only guard concurrent calls
+  if (store.isSigningIn) return; 
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user) {
@@ -123,7 +122,6 @@ export async function signInWithGoogle(): Promise<void> {
 
 export async function logout(): Promise<void> {
   const store = useAuthStore.getState();
-  console.log('[AuthService] 🚪 Logout:', store.user?.email);
   if (store.phase !== 'logging_out') {
     store.beginLogout();
   }
@@ -135,7 +133,6 @@ export async function logout(): Promise<void> {
       secureStorage.clearAll(),
       AsyncStorage.clear(),
     ]);
-    console.log('[AuthService] ✅ Logout complete');
   } catch (e: any) {
     console.warn('[AuthService] Logout partial error:', e?.message);
   } finally {
@@ -160,7 +157,7 @@ export async function deleteAccount(): Promise<void> {
       headers: { Authorization: `Bearer ${session.access_token}` },
     });
     if (fnError || data?.error) {
-      console.error('[deleteAccount] failed:', fnError?.message ?? data?.error);
+      console.warn('[deleteAccount] failed:', fnError?.message ?? data?.error);
       return;
     }
 
@@ -177,7 +174,7 @@ export async function deleteAccount(): Promise<void> {
     ]);
     store.finalizeSignOut();
   } catch (e: any) {
-    console.error('[deleteAccount] unexpected error:', e?.message);
+    console.warn('[deleteAccount] unexpected error:', e?.message);
   }
 }
 export function completeProfile(): void {

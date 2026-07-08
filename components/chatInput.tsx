@@ -10,12 +10,7 @@ import {
 import { ms, s, vs } from "@/utils/scale";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import React, {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -38,78 +33,124 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
+const IMG_PREFIX = "__IMG__";
+const VID_PREFIX = "__VID__";
+const isImageMsg = (m: string) => m.startsWith(IMG_PREFIX);
+const isVideoMsg = (m: string) => m.startsWith(VID_PREFIX);
+const isMediaMsg = (m: string) => isImageMsg(m) || isVideoMsg(m);
+const extractMediaCaption = (m: string) =>
+  m
+    .replace(IMG_PREFIX, "")
+    .replace(VID_PREFIX, "")
+    .split("\n")
+    .slice(1)
+    .join("\n")
+    .trim();
+
 const { height: SH } = Dimensions.get("window");
 
 const T = {
-  pill:    "#2C2C2E",
-  white:   "#FFFFFF",
-  grey:    "#8E8E93",
-  purple:  "#6D4AFF",
-  amber:   "#F59E0B",
-  red:     "#FF3B30",
-  circle:  "#3A3A3C",
-  recBg:   "#1C1C1E",
-  cancelBg:"#2C2C2E",
+  pill: "#2C2C2E",
+  white: "#FFFFFF",
+  grey: "#8E8E93",
+  purple: "#6D4AFF",
+  amber: "#F59E0B",
+  red: "#FF3B30",
+  circle: "#3A3A3C",
+  recBg: "#1C1C1E",
+  cancelBg: "#2C2C2E",
 };
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 const fmtTime = (ms: number) => {
-  const s   = Math.floor(ms / 1000);
+  const s = Math.floor(ms / 1000);
   const min = Math.floor(s / 60);
   const sec = s % 60;
   return `${min}:${String(sec).padStart(2, "0")}`;
 };
-
-// ─── MediaSheet ───────────────────────────────────────────────────────────────
 const MediaSheet = ({
-  visible, onClose, onImage, onVideo, onCamera,
+  visible,
+  onClose,
+  onImage,
+  onVideo,
+  onCamera,
 }: {
   visible: boolean;
-  onClose:  () => void;
-  onImage:  () => void;
-  onVideo:  () => void;
+  onClose: () => void;
+  onImage: () => void;
+  onVideo: () => void;
   onCamera: () => void;
 }) => {
   const slideAnim = useSharedValue(SH);
-  const fadeAnim  = useSharedValue(0);
-
+  const fadeAnim = useSharedValue(0);
   React.useEffect(() => {
     if (visible) {
-      fadeAnim.value  = withTiming(1, { duration: 150 });
-      slideAnim.value = withSpring(0, { damping: 22, stiffness: 280, mass: 0.6 });
+      fadeAnim.value = withTiming(1, { duration: 150 });
+      slideAnim.value = withSpring(0, {
+        damping: 22,
+        stiffness: 280,
+        mass: 0.6,
+      });
     } else {
-      fadeAnim.value  = withTiming(0, { duration: 120 });
+      fadeAnim.value = withTiming(0, { duration: 120 });
       slideAnim.value = withTiming(SH, { duration: 200 });
     }
   }, [visible]);
-
   const backdropStyle = useAnimatedStyle(() => ({ opacity: fadeAnim.value }));
-  const sheetStyle    = useAnimatedStyle(() => ({
+  const sheetStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: slideAnim.value }],
   }));
 
   if (!visible) return null;
 
   const opts = [
-    { key: "photo",  icon: "image-outline",   label: "Photo Library", sub: "Choose from your photos", onPress: onImage  },
-    { key: "video",  icon: "videocam-outline", label: "Video",         sub: "Choose a video clip",     onPress: onVideo  },
+    {
+      key: "photo",
+      icon: "image-outline",
+      label: "Photo Library",
+      sub: "Choose from your photos",
+      onPress: onImage,
+    },
+    {
+      key: "video",
+      icon: "videocam-outline",
+      label: "Video",
+      sub: "Choose a video clip",
+      onPress: onVideo,
+    },
     ...(Platform.OS !== "web"
-      ? [{ key: "camera", icon: "camera-outline", label: "Camera", sub: "Take a photo or video", onPress: onCamera }]
+      ? [
+          {
+            key: "camera",
+            icon: "camera-outline",
+            label: "Camera",
+            sub: "Take a photo or video",
+            onPress: onCamera,
+          },
+        ]
       : []),
   ];
-
   return (
-    <Modal transparent animationType="none" visible={visible}
-      onRequestClose={onClose} statusBarTranslucent>
+    <Modal
+      transparent
+      animationType="none"
+      visible={visible}
+      onRequestClose={onClose}
+      statusBarTranslucent
+    >
       <Animated.View style={[stt.backdrop, backdropStyle]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
       </Animated.View>
       <Animated.View style={[stt.sheet, sheetStyle]}>
         <View style={stt.handle} />
-        {opts.map(opt => (
+        {opts.map((opt) => (
           <View key={opt.key}>
-            <TouchableOpacity style={stt.sheetRow} activeOpacity={0.7}
-              onPress={() => { onClose(); opt.onPress(); }}>
+            <TouchableOpacity
+              style={stt.sheetRow}
+              activeOpacity={0.7}
+              onPress={() => {
+                onClose();
+                opt.onPress();
+              }}
+            >
               <View style={[stt.iconBox, { backgroundColor: T.purple }]}>
                 <Ionicons name={opt.icon as any} size={22} color="#fff" />
               </View>
@@ -120,18 +161,19 @@ const MediaSheet = ({
             </TouchableOpacity>
           </View>
         ))}
-        <TouchableOpacity style={stt.cancelBtn} onPress={onClose} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={stt.cancelBtn}
+          onPress={onClose}
+          activeOpacity={0.7}
+        >
           <Text style={stt.cancelText}>Cancel</Text>
         </TouchableOpacity>
       </Animated.View>
     </Modal>
   );
 };
-
-// ─── PulsingDot ───────────────────────────────────────────────────────────────
 const PulsingDot = React.memo(() => {
   const scale = useSharedValue(1);
-
   useEffect(() => {
     scale.value = withRepeat(
       withSequence(
@@ -141,22 +183,21 @@ const PulsingDot = React.memo(() => {
       -1,
       false,
     );
-    return () => { scale.value = 1; };
+    return () => {
+      scale.value = 1;
+    };
   }, []);
-
   const style = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
 
   return <Animated.View style={[rec.dot, style]} />;
 });
-
-// ─── WaveBars ─────────────────────────────────────────────────────────────────
 const WaveBars = React.memo(({ bars }: { bars: number[] }) => {
-  const display = bars.length >= 24
-    ? bars.slice(-24)
-    : [...Array(24 - bars.length).fill(5), ...bars];
-
+  const display =
+    bars.length >= 24
+      ? bars.slice(-24)
+      : [...Array(24 - bars.length).fill(5), ...bars];
   return (
     <View style={rec.waveRow}>
       {display.map((h, i) => {
@@ -164,63 +205,66 @@ const WaveBars = React.memo(({ bars }: { bars: number[] }) => {
         return (
           <View
             key={i}
-            style={[rec.bar, {
-              height: px,
-              opacity: 0.3 + (i / display.length) * 0.7,
-            }]}
+            style={[
+              rec.bar,
+              {
+                height: px,
+                opacity: 0.3 + (i / display.length) * 0.7,
+              },
+            ]}
           />
         );
       })}
     </View>
   );
 });
+const RecordingRow = React.memo(
+  ({
+    elapsedMs,
+    liveBars,
+    onCancel,
+    onSend,
+    sending,
+  }: {
+    elapsedMs: number;
+    liveBars: number[];
+    onCancel: () => void;
+    onSend: () => void;
+    sending: boolean;
+  }) => {
+    return (
+      <View style={rec.root}>
+        <TouchableOpacity
+          style={rec.cancelBtn}
+          onPress={onCancel}
+          activeOpacity={0.75}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="trash-outline" size={20} color={T.red} />
+        </TouchableOpacity>
 
-// ─── RecordingRow ─────────────────────────────────────────────────────────────
-const RecordingRow = React.memo(({
-  elapsedMs,
-  liveBars,
-  onCancel,
-  onSend,
-  sending,
-}: {
-  elapsedMs: number;
-  liveBars:  number[];
-  onCancel:  () => void;
-  onSend:    () => void;
-  sending:   boolean;
-}) => {
-  return (
-    <View style={rec.root}>
-      <TouchableOpacity
-        style={rec.cancelBtn}
-        onPress={onCancel}
-        activeOpacity={0.75}
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-      >
-        <Ionicons name="trash-outline" size={20} color={T.red} />
-      </TouchableOpacity>
+        <View style={rec.pill}>
+          <PulsingDot />
+          <Text style={rec.timer}>{fmtTime(elapsedMs)}</Text>
+          <WaveBars bars={liveBars} />
+        </View>
 
-      <View style={rec.pill}>
-        <PulsingDot />
-        <Text style={rec.timer}>{fmtTime(elapsedMs)}</Text>
-        <WaveBars bars={liveBars} />
+        <TouchableOpacity
+          style={rec.sendBtn}
+          onPress={onSend}
+          disabled={sending}
+          activeOpacity={0.75}
+        >
+          {sending ? (
+            <ActivityIndicator size="small" color={T.white} />
+          ) : (
+            <Ionicons name="send" size={20} color={T.white} />
+          )}
+        </TouchableOpacity>
       </View>
-
-      <TouchableOpacity
-        style={rec.sendBtn}
-        onPress={onSend}
-        disabled={sending}
-        activeOpacity={0.75}
-      >
-        {sending
-          ? <ActivityIndicator size="small" color={T.white} />
-          : <Ionicons name="send" size={20} color={T.white} />
-        }
-      </TouchableOpacity>
-    </View>
-  );
-});
-
+    );
+  },
+);
 const rec = StyleSheet.create({
   root: {
     flexDirection: "row",
@@ -283,117 +327,146 @@ const rec = StyleSheet.create({
   },
 });
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-interface ReplyMsg { $id: string; message: string; senderId: string; }
-interface EditMsg  { $id: string; message: string; }
+interface ReplyMsg {
+  $id: string;
+  message: string;
+  senderId: string;
+}
+interface EditMsg {
+  $id: string;
+  message: string;
+}
 
 export interface Props {
   value: string;
-  onChangeText:  (text: string) => void;
-  onSend:        () => void;
-  sending:       boolean;
-  disabled?:     boolean;
-  inputRef?:     React.RefObject<TextInput>;
-  chatId?:       string;
-  replyTo?:      ReplyMsg | null;
-  editingMsg?:   EditMsg  | null;
+  onChangeText: (text: string) => void;
+  onSend: () => void;
+  sending: boolean;
+  disabled?: boolean;
+  inputRef?: React.RefObject<TextInput>;
+  chatId?: string;
+  replyTo?: ReplyMsg | null;
+  editingMsg?: EditMsg | null;
   onCancelReply: () => void;
-  onCancelEdit:  () => void;
-  myId:          string;
-  otherName:     string;
-  isBlocked?:    boolean;
+  onCancelEdit: () => void;
+  myId: string;
+  otherName: string;
+  isBlocked?: boolean;
   iBlockedThem?: boolean;
-  onUnblock?:    () => void;
-  blockedName?:  string;
-  onMediaSend?:  (uri: string, type: "image" | "video") => void;
-  onVoiceOptimistic?: (tempId: string, durationMs: number, waveform: number[]) => void;
-  onVoiceSuccess?:    (tempId: string, audioUrl: string, messageId: string) => void;
-  onVoiceFailed?:     (tempId: string) => void;
+  onUnblock?: () => void;
+  blockedName?: string;
+  onMediaSend?: (uri: string, type: "image" | "video") => void;
+  onVoiceOptimistic?: (
+    tempId: string,
+    durationMs: number,
+    waveform: number[],
+  ) => void;
+  onVoiceSuccess?: (
+    tempId: string,
+    audioUrl: string,
+    messageId: string,
+  ) => void;
+  onVoiceFailed?: (tempId: string) => void;
 }
-
-// ─── ChatInput ────────────────────────────────────────────────────────────────
 export const ChatInput = ({
-  value, onChangeText, onSend, sending, disabled,
-  inputRef, chatId, replyTo, editingMsg,
-  onCancelReply, onCancelEdit,
-  myId, otherName,
-  isBlocked, iBlockedThem, onUnblock, blockedName,
+  value,
+  onChangeText,
+  onSend,
+  sending,
+  disabled,
+  inputRef,
+  chatId,
+  replyTo,
+  editingMsg,
+  onCancelReply,
+  onCancelEdit,
+  myId,
+  otherName,
+  isBlocked,
+  iBlockedThem,
+  onUnblock,
+  blockedName,
   onMediaSend,
-  onVoiceOptimistic, onVoiceSuccess, onVoiceFailed,
+  onVoiceOptimistic,
+  onVoiceSuccess,
+  onVoiceFailed,
 }: Props) => {
-
-  const [showMedia,    setShowMedia]    = useState(false);
-  const [isRecording,  setIsRecording]  = useState(false);
+  const [showMedia, setShowMedia] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const [voiceSending, setVoiceSending] = useState(false);
 
   const actionInFlightRef = useRef(false);
-
-  // CHANGE: keep a local ref to the TextInput so we can blur it ourselves
-  // before starting recording, even if the parent didn't pass inputRef.
   const localInputRef = useRef<TextInput>(null);
-  const resolvedInputRef = (inputRef as React.RefObject<TextInput>) ?? localInputRef;
+  const resolvedInputRef =
+    (inputRef as React.RefObject<TextInput>) ?? localInputRef;
 
-  const recorder          = useVoiceRecorder();
+  const recorder = useVoiceRecorder();
   const { enqueueUpload } = useVoiceUpload();
 
   const hasText = useSharedValue(0);
   const focused = useSharedValue(0);
 
   const sendStyle = useAnimatedStyle(() => ({
-    width:      withTiming(hasText.value ? 36 : 0, { duration: 150 }),
-    opacity:    withTiming(hasText.value ? 1  : 0, { duration: 150 }),
-    marginLeft: withTiming(hasText.value ? 6  : 0, { duration: 150 }),
-    transform:  [{ scale: withSpring(hasText.value ? 1 : 0.4, { damping: 200, stiffness: 340 }) }],
+    width: withTiming(hasText.value ? 36 : 0, { duration: 150 }),
+    opacity: withTiming(hasText.value ? 1 : 0, { duration: 150 }),
+    marginLeft: withTiming(hasText.value ? 6 : 0, { duration: 150 }),
+    transform: [
+      {
+        scale: withSpring(hasText.value ? 1 : 0.4, {
+          damping: 200,
+          stiffness: 340,
+        }),
+      },
+    ],
     overflow: "hidden" as const,
   }));
 
   const micStyle = useAnimatedStyle(() => ({
-    width:      withTiming(hasText.value ? 0  : 36, { duration: 150 }),
-    opacity:    withTiming(hasText.value ? 0  : 1,  { duration: 150 }),
-    marginLeft: withTiming(hasText.value ? 0  : 6,  { duration: 150 }),
+    width: withTiming(hasText.value ? 0 : 36, { duration: 150 }),
+    opacity: withTiming(hasText.value ? 0 : 1, { duration: 150 }),
+    marginLeft: withTiming(hasText.value ? 0 : 6, { duration: 150 }),
     overflow: "hidden" as const,
   }));
-
   const plusStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: withSpring(focused.value ? 0.9 : 1, { damping: 200, stiffness: 300 }) }],
-    backgroundColor: withTiming(focused.value ? "#565658" : T.circle, { duration: 0 }),
+    transform: [
+      {
+        scale: withSpring(focused.value ? 0.9 : 1, {
+          damping: 200,
+          stiffness: 300,
+        }),
+      },
+    ],
+    backgroundColor: withTiming(focused.value ? "#565658" : T.circle, {
+      duration: 0,
+    }),
   }));
 
-  const handleFocus = useCallback(() => { focused.value = 1; }, []);
-  const handleBlur  = useCallback(() => { focused.value = 0; }, []);
+  const handleFocus = useCallback(() => {
+    focused.value = 1;
+  }, []);
+  const handleBlur = useCallback(() => {
+    focused.value = 0;
+  }, []);
 
-  const handleChangeText = useCallback((text: string) => {
-    onChangeText(text);
-    hasText.value = text.trim().length > 0 ? 1 : 0;
-  }, [onChangeText]);
-
+  const handleChangeText = useCallback(
+    (text: string) => {
+      onChangeText(text);
+      hasText.value = text.trim().length > 0 ? 1 : 0;
+    },
+    [onChangeText],
+  );
   const handleSend = useCallback(() => {
     if (!value.trim() || sending || disabled) return;
     onSend();
     hasText.value = 0;
   }, [value, sending, disabled, onSend]);
-
-  // ── Voice: TAP MIC → dismiss keyboard first, then start recording ─────────
   const handleMicPress = useCallback(async () => {
     if (actionInFlightRef.current) return;
     actionInFlightRef.current = true;
-
     try {
-      // CHANGE: Step 1 — blur the TextInput so the keyboard starts animating
-      // down immediately, before we do anything else. This is the same strategy
-      // WhatsApp / Telegram use: input loses focus → keyboard dismisses →
-      // recording row appears in the freed space. No jarring layout jump.
       resolvedInputRef.current?.blur();
       focused.value = 0;
-
-      // CHANGE: Step 2 — dismiss keyboard imperatively. On Android the blur()
-      // alone is sometimes not enough if the keyboard is in "adjustResize" mode.
       Keyboard.dismiss();
-
-      // CHANGE: Step 3 — give the keyboard animation a head-start (one frame)
-      // before switching to the recording row. This prevents the input row and
-      // recording row from fighting over the same space while the keyboard is
-      // still animating down, which is what caused the jump.
       await new Promise<void>((resolve) => setTimeout(resolve, 80));
 
       const ok = await recorder.startRecording();
@@ -404,13 +477,10 @@ export const ChatInput = ({
       actionInFlightRef.current = false;
     }
   }, [recorder, resolvedInputRef]);
-
-  // ── Voice: SEND ───────────────────────────────────────────────────────────
   const handleVoiceSend = useCallback(async () => {
     if (actionInFlightRef.current || !isRecording) return;
     actionInFlightRef.current = true;
     setVoiceSending(true);
-
     try {
       if (recorder.elapsedMs < 1000) {
         await recorder.stopAndDiscard();
@@ -434,33 +504,41 @@ export const ChatInput = ({
           onVoiceOptimistic?.(tempId, result.durationMs, result.waveform),
         onSuccess: (tempId, audioUrl, messageId) =>
           onVoiceSuccess?.(tempId, audioUrl, messageId),
-        onFailed: (tempId) =>
-          onVoiceFailed?.(tempId),
+        onFailed: (tempId) => onVoiceFailed?.(tempId),
       };
 
-      enqueueUpload({
-        localUri:      result.uri,
-        durationMs:    result.durationMs,
-        waveform:      result.waveform,
-        chatId,
-        senderId:      myId,
-        replyToId:     replyTo?.$id      ?? null,
-        replyToText:   replyTo?.message  ?? null,
-        replyToSender: replyTo?.senderId ?? null,
-      }, callbacks);
-
+      enqueueUpload(
+        {
+          localUri: result.uri,
+          durationMs: result.durationMs,
+          waveform: result.waveform,
+          chatId,
+          senderId: myId,
+          replyToId: replyTo?.$id ?? null,
+          replyToText: replyTo?.message ?? null,
+          replyToSender: replyTo?.senderId ?? null,
+        },
+        callbacks,
+      );
     } catch (e) {
-      console.error("[ChatInput] handleVoiceSend error:", e);
+      console.warn("[ChatInput] handleVoiceSend error:", e);
       await recorder.stopAndDiscard().catch(() => {});
       setIsRecording(false);
       setVoiceSending(false);
     } finally {
       actionInFlightRef.current = false;
     }
-  }, [isRecording, recorder, chatId, myId, replyTo, enqueueUpload,
-      onVoiceOptimistic, onVoiceSuccess, onVoiceFailed]);
-
-  // ── Voice: CANCEL ─────────────────────────────────────────────────────────
+  }, [
+    isRecording,
+    recorder,
+    chatId,
+    myId,
+    replyTo,
+    enqueueUpload,
+    onVoiceOptimistic,
+    onVoiceSuccess,
+    onVoiceFailed,
+  ]);
   const handleVoiceCancel = useCallback(async () => {
     if (actionInFlightRef.current) return;
     actionInFlightRef.current = true;
@@ -479,16 +557,20 @@ export const ChatInput = ({
       recorder.stopAndDiscard().catch(() => {});
     };
   }, []);
-
-  // ── Media pickers ─────────────────────────────────────────────────────────
   const pickImage = useCallback(async () => {
     try {
       const granted = isLibraryGranted()
-        ? true : await requestMediaLibraryPermissionCached();
-      if (!granted) { console.warn("❌ Photo library permission denied"); return; }
+        ? true
+        : await requestMediaLibraryPermissionCached();
+      if (!granted) {
+        console.warn("❌ Photo library permission denied");
+        return;
+      }
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: false, quality: 0.85, exif: false,
+        allowsEditing: false,
+        quality: 0.85,
+        exif: false,
       });
       if (!result.canceled && result.assets?.length > 0) {
         const asset = result.assets[0];
@@ -496,19 +578,23 @@ export const ChatInput = ({
       }
     } catch (e: any) {
       const msg = e?.message || "";
-      if (msg.includes("permission") || msg.includes("rejected")) clearPermissionCache();
-      console.error("❌ pickImage failed:", msg);
+      if (msg.includes("permission") || msg.includes("rejected"))
+        clearPermissionCache();
+      console.warn("❌ pickImage failed:", msg);
     }
   }, [onMediaSend]);
-
   const pickVideo = useCallback(async () => {
     try {
       const granted = isLibraryGranted()
-        ? true : await requestMediaLibraryPermissionCached();
+        ? true
+        : await requestMediaLibraryPermissionCached();
       if (!granted) return;
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-        allowsEditing: false, videoMaxDuration: 60, quality: 0.85, exif: false,
+        allowsEditing: false,
+        videoMaxDuration: 60,
+        quality: 0.85,
+        exif: false,
       });
       if (!result.canceled && result.assets?.length > 0) {
         const asset = result.assets[0];
@@ -516,8 +602,9 @@ export const ChatInput = ({
       }
     } catch (e: any) {
       const msg = e?.message || "";
-      if (msg.includes("permission") || msg.includes("rejected")) clearPermissionCache();
-      console.error("❌ pickVideo failed:", msg);
+      if (msg.includes("permission") || msg.includes("rejected"))
+        clearPermissionCache();
+      console.warn("❌ pickVideo failed:", msg);
     }
   }, [onMediaSend]);
 
@@ -525,14 +612,21 @@ export const ChatInput = ({
     if (Platform.OS === "web") return;
     try {
       const granted = isCameraGranted()
-        ? true : await requestCameraPermissionCached();
-      if (!granted) { console.warn("❌ Camera permission denied"); return; }
+        ? true
+        : await requestCameraPermissionCached();
+      if (!granted) {
+        console.warn("❌ Camera permission denied");
+        return;
+      }
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.All,
-        allowsEditing: false, quality: 0.7, exif: false,
+        allowsEditing: false,
+        quality: 0.7,
+        exif: false,
         videoQuality: ImagePicker.UIImagePickerControllerQualityType.Medium,
         ...(Platform.OS === "ios" && {
-          presentationStyle: ImagePicker.UIImagePickerPresentationStyle.FULL_SCREEN,
+          presentationStyle:
+            ImagePicker.UIImagePickerPresentationStyle.FULL_SCREEN,
         }),
       });
       if (!result.canceled && result.assets?.length > 0) {
@@ -543,12 +637,11 @@ export const ChatInput = ({
       }
     } catch (e: any) {
       const msg = e?.message || "";
-      if (msg.includes("permission") || msg.includes("rejected")) clearPermissionCache();
-      console.error("❌ openCamera failed:", msg);
+      if (msg.includes("permission") || msg.includes("rejected"))
+        clearPermissionCache();
+      console.warn("❌ openCamera failed:", msg);
     }
   }, [onMediaSend]);
-
-  // ── Blocked state ─────────────────────────────────────────────────────────
   if (isBlocked) {
     return (
       <View style={st.blockedWrap}>
@@ -565,42 +658,53 @@ export const ChatInput = ({
       </View>
     );
   }
-
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <View style={st.wrapper}>
-
-      {/* Edit context bar */}
       {editingMsg && (
         <View style={[st.contextBar, { borderLeftColor: T.amber }]}>
           <View style={{ flex: 1 }}>
             <Text style={[st.ctxName, { color: T.amber }]}> Editing</Text>
-            <Text style={st.ctxText} numberOfLines={1}>{editingMsg.message}</Text>
-          </View>
-          <TouchableOpacity onPress={onCancelEdit}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Ionicons name="close" size={18} color={T.grey} />
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Reply context bar */}
-      {replyTo && !editingMsg && (
-        <View style={[st.contextBar, { borderLeftColor: T.purple }]}>
-          <View style={{ flex: 1 }}>
-            <Text style={[st.ctxName, { color: T.purple }]}>
-              {replyTo.senderId === myId ? "You" : otherName}
+            <Text style={st.ctxText} numberOfLines={1}>
+              {editingMsg.message}
             </Text>
-            <Text style={st.ctxText} numberOfLines={1}>{replyTo.message}</Text>
           </View>
-          <TouchableOpacity onPress={onCancelReply}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <TouchableOpacity
+            onPress={onCancelEdit}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Ionicons name="close" size={18} color={T.grey} />
           </TouchableOpacity>
         </View>
       )}
+      {replyTo &&
+        !editingMsg &&
+        (() => {
+          const isMedia = isMediaMsg(replyTo.message);
+          const caption = isMedia ? extractMediaCaption(replyTo.message) : null;
+          const previewText = isMedia
+            ? caption || (isVideoMsg(replyTo.message) ? "Video" : "Photo")
+            : replyTo.message;
 
-      {/* ── RECORDING ROW ── */}
+          return (
+            <View style={[st.contextBar, { borderLeftColor: T.purple }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[st.ctxName, { color: T.purple }]}>
+                  Replying to{" "}
+                  {replyTo.senderId === myId ? "yourself" : otherName}
+                </Text>
+                <Text style={st.ctxText} numberOfLines={1}>
+                  {previewText}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={onCancelReply}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="close" size={18} color={T.grey} />
+              </TouchableOpacity>
+            </View>
+          );
+        })()}
       {isRecording ? (
         <RecordingRow
           elapsedMs={recorder.elapsedMs}
@@ -610,9 +714,7 @@ export const ChatInput = ({
           sending={voiceSending}
         />
       ) : (
-        /* ── NORMAL INPUT ROW ── */
         <View style={st.row}>
-
           <Animated.View style={[st.plusCircle, plusStyle]}>
             <TouchableOpacity
               style={st.plusTouch}
@@ -622,7 +724,6 @@ export const ChatInput = ({
               <Ionicons name="add" size={22} color={T.white} />
             </TouchableOpacity>
           </Animated.View>
-
           <View style={st.pill}>
             <TextInput
               ref={resolvedInputRef}
@@ -639,7 +740,6 @@ export const ChatInput = ({
               selectionColor={T.purple}
               keyboardAppearance="dark"
             />
-
             <Animated.View style={[st.iconSlot, sendStyle]}>
               <TouchableOpacity
                 style={st.sendBtn}
@@ -647,27 +747,30 @@ export const ChatInput = ({
                 disabled={!value.trim() || sending || disabled}
                 activeOpacity={0.8}
               >
-                {sending
-                  ? <ActivityIndicator size="small" color="#000" />
-                  : <Ionicons name="send" size={18} color={T.purple} />
-                }
+                {sending ? (
+                  <ActivityIndicator size="small" color="#000" />
+                ) : (
+                  <Ionicons name="send" size={18} color={T.purple} />
+                )}
               </TouchableOpacity>
             </Animated.View>
-
             <Animated.View style={[st.iconSlot, micStyle]}>
               <TouchableOpacity
                 style={st.micBtn}
                 onPress={handleMicPress}
                 activeOpacity={0.75}
               >
-                <Ionicons name="mic" size={25} color={'#633dfc'} style={{marginRight:s(1)}}/>
+                <Ionicons
+                  name="mic"
+                  size={25}
+                  color={"#633dfc"}
+                  style={{ marginRight: s(1) }}
+                />
               </TouchableOpacity>
             </Animated.View>
           </View>
-
         </View>
       )}
-
       <MediaSheet
         visible={showMedia}
         onClose={() => setShowMedia(false)}
@@ -678,10 +781,7 @@ export const ChatInput = ({
     </View>
   );
 };
-
 export default ChatInput;
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const st = StyleSheet.create({
   wrapper: {
     backgroundColor: T.white,
@@ -772,7 +872,6 @@ const st = StyleSheet.create({
     width: s(33),
     height: s(33),
     borderRadius: s(17),
-    // backgroundColor: T.purple,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -796,7 +895,6 @@ const st = StyleSheet.create({
     marginTop: vs(4),
   },
 });
-
 const stt = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
@@ -804,7 +902,9 @@ const stt = StyleSheet.create({
   },
   sheet: {
     position: "absolute",
-    bottom: 0, left: 0, right: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: T.white,
     borderTopLeftRadius: s(22),
     borderTopRightRadius: s(22),
@@ -815,11 +915,13 @@ const stt = StyleSheet.create({
     elevation: s(24),
   },
   handle: {
-    width: s(36), height: s(4),
+    width: s(36),
+    height: s(4),
     borderRadius: s(2),
     backgroundColor: "#d6d6d6",
     alignSelf: "center",
-    marginTop: vs(10), marginBottom: vs(8),
+    marginTop: vs(10),
+    marginBottom: vs(8),
   },
   sheetRow: {
     flexDirection: "row",
@@ -830,13 +932,14 @@ const stt = StyleSheet.create({
     marginTop: vs(4),
   },
   iconBox: {
-    width: s(46), height: s(46),
+    width: s(46),
+    height: s(46),
     borderRadius: s(13),
     alignItems: "center",
     justifyContent: "center",
   },
   rowLabel: { fontSize: ms(15), fontWeight: "500", color: "#000000" },
-  rowSub:   { fontSize: ms(12), color: T.grey, marginTop: vs(2) },
+  rowSub: { fontSize: ms(12), color: T.grey, marginTop: vs(2) },
   cancelBtn: {
     marginHorizontal: s(16),
     marginTop: vs(14),

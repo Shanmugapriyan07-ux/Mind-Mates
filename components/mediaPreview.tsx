@@ -18,7 +18,7 @@ if (Platform.OS !== 'web') {
     const av = require('expo-av');
     VideoComponent = av.Video;
   } catch {
-    console.warn('⚠️ expo-av not installed — run: npx expo install expo-av');
+    console.warn(' expo-av not installed — run: npx expo install expo-av');
   }
 }
 interface Props {

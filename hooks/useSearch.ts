@@ -100,7 +100,7 @@ export function useSearch() {
       setOffset(pageOffset + PAGE_SIZE);
       setHasMore(searchResults.length === PAGE_SIZE);
     } catch (error) {
-      console.error('❌ Search error:', error);
+      console.warn('❌ Search error:', error);
     } finally {
       setLoading(false);
     }

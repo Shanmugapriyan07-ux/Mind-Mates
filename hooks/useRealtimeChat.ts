@@ -1,8 +1,6 @@
-// hooks/useRealtimeChat.ts
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { realtimeService } from '@/services/realtimeService';
-
 interface Message {
   id: string;
   chat_id: string;
@@ -10,13 +8,10 @@ interface Message {
   content: string;
   created_at: string;
 }
-
 export function useRealtimeChat(chatId: string, currentUserId: string) {
   const [messages, setMessages] = useState<Message[]>([]);
   const seenIds = useRef<Set<string>>(new Set());
-
   useEffect(() => {
-    // Initial fetch
     supabase
       .from('messages')
       .select('*')
@@ -28,18 +23,14 @@ export function useRealtimeChat(chatId: string, currentUserId: string) {
           setMessages(data);
         }
       });
-
-    // Realtime subscription
     realtimeService.subscribeToChat(chatId, (payload) => {
       const msg: Message = payload.new;
-      if (seenIds.current.has(msg.id)) return; // deduplicate
+      if (seenIds.current.has(msg.id)) return;
       seenIds.current.add(msg.id);
       setMessages((prev) => [...prev, msg]);
     });
-
     return () => realtimeService.unsubscribe(`chat:${chatId}`);
   }, [chatId]);
-
   const sendMessage = async (content: string) => {
     const optimisticId = `optimistic-${Date.now()}`;
     const optimistic: Message = {
@@ -49,23 +40,17 @@ export function useRealtimeChat(chatId: string, currentUserId: string) {
       content,
       created_at: new Date().toISOString(),
     };
-
-    // Optimistic insert
     seenIds.current.add(optimisticId);
     setMessages((prev) => [...prev, optimistic]);
-
     const { data, error } = await supabase
       .from('messages')
       .insert({ chat_id: chatId, sender_id: currentUserId, content })
       .select()
       .single();
-
     if (error) {
-      // Rollback optimistic
       setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
       seenIds.current.delete(optimisticId);
     } else if (data) {
-      // Replace optimistic with real
       seenIds.current.delete(optimisticId);
       seenIds.current.add(data.id);
       setMessages((prev) =>
@@ -73,6 +58,5 @@ export function useRealtimeChat(chatId: string, currentUserId: string) {
       );
     }
   };
-
   return { messages, sendMessage };
 }

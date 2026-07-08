@@ -2,7 +2,9 @@ import { useAuthh } from '@/Contexts/authContext';
 import { callFn } from '@/lib/callFn';
 import { supabase, TABLES } from '@/lib/supabase';
 import { useCallback, useEffect, useRef, useState } from 'react';
+
 const secToMs = (ts: number) => (ts < 10_000_000_000 ? ts * 1000 : ts);
+
 export interface ChatMessage {
   $id:            string;
   chatId:         string;
@@ -10,10 +12,10 @@ export interface ChatMessage {
   message:        string;
   type:           string;
   status:         'sent' | 'seen';
-  reactions:      string; // already present — 'text' | 'voice'
-  audioUrl?: string;
-  duration?: number;   // seconds
-  waveform?: number[];
+  reactions:      string;
+  audioUrl?:      string;
+  duration?:      number;
+  waveform?:      number[];
   replyToId?:     string;
   replyToText?:   string;
   replyToSender?: string;
@@ -23,12 +25,14 @@ export interface ChatMessage {
   _pending?:      boolean;
   _failed?:       boolean;
 }
+
 export interface ActionMessage {
   $id:        string;
   sender_id:  string;
   message:    string;
   created_at: number;
 }
+
 const rowToMsg = (r: any): ChatMessage => ({
   $id:           r.id,
   chatId:        r.chat_id,
@@ -40,31 +44,36 @@ const rowToMsg = (r: any): ChatMessage => ({
   replyToId:     r.reply_to_id,
   replyToText:   r.reply_to_text,
   replyToSender: r.reply_to_sender,
-   audioUrl: r.audio_url,
-  duration: r.duration,
-  waveform: r.waveform ? JSON.parse(r.waveform) : [],
+  audioUrl:      r.audio_url,
+  duration:      r.duration,
+  waveform:      r.waveform ? JSON.parse(r.waveform) : [],
   edited:        r.edited         ?? false,
   createdAt:     r.created_at,
   deletedFor:    r.deleted_for    ?? [],
 });
+
 const MSG_COLS = [
   'id','chat_id','sender_id','message','type','status',
   'reactions','reply_to_id','reply_to_text','reply_to_sender',
   'edited','created_at','deleted_for','audio_url','duration','waveform',
 ].join(',');
+
 const MUTABLE_COLS = 'id,status,reactions,edited,message,deleted_for';
+
 export const findChat = async (myId: string, otherId: string) => {
   const chatKey = [myId, otherId].sort().join('_');
   const { data } = await supabase
     .from(TABLES.chats).select('id').eq('chat_key', chatKey).maybeSingle();
   return data ? { $id: data.id, ...data } : null;
 };
+
 export const getChatId = async (otherUserId: string): Promise<string | null> => {
   try {
     const result = await callFn({ action: 'get_chat_id', otherUserId });
     return result?.chatId ?? null;
   } catch { return null; }
 };
+
 const withRetry = async <T>(fn: () => Promise<T>, tries = 3): Promise<T> => {
   let last: any;
   for (let i = 0; i < tries; i++) {
@@ -78,6 +87,7 @@ const withRetry = async <T>(fn: () => Promise<T>, tries = 3): Promise<T> => {
 const pendingRegistry = new Map<string, string>();
 const makePendingKey  = (chatId: string, senderId: string, message: string) =>
   `${chatId}|${senderId}|${message}`;
+
 export const useMessages = (chatId: string) => {
   const { user } = useAuthh();
   const [messages,   setMessages]   = useState<ChatMessage[]>([]);
@@ -89,6 +99,7 @@ export const useMessages = (chatId: string) => {
   const knownIdsRef  = useRef<Set<string>>(new Set());
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const needsSyncRef = useRef(false);
+
   const syncMutableFields = useCallback((uid: string, currentChatId: string) => {
     supabase
       .from(TABLES.messages)
@@ -130,15 +141,17 @@ export const useMessages = (chatId: string) => {
         });
       });
   }, []);
+
   const scheduleSyncMutableFields = useCallback((uid: string, currentChatId: string) => {
     needsSyncRef.current = true;
-    if (syncTimerRef.current) return; // already scheduled
+    if (syncTimerRef.current) return;
     syncTimerRef.current = setTimeout(() => {
       syncTimerRef.current = null;
       needsSyncRef.current = false;
       syncMutableFields(uid, currentChatId);
     }, 300);
   }, [syncMutableFields]);
+
   const loadMessages = useCallback(async () => {
     if (!chatId || !user?.id) return;
     setLoading(true);
@@ -155,16 +168,16 @@ export const useMessages = (chatId: string) => {
       if (error) throw error;
       const msgs = (data ?? []).map(rowToMsg).reverse();
       knownIdsRef.current = new Set(msgs.map(m => m.$id));
-
       setMessages(msgs);
       setHasMore((data?.length ?? 0) === 30);
       if (msgs.length) oldestRef.current = msgs[0].createdAt;
     } catch (e: any) {
-      console.error('[useMessages] load failed:', e?.message);
+      console.warn('[useMessages] load failed:', e?.message);
     } finally {
       setLoading(false);
     }
   }, [chatId, user?.id]);
+
   const loadOlderMessages = useCallback(async () => {
     if (!chatId || !oldestRef.current || loadingOld || !user?.id) return;
     setLoadingOld(true);
@@ -189,6 +202,7 @@ export const useMessages = (chatId: string) => {
       setLoadingOld(false);
     }
   }, [chatId, loadingOld, user?.id]);
+
   useEffect(() => {
     if (!chatId || !user?.id) return;
     const uid = user.id;
@@ -198,22 +212,21 @@ export const useMessages = (chatId: string) => {
     }
 
     loadMessages();
+
     const handlePayload = (payload: any) => {
       const { eventType, new: n, old: o } = payload;
+
       if (eventType === 'INSERT') {
         if (!n?.id) return;
         const msg = rowToMsg(n);
         if (msg.deletedFor?.includes(uid)) return;
         if (knownIdsRef.current.has(msg.$id)) {
-          setMessages(prev => {
-            const idx = prev.findIndex(m => m.$id === msg.$id && !m._pending);
-            if (idx === -1) return prev;
-            return prev;
-          });
           return;
         }
+
         const pKey   = makePendingKey(msg.chatId, msg.senderId, msg.message);
         const tempId = pendingRegistry.get(pKey);
+
         setMessages(prev => {
           if (tempId) {
             pendingRegistry.delete(pKey);
@@ -231,6 +244,7 @@ export const useMessages = (chatId: string) => {
             m._pending &&
             m.message  === msg.message  &&
             m.senderId === msg.senderId &&
+            m.type     === msg.type &&
             Math.abs(secToMs(m.createdAt) - secToMs(msg.createdAt)) < 30_000
           );
           if (pendingIdx !== -1) {
@@ -239,13 +253,14 @@ export const useMessages = (chatId: string) => {
             next[pendingIdx] = { ...msg, _pending: false, _failed: false };
             return next;
           }
-          if (prev.some(m => m.$id === msg.$id)) return prev; 
+          if (prev.some(m => m.$id === msg.$id)) return prev;
           knownIdsRef.current.add(msg.$id);
           return [...prev, msg];
         });
 
         return;
       }
+
       if (eventType === 'UPDATE') {
         if (!n?.id) {
           scheduleSyncMutableFields(uid, chatId);
@@ -269,7 +284,7 @@ export const useMessages = (chatId: string) => {
           }
           if (idx === -1) {
             scheduleSyncMutableFields(uid, chatId);
-            return prev; 
+            return prev;
           }
           const existing = prev[idx];
           if (
@@ -278,7 +293,7 @@ export const useMessages = (chatId: string) => {
             existing.edited                    === msg.edited    &&
             existing.message                   === msg.message   &&
             (existing.deletedFor?.length ?? 0) === (msg.deletedFor?.length ?? 0)
-          ) return prev; // same reference → React skips re-render
+          ) return prev;
 
           const next = [...prev];
           next[idx]  = {
@@ -297,9 +312,6 @@ export const useMessages = (chatId: string) => {
         return;
       }
 
-      // ════════════════════════════════════════════════════════════════════
-      // DELETE
-      // ════════════════════════════════════════════════════════════════════
       if (eventType === 'DELETE') {
         const deletedId = o?.id;
         if (deletedId) {
@@ -309,8 +321,6 @@ export const useMessages = (chatId: string) => {
       }
     };
 
-    // ── Channel setup (Strategy 7) ─────────────────────────────────────────
-    // Unique channel name per effect mount to prevent "after subscribe()" errors
     const channelName = `msg_${chatId}_${Date.now()}`;
     const channel = supabase
       .channel(channelName)
@@ -326,7 +336,6 @@ export const useMessages = (chatId: string) => {
       )
       .subscribe((status: string) => {
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          // Back-off reconnect — don't hammer the server
           setTimeout(() => {
             if (channelRef.current === channel) loadMessages();
           }, 2_000);
@@ -343,9 +352,7 @@ export const useMessages = (chatId: string) => {
       supabase.removeChannel(channel);
       channelRef.current = null;
     };
-  }, [chatId, user?.id]); // intentionally excludes loadMessages / scheduleSyncMutableFields
-
-  // ─── Send message ──────────────────────────────────────────────────────────
+  }, [chatId, user?.id]);
   const sendMessage = useCallback(async (
     text: string,
     opts?: {
@@ -358,11 +365,9 @@ export const useMessages = (chatId: string) => {
     const uid    = user.id;
     const tempId = `tmp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
-    // Register BEFORE adding to state (race-condition safe)
     const pKey = makePendingKey(chatId, uid, text);
     pendingRegistry.set(pKey, tempId);
 
-    // Optimistic bubble
     setMessages(prev => [...prev, {
       $id:           tempId,
       chatId,
@@ -378,7 +383,6 @@ export const useMessages = (chatId: string) => {
       replyToText:   opts?.replyToText   ?? undefined,
       replyToSender: opts?.replyToSender ?? undefined,
     }]);
-
     try {
       await callFn({
         action:        'send_message',
@@ -388,17 +392,14 @@ export const useMessages = (chatId: string) => {
         replyToText:   opts?.replyToText   ?? null,
         replyToSender: opts?.replyToSender ?? null,
       });
-      // RT INSERT fires → registry match → tmp_ replaced with real row
     } catch (e: any) {
-      console.error('[sendMessage] failed:', e?.message);
-      pendingRegistry.delete(pKey); // clean up so future sends don't mismatch
+      console.warn('[sendMessage] failed:', e?.message);
+      pendingRegistry.delete(pKey);
       setMessages(prev => prev.map(m =>
         m.$id === tempId ? { ...m, _pending: false, _failed: true } : m
       ));
     }
   }, [chatId, user?.id]);
-
-  // ─── Retry failed message ──────────────────────────────────────────────────
   const retryMessage = useCallback(async (msg: ChatMessage) => {
     setMessages(prev => prev.filter(m => m.$id !== msg.$id));
     await sendMessage(msg.message, {
@@ -407,10 +408,35 @@ export const useMessages = (chatId: string) => {
       replyToSender: msg.replyToSender,
     });
   }, [sendMessage]);
+  const resolveOptimisticId = useCallback((
+    tempId: string,
+    patch: Partial<ChatMessage> & { $id: string },
+  ) => {
+    knownIdsRef.current.add(patch.$id);
+    setMessages(prev => {
+      const realAlreadyPresent = prev.some(m => m.$id === patch.$id && m.$id !== tempId);
+      if (realAlreadyPresent) {
+        return prev.filter(m => m.$id !== tempId);
+      }
+      const idx = prev.findIndex(m => m.$id === tempId);
+      if (idx === -1) {
+        return prev;
+      }
+      const next = [...prev];
+      next[idx] = { ...next[idx], ...patch, _pending: false, _failed: false };
+      return next;
+    });
+  }, []);
+  const failOptimisticId = useCallback((tempId: string) => {
+    setMessages(prev => prev.map(m =>
+      m.$id === tempId ? { ...m, _pending: false, _failed: true } : m
+    ));
+  }, []);
 
   return {
     messages, setMessages, loading, loadingOld, hasMore,
     sendMessage, retryMessage, loadOlderMessages,
+    resolveOptimisticId, failOptimisticId,
   };
 };
 

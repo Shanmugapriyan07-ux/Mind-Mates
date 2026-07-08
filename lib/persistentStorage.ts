@@ -6,7 +6,6 @@ const RETRY_KEY = 'profile_retry_queue';
 export const userKey = (userId: string) => ({
   profile: `user_${userId}_profile`,
 });
-
 export type ProfilePayload = {
   user_id:            string;
   full_name:          string;
@@ -19,9 +18,9 @@ export type ProfilePayload = {
 };
 
 type CachedProfile = ProfilePayload & {
-  $id?:      string;    // Appwrite document ID (set after first sync)
+  $id?:      string;   
   _cachedAt: string;
-  _synced:   boolean;   // false = not yet confirmed by Appwrite
+  _synced:   boolean;   
 };
 
 type RetryItem = {
@@ -38,7 +37,7 @@ export const readProfileCache = async (
     const raw = await AsyncStorage.getItem(userKey(userId).profile);
     if (!raw) return null;
     const parsed: CachedProfile = JSON.parse(raw);
-    if (parsed.user_id !== userId) return null; // wrong user safety check
+    if (parsed.user_id !== userId) return null;
     return parsed;
   } catch {
     return null;
@@ -53,10 +52,10 @@ export const writeProfileCache = async (
     ...payload,
     $id:       docId ?? undefined,
     _cachedAt: new Date().toISOString(),
-    _synced:   false, // flips true after Appwrite confirms
+    _synced:   false,
   };
   await AsyncStorage.setItem(
-    userKey(payload.user_id).profile, // reuses your existing key!
+    userKey(payload.user_id).profile, 
     JSON.stringify(data)
   );
 };
@@ -83,7 +82,7 @@ export const syncProfileToAppwrite = async (
     } else {
       const { data, error } = await supabase.from(TABLES.users).insert([payload]).select().single();
       if (error) throw error;
-      docId = data.id; // save returned id
+      docId = data.id;
     }
     const raw = await AsyncStorage.getItem(userKey(payload.user_id).profile);
     if (raw) {
@@ -95,7 +94,7 @@ export const syncProfileToAppwrite = async (
     }
     await removeFromRetryQueue(payload.user_id);
   } catch (error) {
-    console.warn("⚠️ Appwrite sync failed, queuing retry");
+    console.warn(" Appwrite sync failed, queuing retry");
     await addToRetryQueue(payload, existingDocId ?? null);
     throw error;
   }

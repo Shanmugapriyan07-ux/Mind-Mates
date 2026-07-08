@@ -79,7 +79,7 @@ export const useAuthStore = create<AuthState>()(
           phase:       user?.is_profileComplete ? 'authenticated' : 'profile_incomplete',
           navIntent:   null,
           isSigningIn: false, 
-          isTransitioning: true, // Keep the "loading" feel alive for the layout handoff
+          isTransitioning: true, 
           error:       null,
           session:     null,
           _completing: false,

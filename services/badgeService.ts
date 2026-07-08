@@ -5,15 +5,11 @@ let lastWrittenCount = -1;
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 const BADGE_DEBOUNCE_MS = 300;
 const BADGE_NOTIF_ID    = 'mm_badge_sync';
-
-// ─── Init ─────────────────────────────────────────────────────────────────────
 export const initBadgeService = async (): Promise<void> => {
   if (Platform.OS === 'android') {
     await setupAndroidChannels();
   }
 };
-
-// ─── Public API ───────────────────────────────────────────────────────────────
 export const updateAppIconBadge = (count: number): void => {
   if (debounceTimer) clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => writeBadge(count), BADGE_DEBOUNCE_MS);
@@ -33,8 +29,6 @@ export const formatBadgeCount = (count: number): string => {
   if (count <= 99) return String(count);
   return '99+';
 };
-
-// ─── Internal ─────────────────────────────────────────────────────────────────
 const writeBadge = async (count: number): Promise<void> => {
   if (count === lastWrittenCount) return;
   lastWrittenCount = count;
@@ -79,12 +73,7 @@ const writeAndroidBadge = async (count: number): Promise<void> => {
 
   await Notifications.setBadgeCountAsync(count).catch(() => {});
 };
-
-// ─── Android Channels ─────────────────────────────────────────────────────────
-// Each channel controls sound, vibration, and importance independently.
-// Popular apps use separate channels per notification type — this is the correct pattern.
 const setupAndroidChannels = async (): Promise<void> => {
-  // Messages — high importance, vibration, purple light
   await Notifications.setNotificationChannelAsync('messages', {
     name:             'Messages',
     importance:       Notifications.AndroidImportance.HIGH,
@@ -96,8 +85,6 @@ const setupAndroidChannels = async (): Promise<void> => {
     showBadge:        true,
     description:      'New message notifications from your connections',
   });
-
-  // Social — connection requests and accepts
   await Notifications.setNotificationChannelAsync('social', {
     name:             'Social Activity',
     importance:       Notifications.AndroidImportance.DEFAULT,
@@ -109,8 +96,6 @@ const setupAndroidChannels = async (): Promise<void> => {
     showBadge:        true,
     description:      'Connection requests and social activity',
   });
-
-  // Daily motivational broadcasts
   await Notifications.setNotificationChannelAsync('daily', {
     name:             'Daily Motivation',
     importance:       Notifications.AndroidImportance.DEFAULT,
@@ -121,8 +106,6 @@ const setupAndroidChannels = async (): Promise<void> => {
     showBadge:        false,
     description:      'Daily motivational messages from the MindMates team',
   });
-
-  // Badge sync — completely silent, invisible to users
   await Notifications.setNotificationChannelAsync('badge_sync_silent', {
     name:          'Badge Sync',
     importance:    Notifications.AndroidImportance.MIN,

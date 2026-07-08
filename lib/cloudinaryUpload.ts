@@ -24,16 +24,13 @@ export const compressForUpload = async (
   uri:  string,
   type: UploadType = 'chat',
 ): Promise<string> => {
-  if (typeof document !== 'undefined') return uri; // web
+  if (typeof document !== 'undefined') return uri; 
   const cfg = COMPRESS_CONFIG[type];
   try {
-    // Get dimensions and compress in single call for speed
     const probe = await ImageManipulator.manipulateAsync(uri, [], { 
       format: ImageManipulator.SaveFormat.JPEG 
     });
     const { width, height } = probe;
-    
-    // Build resize action if needed
     const actions: ImageManipulator.Action[] = [];
     const maxDim = cfg.maxDim;
     if (Math.max(width, height) > maxDim) {
@@ -43,8 +40,6 @@ export const compressForUpload = async (
         actions.push({ resize: { height: maxDim } });
       }
     }
-
-    // Single compression pass with all operations
     const result = await ImageManipulator.manipulateAsync(
       probe.uri, 
       actions, 
@@ -88,14 +83,12 @@ export const uploadProfileToCloudinary = async (
     const blob = await resp.blob();
     if (blob.size === 0) throw new Error('Selected file is empty');
     formData.append('file', new File([blob], 'profile.jpg', { type: 'image/jpeg' }));
-    console.log(`[Cloudinary:signed:web] public_id=${publicId}`);
   } else {
     (formData as any).append('file', {
       uri:  Platform.OS === 'android' ? uri : uri.replace('file://', ''),
       name: 'profile.jpg',
       type: 'image/jpeg',
     });
-    console.log(`[Cloudinary:signed:native] public_id=${publicId}`);
   }
   return xhrUpload(endpoint, formData, onProgress);
 };
@@ -145,7 +138,6 @@ export const uploadToCloudinary = (
           type: type === 'video' ? 'video/mp4' : 'image/jpeg',
         });
       }
-
       resolve(await xhrUpload(endpoint, formData, onProgress));
     } catch (e: any) {
       reject(e);
@@ -160,7 +152,6 @@ const xhrUpload = (
   new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('POST', endpoint, true);
-    // Reduced timeout from 300s to 120s for faster feedback
     xhr.timeout = 120_000;
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable && onProgress)
@@ -170,7 +161,6 @@ const xhrUpload = (
       if (xhr.status === 200) {
         try {
           const d = JSON.parse(xhr.responseText);
-          console.log(`[Cloudinary] ✅ ${d.public_id} ${(d.bytes/1024).toFixed(0)}KB`);
           resolve({
             secureUrl:    d.secure_url,
             publicId:     d.public_id,
@@ -185,7 +175,7 @@ const xhrUpload = (
       } else {
         let msg = `Upload failed (HTTP ${xhr.status})`;
         try { msg = JSON.parse(xhr.responseText)?.error?.message ?? msg; } catch {}
-        console.error('[Cloudinary]', xhr.status, msg);
+        console.warn('[Cloudinary]', xhr.status, msg);
         reject(new Error(msg));
       }
     };

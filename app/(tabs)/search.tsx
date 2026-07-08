@@ -20,8 +20,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-// ─── Palette ──────────────────────────────────────────────────────────────────
 const C = {
   bg:       "#F7F8FA",
   white:    "#FFFFFF",
@@ -36,8 +34,6 @@ const C = {
   orange:   "#6D4AFF",
   skeleton: "#F0F0F3",
 };
-
-// ─── SkeletonCard ─────────────────────────────────────────────────────────────
 const SkeletonCard = ({ opacity = 1 }: { opacity?: number }) => (
   <View style={[st.card, { opacity }]}>
     <View style={st.cardRow}>
@@ -51,8 +47,6 @@ const SkeletonCard = ({ opacity = 1 }: { opacity?: number }) => (
     </View>
   </View>
 );
-
-// ─── ConnectButton ────────────────────────────────────────────────────────────
 const ConnectButton = ({
   userId, fullName, profileImage, skills, location,
 }: {
@@ -90,8 +84,6 @@ const ConnectButton = ({
     </TouchableOpacity>
   );
 };
-
-// ─── MatchCard ────────────────────────────────────────────────────────────────
 const MatchCard = React.memo(({ item }: { item: MatchUser }) => {
   const skillsStr    = item.skillsArray?.join(",") ?? "";
   const commonSkills = item.commonSkills ?? [];
@@ -143,14 +135,12 @@ const MatchCard = React.memo(({ item }: { item: MatchUser }) => {
     </TouchableOpacity>
   );
 });
-
-// ─── DiscoverScreen ───────────────────────────────────────────────────────────
 export default function DiscoverScreen() {
   useAuthh();
   const { loadStatuses, getStatus } = useConnection();
   const {
     matches, fetching, refreshing, error, loading,
-    loadInitial, refresh, hasMore, loadMore,
+    loadInitial, refresh, loadMore,
   } = useMatches();
 
   useEffect(() => { loadInitial(); }, [loadInitial]);
@@ -162,10 +152,8 @@ export default function DiscoverScreen() {
     () => matches.filter((m) => getStatus(m.userId) !== "accepted"),
     [matches, getStatus],
   );
-
   const renderItem    = useCallback(({ item }: { item: MatchUser }) => <MatchCard item={item} />, []);
   const keyExtractor  = useCallback((item: MatchUser) => item.userId, []);
-
   if (loading && matches.length === 0)
     return (
       <SafeAreaView style={st.safe} edges={["top"]}>
@@ -178,21 +166,18 @@ export default function DiscoverScreen() {
         </View>
       </SafeAreaView>
     );
-
   if (error && matches.length === 0)
     return (
       <SafeAreaView style={st.safe} edges={["top"]}>
         <Header />
         <View style={st.center}>
-          <Text style={st.errorText}>{error}</Text>
+          <Text style={st.errorText}>No MindMates yet</Text>
           <TouchableOpacity style={st.retryBtn} onPress={loadInitial}>
             <Text style={st.retryText}>Try Again</Text>
-          
           </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
-
   return (
     <SafeAreaView style={st.safe} edges={["top"]}>
       <StatusBar barStyle="dark-content" />
@@ -241,11 +226,8 @@ export default function DiscoverScreen() {
     </SafeAreaView>
   );
 }
-
-// ─── Header ───────────────────────────────────────────────────────────────────
 const Header = () => (
   <View style={st.header}>
-   
     <TouchableOpacity
       style={st.searchBar}
       onPress={() => router.push("/subScreens/searchUser")}
@@ -256,16 +238,13 @@ const Header = () => (
     </TouchableOpacity>
   </View>
 );
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const st = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#ffffff" },
-
   listContent: { paddingBottom: vs(120) },
-
   center: {
     flex:             1,
     alignItems:       "center",
+    alignSelf:'center',
     justifyContent:   "center",
     paddingTop:       vs(80),
     paddingHorizontal: s(30),
@@ -356,6 +335,7 @@ const st = StyleSheet.create({
     fontSize:  ms(14),
     color:     C.muted,
     textAlign: "center",
+    alignSelf:'center',
   },
   emptyIcon: {marginTop:vs(7) },
   emptyTitle: {

@@ -10,34 +10,28 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
-
 const SCREEN_W = Dimensions.get("window").width;
-
-// ─── Types ────────────────────────────────────────────────────────────────────
 export type VoiceStatus =
   | "uploading"
   | "sent"
   | "delivered"
   | "seen"
   | "failed";
-
 export interface VoiceMessageBubbleProps {
   messageId: string;
-  audioUrl: string; // empty string while uploading
+  audioUrl: string; 
   durationSec: number;
-  waveform: number[]; // 0-100 bar heights
+  waveform: number[]; 
   status: VoiceStatus;
   isMe: boolean;
-  timestamp: string; // pre-formatted "HH:MM"
+  timestamp: string; 
   isFailed?: boolean;
   onRetry?: () => void;
-   onLongPress?: () => void;   // ← ADD
-  onReact?: (emoji: string) => void;  // ← ADD
+   onLongPress?: () => void;   
+  onReact?: (emoji: string) => void;  
   onReply?: () => void;  
 }
 
-// ─── Theme ────────────────────────────────────────────────────────────────────
 const T = {
   purple: "#6D4AFF",
   purpleLight: "#ffffff",
@@ -56,7 +50,7 @@ const fmt = (sec: number): string => {
 const durationToWidth = (sec: number): number => {
   const min = 0.52;
   const max = 0.90;
-  const frac = Math.min(1, sec / 120); // 120s = 100%
+  const frac = Math.min(1, sec / 120); 
   return Math.round(SCREEN_W * (min + frac * (max - min)));
 };
 const SPEEDS = [1, 1.5, 2] as const;
@@ -78,7 +72,7 @@ const StatusIcon = memo(({ status }: { status: VoiceStatus }) => {
 });
 interface WaveformProps {
   bars: number[];
-  progressFrac: number; // 0..1
+  progressFrac: number;
   isMe: boolean;
   onSeek: (frac: number) => void;
 }
@@ -134,8 +128,6 @@ const wf = StyleSheet.create({
     borderRadius: s(2),
   },
 });
-
-// ─── VoiceMessageBubble ───────────────────────────────────────────────────────
 export const VoiceMessageBubble = memo(
   ({
     messageId,
@@ -255,8 +247,6 @@ export const VoiceMessageBubble = memo(
     );
   }
 );
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const st = StyleSheet.create({
   bubble: {
     borderRadius: s(20),
@@ -304,6 +294,5 @@ const st = StyleSheet.create({
   },
   tsText: {
     fontSize: ms(10),
-    
   },
 });

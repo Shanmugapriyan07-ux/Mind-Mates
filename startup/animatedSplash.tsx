@@ -1,9 +1,6 @@
 import images from "@/constants/images";
-import { SPACING } from "@/theme/Spacing";
-import { TYPOGRAPHY } from "@/theme/typography";
-import { s } from "@/utils/scale";
 import React, { useEffect, useRef } from "react";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet } from "react-native";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -13,11 +10,9 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
-
 const LOGO_SIZE = 140;
 const SPLASH_BG = "#6D4AFF";
-const MIN_SHOW_MS = 1200; // Minimum splash duration
-
+const MIN_SHOW_MS = 1200;
 interface Props {
   onComplete?: () => void;
 }
@@ -27,7 +22,6 @@ const AnimatedSplash: React.FC<Props> = ({ onComplete }) => {
   const bgOpacity = useSharedValue(1);
   const started = useRef(false);
   const startTime = useRef(Date.now());
-
   useEffect(() => {
     if (started.current) return;
     started.current = true;
@@ -50,9 +44,7 @@ const AnimatedSplash: React.FC<Props> = ({ onComplete }) => {
         mass: 0.8,
         overshootClamping: true,
       }),
-      // Phase 2: Hold at full scale (300–900ms = 600ms hold)
       withTiming(1.0, { duration: 600 }),
-      // Phase 3: Subtle scale up (900–1200ms)
       withTiming(1.1, {
         duration: 300,
         easing: Easing.inOut(Easing.ease),
@@ -72,19 +64,15 @@ const AnimatedSplash: React.FC<Props> = ({ onComplete }) => {
         onComplete?.();
       }, remaining);
     }, 1150);
-
     return () => clearTimeout(completionDelay);
   }, []);
-
   const containerStyle = useAnimatedStyle(() => ({
     opacity: bgOpacity.value,
   }));
-
   const logoStyle = useAnimatedStyle(() => ({
     opacity: logoOpacity.value,
     transform: [{ scale: logoScale.value }],
   }));
-
   return (
     <Animated.View
       style={[styles.container, containerStyle]}

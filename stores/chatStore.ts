@@ -1,6 +1,4 @@
-// stores/chatStore.ts
 import { create } from 'zustand';
-
 export interface ConversationMeta {
   chatId:          string;
   otherUserId:     string;
@@ -43,7 +41,6 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       if (existing) {
         next = state.conversations
           .map(c => c.chatId === partial.chatId ? { ...c, ...partial } : c)
-          // Re-sort by lastMessageAt descending
           .sort((a, b) =>
             new Date(b.lastMessageAt ?? 0).getTime() -
             new Date(a.lastMessageAt ?? 0).getTime()

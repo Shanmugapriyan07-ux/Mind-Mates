@@ -620,8 +620,6 @@ export default function ChatListScreen() {
       }
     };
   }, [user?.id]);
-
-  // ─── Mark read ──────────────────────────────────────────────────────────────
   const markReadLocally = useCallback((chatId: string) => {
     localZeroedChats.current.add(chatId);
     setFriends((prev) => {
@@ -632,8 +630,6 @@ export default function ChatListScreen() {
       return next;
     });
   }, []);
-
-  // ─── Clear chat ─────────────────────────────────────────────────────────────
   const handleClear = useCallback((f: Friend) => {
     if (!f.chat_id) return;
     setClearModal(f);
@@ -667,12 +663,9 @@ export default function ChatListScreen() {
     },
     [loadFriends],
   );
-
-  // ─── Hide / delete chat ─────────────────────────────────────────────────────
   const handleDelete = useCallback((f: Friend) => {
     setDeleteModal(f);
   }, []);
-
   const doHideChat = useCallback(async (f: Friend) => {
     setFriends((prev) => {
       const next = prev.filter((x) => x.connection_id !== f.connection_id);
@@ -698,8 +691,6 @@ export default function ChatListScreen() {
       listKeyRef.current += 1;
     }
   }, []);
-
-  // ─── Bulk delete ─────────────────────────────────────────────────────────────
   const handleBulkDelete = useCallback(async () => {
     const ids = Array.from(swipedIds);
     const targets = friends.filter((f) => ids.includes(f.connection_id));
@@ -711,8 +702,6 @@ export default function ChatListScreen() {
   }, [swipedIds, friends, doHideChat, closeAllExcept]);
 
   const keyExtractor = useCallback((item: Friend) => item.connection_id, []);
-
-  // ─── Render ─────────────────────────────────────────────────────────────────
   if (loading && !friends.length)
     return (
       <SafeAreaView style={st.safe} edges={["top"]}>
@@ -847,8 +836,6 @@ export default function ChatListScreen() {
     </SafeAreaView>
   );
 }
-
-// ─── Header ───────────────────────────────────────────────────────────────────
 const Header = ({
   onSearch,
   onMenuPress,
@@ -872,8 +859,6 @@ const Header = ({
     </TouchableOpacity>
   </View>
 );
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const st = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.white },
   listContent: {},
@@ -895,7 +880,6 @@ const st = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-
   empty: {
     alignItems: "center",
     paddingTop: vs(100),
@@ -916,8 +900,6 @@ const st = StyleSheet.create({
     color: C.text,
     marginBottom: vs(6),
   },
-
-  // CHANGE 4: bottom: vs(8) removed
   emptySub: {
     fontSize: TYPOGRAPHY.body,
     color: C.muted,

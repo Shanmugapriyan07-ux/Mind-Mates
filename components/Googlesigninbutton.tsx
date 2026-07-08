@@ -1,4 +1,3 @@
-// components/GoogleSignInButton.tsx
 import icons from "@/constants/icons";
 import { useAuthStore } from "@/stores/authStore";
 import { ms, s, vs } from "@/utils/scale";
@@ -24,24 +23,17 @@ function GoogleSignInButton({
   isLoading = false,
   disabled = false,
 }: GoogleSignInButtonProps) {
-  // Also read transitioning from store for the smooth handoff
   const isTransitioning = useAuthStore((s: any) => s.isTransitioning ?? false);
-
-  // Either prop-driven loading OR store-driven transitioning = show spinner
   const showSpinner = isLoading || isTransitioning;
   const isDisabled = disabled || showSpinner;
 
   const scale = useRef(new Animated.Value(1)).current;
   const opacity = useRef(new Animated.Value(1)).current;
-  // Separate animated value for the transitioning fade-out
   const fadeAnim = useRef(new Animated.Value(1)).current;
-
-  // When transitioning starts, gently fade the button towards 0.5 opacity
-  // so it visually "dissolves" into the navigation — not a hard cutoff.
   useEffect(() => {
     if (isTransitioning) {
       Animated.timing(fadeAnim, {
-        toValue: 1, // Keep fully opaque to prevent "ash" look
+        toValue: 1,
         duration: 350,
         useNativeDriver: true,
       }).start();
@@ -103,8 +95,6 @@ function GoogleSignInButton({
           isDisabled && styles.buttonDisabled,
           {
             transform: [{ scale }],
-            // Combine press opacity + transitioning fade
-            // When disabled, we'll rely on the existing opacity animations for visual feedback.
             opacity: Animated.multiply(opacity, fadeAnim),
           },
         ]}
@@ -112,8 +102,8 @@ function GoogleSignInButton({
         <View style={styles.leftSection}>
           {showSpinner ? (
             <ActivityIndicator
-              size="small" // Keep size small
-              color="#6D4AFF" // Changed spinner color to match the default text color for visibility on white
+              size="small" 
+              color="#6D4AFF"
               style={styles.spinner}
             />
           ) : (
@@ -125,7 +115,7 @@ function GoogleSignInButton({
         </View>
 
         <Text
-          style={[styles.label, showSpinner && styles.labelLoading]} // Always use the default label style
+          style={[styles.label, showSpinner && styles.labelLoading]} 
           numberOfLines={1}
         >
           {showSpinner ? "Signing in…" : "Continue with Google"}
