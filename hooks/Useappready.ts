@@ -1,6 +1,6 @@
-import { useEffect, useCallback, useRef, useState } from 'react';
-import * as SplashScreen from 'expo-splash-screen';
 import { preloadCriticalAssets, PreloadResult } from '@/utils/Preloadassets';
+import * as SplashScreen from 'expo-splash-screen';
+import { useCallback, useEffect, useRef, useState } from 'react';
 SplashScreen.preventAutoHideAsync().catch(() => {
   console.warn('[SplashScreen] preventAutoHideAsync failed — already hidden?');
 });
@@ -23,7 +23,7 @@ export function useAppReady(): UseAppReadyReturn {
         setPreloadData(result);
         await hideSplashSafely();
         setPhase('animating');
-      } catch (e) {
+      } catch {
         await hideSplashSafely();
         setPhase('ready');
       }

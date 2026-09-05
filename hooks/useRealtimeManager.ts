@@ -1,22 +1,34 @@
-import { useEffect }        from 'react';
-import { useAuthh }          from '@/Contexts/authContext';
-import { realtimeManager }  from '@/lib/realtimeManager';
-import { useChatStore }     from '@/stores/chatStore';
-import { supabase }         from '@/lib/supabase';
+import { useAuthh } from '@/Contexts/authContext';
+import { realtimeManager } from '@/lib/realtimeManager';
+import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/stores/authStore';
+import { useChatStore } from '@/stores/chatStore';
+import { useEffect } from 'react';
 export const useRealtimeManager = () => {
-  const { user }           = useAuthh();
-  const setConversations   = useChatStore(s => s.setConversations);
+  const { user } = useAuthh();
+  const phase = useAuthStore(s => s.phase);
+  const setConversations = useChatStore(s => s.setConversations);
+
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || phase !== 'authenticated') return;
     const uid = user.id;
-    loadConversations(uid, setConversations);
+    let cancelled = false;
+
+    loadConversations(uid, (data) => {
+      if (!cancelled) setConversations(data);
+    });
     realtimeManager.init(uid);
-    return () => realtimeManager.destroy();
-  }, [user?.id]);
+
+    return () => {
+      cancelled = true;
+      realtimeManager.destroy();
+    };
+  }, [phase, setConversations, user?.id]);
 };
+
 async function loadConversations(
   userId: string,
-  setConversations: (c: any[]) => void
+  onLoaded: (c: any[]) => void
 ) {
   const { data } = await supabase
     .from('conversation_members')
@@ -56,5 +68,5 @@ async function loadConversations(
       lastSeen:        other?.last_seen,
     };
   });
-  setConversations(mapped);
+   onLoaded(mapped);
 }

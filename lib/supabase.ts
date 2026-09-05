@@ -1,4 +1,5 @@
-﻿import { createClient } from "@supabase/supabase-js";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { createClient } from "@supabase/supabase-js";
 import * as Crypto from "expo-crypto";
 import { Platform } from "react-native";
 import "react-native-get-random-values";
@@ -46,8 +47,6 @@ const getStorage = () => {
       removeItem: async () => {},
     };
   }
-  const AsyncStorage =
-    require("@react-native-async-storage/async-storage").default;
   return AsyncStorage;
 };
 const authOptions: any = {
@@ -64,7 +63,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON, {
 });
 export const databases = supabase;
 export const client = supabase;
-export const account = supabase.auth;
+export const account: any = supabase.auth;
 export const storage = supabase.storage;
 export const functions = supabase.functions;
 export class Query {

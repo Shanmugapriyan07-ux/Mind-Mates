@@ -126,7 +126,7 @@ const dismissBadgeNotifications = async (): Promise<void> => {
     await Promise.all(
       badgeNotifs.map(n => Notifications.dismissNotificationAsync(n.request.identifier))
     );
-  } catch (_) {}
+  } catch {}
 };
 
 export const ensureNotificationPermission = async (): Promise<boolean> => {

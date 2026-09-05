@@ -2,7 +2,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Session } from '@supabase/supabase-js';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-
 export type AuthPhase =
   | 'booting'
   | 'authenticated'
@@ -10,7 +9,6 @@ export type AuthPhase =
   | 'unauthenticated'
   | 'logging_out'
   | 'deleting';
-
 export type NavIntent = null;
 
 export interface AuthUser {
@@ -35,7 +33,6 @@ interface AuthState {
   hydrated:          boolean;
   loading:           boolean;
   _completing:       boolean;
-  setSession:          (a: any, token?: string) => void;
   markProfileComplete: () => void;
   beginLogout:         () => void;
   beginDelete:         () => void;
@@ -48,6 +45,7 @@ interface AuthState {
   setProfile:          (profile: any) => void;
   setHydrated:         () => void;
   logout:              () => Promise<void>;
+  setSession: (user: AuthUser | null, token: string | null) => void; 
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -67,24 +65,19 @@ export const useAuthStore = create<AuthState>()(
       loading:           true,
       _completing:       false,
 
-      setSession: (a, token) => {
-        if (a && a.user && typeof token === 'undefined') {
-          set({ session: a, user: a.user });
-          return;
-        }
-        const user = a ?? null;
-        set({
-          user,
-          token:       token ?? null,
-          phase:       user?.is_profileComplete ? 'authenticated' : 'profile_incomplete',
-          navIntent:   null,
-          isSigningIn: false, 
-          isTransitioning: true, 
-          error:       null,
-          session:     null,
-          _completing: false,
-        });
-      },
+      setSession: (user, token) => {
+  set({
+    user,
+    token: token ?? null,
+    phase: user?.is_profileComplete ? 'authenticated' : 'profile_incomplete',
+    navIntent: null,
+    isSigningIn: false,
+    isTransitioning: true,
+    error: null,
+    session: null,
+    _completing: false,
+  });
+},
       clearSession: () => set({
         user:        null,
         token:       null,

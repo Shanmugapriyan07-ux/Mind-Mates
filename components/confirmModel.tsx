@@ -1,3 +1,4 @@
+import { useRenderCount } from "@/Count";
 import { ms, s, vs } from "@/utils/scale";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -47,6 +48,8 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   const backdropOpacity = useRef(new Animated.Value(1)).current;
   const cardScale = useRef(new Animated.Value(1)).current;
   const cardOpacity = useRef(new Animated.Value(1)).current;
+
+  useRenderCount("ConfirmModal");
   useEffect(() => {
     if (visible) {
       executingRef.current = false;
@@ -65,7 +68,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
         Animated.timing(cardOpacity, { toValue: 1, ...OPEN_CONFIG }),
       ]).start();
     }
-  }, [visible]);
+  }, [backdropOpacity, cardOpacity, cardScale, visible]);
   const animateClose = useCallback(
     (afterClose: () => void) => {
       Animated.parallel([
@@ -165,6 +168,9 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
     </Modal>
   );
 };
+
+
+
 const st = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
@@ -260,4 +266,6 @@ const st = StyleSheet.create({
     left: vs(1),
   },
 });
+
+
 export default React.memo(ConfirmModal);

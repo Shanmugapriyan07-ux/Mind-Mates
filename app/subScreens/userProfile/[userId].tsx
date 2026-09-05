@@ -1,22 +1,24 @@
 import { useAuthh } from "@/Contexts/authContext";
+import { useRenderCount } from "@/Count";
 import { useConnection } from "@/hooks/useConnection";
 import { useConnectionCount } from "@/hooks/useConnectionCount";
-import supabase, { TABLES } from "@/lib/supabase";
+import { supabase, TABLES } from "@/lib/supabase";
 import { ms, s, vs } from "@/utils/scale";
 import { Ionicons } from "@expo/vector-icons";
+import { FlashList } from "@shopify/flash-list";
+import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Image,
-  Pressable,
-  Animated as RNAnimated,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Pressable,
+    Animated as RNAnimated,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 interface UserProfile {
@@ -140,7 +142,7 @@ const SkeletonBox = ({
         }),
       ]),
     ).start();
-  }, []);
+  }, [opacity]);
   return (
     <RNAnimated.View
       style={[
@@ -206,10 +208,21 @@ const ProfileSkeleton = () => (
     </View>
   </ScrollView>
 );
-
 const SkillPill = React.memo(
-  ({ skill, active }: { skill: string; active?: boolean }) => (
-    <View style={[st.pill, active && st.pillActive]}>
+  ({
+    skill,
+    active,
+    onPress,
+  }: {
+    skill: string;
+    active?: boolean;
+    onPress?: () => void;
+  }) => (
+    <TouchableOpacity
+      activeOpacity={0.7}
+      onPress={onPress}
+      style={[st.pill, active && st.pillActive]}
+    >
       <Ionicons
         name={(SKILL_ICONS[skill] ?? DEFAULT_ICON) as any}
         size={s(13)}
@@ -217,7 +230,7 @@ const SkillPill = React.memo(
         style={{ marginRight: s(5) }}
       />
       <Text style={[st.pillText, active && st.pillTextActive]}>{skill}</Text>
-    </View>
+    </TouchableOpacity>
   ),
 );
 
@@ -237,29 +250,32 @@ const SkillCard = React.memo(({ skill }: { skill: string }) => (
 ));
 
 const ScrollablePills = ({ skills }: { skills: string[] }) => {
-  const scrollRef = useRef<ScrollView>(null);
-  const scrollX = useRef(0);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(0);
+
   return (
     <View style={st.pillsWrapper}>
-      <ScrollView
-        ref={scrollRef}
+      <FlashList
         horizontal
+        data={skills}
+        keyExtractor={(item, index) => `${item}-${index}`}
+        extraData={selectedIndex}
         showsHorizontalScrollIndicator={false}
         nestedScrollEnabled
-        onScroll={(e) => {
-          scrollX.current = e.nativeEvent.contentOffset.x;
-        }}
         scrollEventThrottle={16}
         contentContainerStyle={st.pillRow}
         style={st.pillsScroll}
-      >
-        {skills.map((skill, i) => (
-          <SkillPill key={i} skill={skill} active={i === 0} />
-        ))}
-      </ScrollView>
+        renderItem={({ item, index }) => (
+          <SkillPill
+            skill={item}
+            active={index === selectedIndex}
+            onPress={() => setSelectedIndex(index)}
+          />
+        )}
+      />
     </View>
   );
 };
+
 const ConnectBtn = ({
   targetUserId,
   fullName,
@@ -321,6 +337,7 @@ const ConnectBtn = ({
 };
 
 export default function UserProfileScreen() {
+  useRenderCount("userprofile");
   const params = useLocalSearchParams<{ userId: string }>();
   const { user: me } = useAuthh();
   const { loadStatuses } = useConnection();
@@ -454,7 +471,8 @@ export default function UserProfileScreen() {
                 <Image
                   source={{ uri: imageUrl }}
                   style={st.avatar}
-                  resizeMode="cover"
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
                 />
               ) : (
                 <View style={st.avatarPlaceholder}>
@@ -558,6 +576,11 @@ export default function UserProfileScreen() {
     </SafeAreaView>
   );
 }
+
+
+UserProfileScreen.whyDidYouRender = true;
+
+
 const st = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#FFFFFF" },
   header: {
@@ -565,7 +588,7 @@ const st = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: s(25),
-    paddingVertical: vs(8),
+    paddingVertical: vs(4),
     backgroundColor: "#FFFFFF",
   },
   headerTitle: { fontSize: ms(18), fontWeight: "700", color: "#17191B" },
@@ -574,16 +597,16 @@ const st = StyleSheet.create({
   avatarBlock: { alignItems: "center", paddingBottom: vs(8) },
   avatarWrap: { position: "relative", marginBottom: vs(3) },
   avatar: {
-    width: s(105),
-    height: s(105),
-    borderRadius: s(55),
+    width: s(95),
+    height: s(95),
+    borderRadius: s(50),
     borderWidth: 3,
     borderColor: "#fff",
   },
   avatarPlaceholder: {
-    width: s(105),
-    height: s(105),
-    borderRadius: s(55),
+    width: s(95),
+    height: s(95),
+    borderRadius: s(50),
     backgroundColor: "#EDE9FE",
     alignItems: "center",
     justifyContent: "center",
@@ -597,13 +620,13 @@ const st = StyleSheet.create({
   },
 
   name: {
-    fontSize: ms(16),
+    fontSize: ms(15),
     fontWeight: "500",
     color: "#17191B",
     marginBottom: vs(2),
   },
   headline: {
-    fontSize: ms(14),
+    fontSize: ms(13),
     fontWeight: "500",
     color: "#6B7280",
     marginBottom: vs(4),
@@ -614,7 +637,7 @@ const st = StyleSheet.create({
     alignSelf: "center",
     gap: s(4),
   },
-  locationText: { fontSize: ms(13), color: "#6B7280", fontWeight: "500" },
+  locationText: { fontSize: ms(12), color: "#6B7280", fontWeight: "500" },
   statsRow: {
     flexDirection: "row",
     backgroundColor: "#fff",
@@ -629,14 +652,12 @@ const st = StyleSheet.create({
     color: "#6D4AFF",
   },
   statLabel: { fontSize: ms(14), fontWeight: "500", color: "#6D4AFF" },
-
   actionsRow: {
     flexDirection: "row",
     gap: s(25),
     marginHorizontal: s(35),
     marginTop: vs(8),
   },
-
   connectBtn: {
     flex: 1,
     paddingVertical: vs(11),
@@ -658,7 +679,6 @@ const st = StyleSheet.create({
     backgroundColor: "#EDE9FE",
   },
   messageBtnText: { fontSize: ms(14), fontWeight: "700", color: "#6D4AFF" },
-
   editBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -675,7 +695,6 @@ const st = StyleSheet.create({
   pillsWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    marginHorizontal: -s(4),
     paddingTop: vs(14),
     paddingBottom: vs(4),
   },
@@ -684,9 +703,8 @@ const st = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: s(8),
-    paddingHorizontal: s(18),
+    paddingHorizontal: s(8),
   },
-
   pill: {
     paddingHorizontal: s(14),
     paddingVertical: vs(6),
@@ -696,16 +714,17 @@ const st = StyleSheet.create({
     backgroundColor: "#fff",
     flexDirection: "row",
     alignItems: "center",
+    marginRight: s(4),
   },
   pillActive: { backgroundColor: "#6D4AFF", borderColor: "#6D4AFF" },
   pillText: { fontSize: ms(13), fontWeight: "600", color: "#374151" },
   pillTextActive: { color: "#fff" },
-
   skillsCard: {
     backgroundColor: "#fff",
     marginTop: vs(10),
     padding: s(5),
     marginHorizontal: s(30),
+    alignItems: "center",
   },
   skillGrid: {
     flexDirection: "row",
@@ -734,7 +753,6 @@ const st = StyleSheet.create({
     textAlign: "center",
     lineHeight: ms(15),
   },
-
   bioSection: {
     backgroundColor: "#fff",
     marginHorizontal: s(20),

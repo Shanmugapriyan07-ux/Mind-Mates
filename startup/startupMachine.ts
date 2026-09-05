@@ -1,3 +1,4 @@
+import { supabase } from '@/lib/supabase';
 import * as SplashScreen from 'expo-splash-screen';
 
 export type StartupPhase =
@@ -12,27 +13,15 @@ export interface StartupResult {
   fontsReady: boolean;
   elapsed: number;
 }
-SplashScreen.preventAutoHideAsync();
-
 export async function runCriticalPreloads(): Promise<StartupResult> {
   const start = Date.now();
-
-  const [session, fontsReady] = await Promise.allSettled([
-    fetchSession(),      
-    minimumSplashTime(),   
-  ]);
+  const { data: { session } } = await supabase.auth.getSession();
   return {
-    session: session.status === 'fulfilled' ? session.value : null,
-    fontsReady: fontsReady.status === 'fulfilled',
+    session,
+    fontsReady: true,
     elapsed: Date.now() - start,
   };
 }
 export async function hideNativeSplash(): Promise<void> {
   await SplashScreen.hideAsync();
-}
-async function fetchSession() {
-  return null;
-}
-async function minimumSplashTime(ms = 800): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
 }

@@ -2,6 +2,8 @@ let _GoogleSignin: any = null;
 let _statusCodes: any  = {};
 let _isConfigured      = false;
 try {
+  // This native module is intentionally loaded only outside web.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const mod    = require('@react-native-google-signin/google-signin');
   _GoogleSignin = mod.GoogleSignin;
   _statusCodes  = mod.statusCodes;

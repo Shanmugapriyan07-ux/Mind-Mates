@@ -1,12 +1,13 @@
-import { Platform } from 'react-native';
 import { supabase } from '@/lib/supabase';
+import { File as ExpoFile } from 'expo-file-system';
 import * as ImageManipulator from 'expo-image-manipulator';
+import { Platform } from 'react-native';
 const CLOUD_NAME      = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME    ?? '';
 const UNSIGNED_PRESET = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET ?? 'mindmates_unsigned';
 export const COMPRESS_CONFIG = {
-  profile:   { maxDim: 600,  quality: 0.75, format: ImageManipulator.SaveFormat.JPEG },
-  chat:      { maxDim: 800,  quality: 0.70, format: ImageManipulator.SaveFormat.JPEG },
-  thumbnail: { maxDim: 300,  quality: 0.55, format: ImageManipulator.SaveFormat.JPEG },
+  profile:   { maxDim: 1200, quality: 0.82, targetBytes: 250_000, format: ImageManipulator.SaveFormat.JPEG },
+  chat:      { maxDim: 1400, quality: 0.78, targetBytes: 450_000, format: ImageManipulator.SaveFormat.JPEG },
+  thumbnail: { maxDim: 400,  quality: 0.60, targetBytes: 120_000, format: ImageManipulator.SaveFormat.JPEG },
 } as const;
 export type UploadType = keyof typeof COMPRESS_CONFIG;
 export interface CloudinaryResult {
@@ -24,27 +25,43 @@ export const compressForUpload = async (
   uri:  string,
   type: UploadType = 'chat',
 ): Promise<string> => {
-  if (typeof document !== 'undefined') return uri; 
+  if (typeof document !== 'undefined') return uri;
   const cfg = COMPRESS_CONFIG[type];
   try {
-    const probe = await ImageManipulator.manipulateAsync(uri, [], { 
-      format: ImageManipulator.SaveFormat.JPEG 
+    const probe = await ImageManipulator.manipulateAsync(uri, [], {
+      format: cfg.format,
     });
     const { width, height } = probe;
     const actions: ImageManipulator.Action[] = [];
     const maxDim = cfg.maxDim;
+
     if (Math.max(width, height) > maxDim) {
-      if (width >= height) {
-        actions.push({ resize: { width: maxDim } });
-      } else {
-        actions.push({ resize: { height: maxDim } });
-      }
+      actions.push(
+        width >= height ? { resize: { width: maxDim } } : { resize: { height: maxDim } },
+      );
     }
-    const result = await ImageManipulator.manipulateAsync(
-      probe.uri, 
-      actions, 
-      { compress: cfg.quality, format: cfg.format }
-    );
+
+    let quality: number = cfg.quality;
+    let result = await ImageManipulator.manipulateAsync(probe.uri, actions, {
+      compress: quality,
+      format: cfg.format,
+    });
+
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      const file = new ExpoFile(result.uri);
+      const size = file.exists ? (file.info().size ?? 0) : 0;
+      if (!size || size <= (cfg.targetBytes ?? 300_000)) break;
+
+      const nextQuality = Math.max(0.55, quality - 0.1);
+      if (Math.abs(nextQuality - quality) < 0.001) break;
+
+      quality = nextQuality;
+      result = await ImageManipulator.manipulateAsync(result.uri, [], {
+        compress: quality,
+        format: cfg.format,
+      });
+    }
+
     return result.uri;
   } catch (e) {
     console.warn('[compress] failed, using original:', e);
@@ -82,7 +99,7 @@ export const uploadProfileToCloudinary = async (
     if (!resp.ok) throw new Error(`Blob fetch failed: ${resp.status}`);
     const blob = await resp.blob();
     if (blob.size === 0) throw new Error('Selected file is empty');
-    formData.append('file', new File([blob], 'profile.jpg', { type: 'image/jpeg' }));
+    formData.append('file', new globalThis.File([blob], 'profile.jpg', { type: 'image/jpeg' }));
   } else {
     (formData as any).append('file', {
       uri:  Platform.OS === 'android' ? uri : uri.replace('file://', ''),
@@ -127,7 +144,7 @@ export const uploadToCloudinary = (
         const blob = await resp.blob();
         if (blob.size === 0) throw new Error('File is empty');
         const ext = type === 'video' ? 'mp4' : 'jpg';
-        formData.append('file', new File([blob], `media.${ext}`, {
+        formData.append('file', new globalThis.File([blob], `media.${ext}`, {
           type: type === 'video' ? 'video/mp4' : 'image/jpeg',
         }));
       } else {

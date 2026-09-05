@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Font from 'expo-font';
-import { Image } from 'react-native';
 import { Asset } from 'expo-asset';
+import * as Font from 'expo-font';
+import { Image } from 'expo-image';
 export interface PreloadResult {
   sessionData:  StoredSession | null;
   fontsLoaded:  boolean;
@@ -69,7 +69,7 @@ const loadCachedSession = async (): Promise<StoredSession | null> => {
 };
 export const preloadCriticalAssets = async (): Promise<PreloadResult> => {
   const start = Date.now();
-  const [fontsLoaded, sessionData, _] = await Promise.all([
+  const [fontsLoaded, sessionData] = await Promise.all([
     withTimeout(loadFonts(),           5000, false),
     withTimeout(loadCachedSession(),   3000, null),
     withTimeout(preloadImages(),       4000, undefined),

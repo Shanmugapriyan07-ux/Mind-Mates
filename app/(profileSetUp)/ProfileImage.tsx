@@ -1,36 +1,37 @@
 import { useAuthh } from "@/Contexts/authContext";
 import { useProfile } from "@/Contexts/profileContext";
+import { useRenderCount } from "@/Count";
 import {
-  cdnProfileUrl,
-  compressForUpload,
-  uploadToCloudinary,
+    cdnProfileUrl,
+    compressForUpload,
+    uploadToCloudinary,
 } from "@/lib/cloudinaryUpload";
 import { saveDraft } from "@/lib/profileDraft";
 import { ms, s, vs } from "@/utils/scale";
 import { Ionicons } from "@expo/vector-icons";
-import * as ImageManipulator from "expo-image-manipulator";
+import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Animated,
-  Image,
-  Modal,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  useWindowDimensions,
-  View,
+    ActivityIndicator,
+    Animated,
+    Modal,
+    Platform,
+    Pressable,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    useWindowDimensions,
+    View,
 } from "react-native";
 import {
-  SafeAreaView,
-  useSafeAreaInsets,
+    SafeAreaView,
+    useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 export default function ProfileImageScreen() {
+  useRenderCount("Profileimage");
   const { user } = useAuthh();
   const { updateProfile, profile } = useProfile();
   const { width } = useWindowDimensions();
@@ -98,20 +99,16 @@ export default function ProfileImageScreen() {
       stiffness: 180,
     }).start();
   };
-  const closeSheet = () => {
+  const closeSheet = useCallback(() => {
     Animated.timing(sheetAnim, {
       toValue: 0,
       duration: 100,
       useNativeDriver: true,
     }).start(() => setShowPicker(false));
-  };
+  }, [sheetAnim]);
   const processImage = async (uri: string) => {
-    const result = await ImageManipulator.manipulateAsync(
-      uri,
-      [{ resize: { width: 1080 } }],
-      { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG },
-    );
-    return result.uri;
+    if (typeof document !== "undefined") return uri;
+    return compressForUpload(uri, "profile");
   };
   const pickFromGallery = useCallback(async () => {
     if (typeof document !== "undefined") {
@@ -133,8 +130,7 @@ export default function ProfileImageScreen() {
     });
     if (result.canceled || !result.assets?.[0]) return;
     setImageUri(await processImage(result.assets[0].uri));
-  }, []);
-
+  }, [closeSheet]);
   const takePhoto = useCallback(async () => {
     closeSheet();
     if (typeof document !== "undefined") return;
@@ -150,12 +146,12 @@ export default function ProfileImageScreen() {
     });
     if (result.canceled || !result.assets?.[0]) return;
     setImageUri(await processImage(result.assets[0].uri));
-  }, []);
+  }, [closeSheet]);
 
   const removePhoto = useCallback(() => {
     setImageUri(null);
     closeSheet();
-  }, []);
+  }, [closeSheet]);
 
   const uploadImage = useCallback(
     async (localUri: string): Promise<string | null> => {
@@ -192,6 +188,15 @@ export default function ProfileImageScreen() {
     },
     [],
   );
+  
+  const hasHydratedImage = useRef(false);
+useEffect(() => {
+  if (hasHydratedImage.current) return;
+  if (!profile) return;
+  hasHydratedImage.current = true;
+  setImageUri((prev) => prev ?? profile.profileImage ?? null);
+}, [profile]);
+
 
   const handleNext = useCallback(async () => {
     if (!user?.id || uploading || saving) return;
@@ -212,7 +217,7 @@ export default function ProfileImageScreen() {
       );
       setSaving(false);
       router.push("/(profileSetUp)/SkillSelect");
-    } catch (e: any) {
+    } catch {
       if (isMounted.current) setSaving(false);
     }
   }, [
@@ -241,13 +246,11 @@ export default function ProfileImageScreen() {
   const sheetTranslate = sheetAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [300, 0],
-  });
-  const avatarStyle = {
+  });  const avatarStyle = {
     width: AVATAR_SIZE,
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
   };
-
   return (
     <SafeAreaView style={st.container}>
       <View style={st.header}>
@@ -274,7 +277,12 @@ export default function ProfileImageScreen() {
             disabled={isBusy}
           >
             {imageUri ? (
-              <Image source={{ uri: imageUri }} style={avatarStyle} />
+              <Image
+                source={{ uri: imageUri }}
+                style={avatarStyle}
+                resizeMode="cover"
+                cachePolicy="memory-disk"
+              />
             ) : (
               <View style={[st.initialsCircle, avatarStyle]}>
                 <Text
@@ -379,6 +387,8 @@ export default function ProfileImageScreen() {
     </SafeAreaView>
   );
 }
+
+ProfileImageScreen.whyDidYouRender = true;
 
 const st = StyleSheet.create({
   container: {

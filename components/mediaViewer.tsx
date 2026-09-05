@@ -1,46 +1,48 @@
 import {
-  cdnFullUrl,
-  cdnVideoStreamUrl,
-  cdnVideoThumbUrl,
-  cdnVideoUrl,
+    cdnFullUrl,
+    cdnVideoStreamUrl,
+    cdnVideoThumbUrl,
+    cdnVideoUrl,
 } from "@/lib/cloudinaryUpload";
 import { ms, s, vs } from "@/utils/scale";
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
 } from "react";
 import {
-  Dimensions,
-  Image,
-  Modal,
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
+    Dimensions,
+    Modal,
+    Platform,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View,
 } from "react-native";
 import ImageView from "react-native-image-viewing";
 import Animated, {
-  FadeIn,
-  FadeOut,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withRepeat,
-  withSequence,
-  withSpring,
-  withTiming,
+    FadeIn,
+    FadeOut,
+    useAnimatedStyle,
+    useSharedValue,
+    withDelay,
+    withRepeat,
+    withSequence,
+    withSpring,
+    withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 let ExpoVideo: any = null;
 try {
+  // expo-video is optional and must remain runtime-loaded for platform fallback.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   ExpoVideo = require("expo-video");
-} catch (e) {
+} catch {
   console.warn(
     "[MediaViewer] expo-video native module not found. Rebuild your app.",
   );
@@ -77,7 +79,7 @@ const BufferingDots = () => {
     pulse(d1, 0);
     pulse(d2, 150);
     pulse(d3, 300);
-  }, []);
+  }, [d1, d2, d3]);
 
   const s1 = useAnimatedStyle(() => ({ opacity: d1.value }));
   const s2 = useAnimatedStyle(() => ({ opacity: d2.value }));
@@ -112,6 +114,14 @@ const VideoPlayerInner = ({
   const [showControls, setShowControls] = useState(true);
 
   const controlsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resetControlsTimer = useCallback(() => {
+    if (controlsTimer.current) clearTimeout(controlsTimer.current);
+    setShowControls(true);
+    controlsTimer.current = setTimeout(() => {
+      setShowControls(false);
+    }, CONTROLS_HIDE_MS);
+  }, []);
+
   const videoViewRef = useRef<any>(null);
   const player = useVideoPlayer(videoUri, (p: any) => {
     p.loop = false;
@@ -158,15 +168,7 @@ const VideoPlayerInner = ({
       clearInterval(poller);
       if (controlsTimer.current) clearTimeout(controlsTimer.current);
     };
-  }, [player]);
-
-  const resetControlsTimer = useCallback(() => {
-    if (controlsTimer.current) clearTimeout(controlsTimer.current);
-    setShowControls(true);
-    controlsTimer.current = setTimeout(() => {
-      setShowControls(false);
-    }, CONTROLS_HIDE_MS);
-  }, []);
+  }, [isPlaying, player, resetControlsTimer]);
 
   const handleTapMedia = useCallback(() => {
     if (showControls) {
@@ -239,7 +241,8 @@ const VideoPlayerInner = ({
             <Image
               source={{ uri: videoPoster }}
               style={StyleSheet.absoluteFillObject}
-              resizeMode="cover"
+              contentFit="cover"
+              cachePolicy="memory-disk"
             />
           )}
           {isBuffering && !videoError && (
@@ -398,7 +401,7 @@ export const MediaViewer = ({ uri, type, onClose }: Props) => {
     } else {
       backdropOpacity.value = withTiming(0, { duration: 150 });
     }
-  }, [cleanUri]);
+  }, [backdropOpacity, cleanUri, mediaScale]);
 
   const backdropStyle = useAnimatedStyle(() => ({
     opacity: backdropOpacity.value,
@@ -473,6 +476,9 @@ export const MediaViewer = ({ uri, type, onClose }: Props) => {
     </Modal>
   );
 };
+
+
+MediaViewer.whyDidYouRender = true;
 
 export default MediaViewer;
 const vw = StyleSheet.create({

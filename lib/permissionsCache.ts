@@ -31,7 +31,7 @@ export const requestCameraPermissionCached = async (): Promise<boolean> => {
     setCache("camera", granted);
     return granted;
   } catch (e) {
-    console.warn("❌ Camera permission request failed:", e);
+    console.warn(" Camera permission request failed:", e);
     return false;
   }
 };
@@ -43,7 +43,7 @@ export const requestMediaLibraryPermissionCached = async (): Promise<boolean> =>
     setCache("mediaLibrary", granted);
     return granted;
   } catch (e) {
-    console.warn("❌ Media library permission request failed:", e);
+    console.warn(" Media library permission request failed:", e);
     return false;
   }
 };

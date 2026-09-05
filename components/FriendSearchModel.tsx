@@ -3,23 +3,23 @@ import { ms, s } from "@/utils/scale";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
 } from "react";
 import {
-  Animated,
-  FlatList,
-  Keyboard,
-  Modal,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Animated,
+    FlatList,
+    Keyboard,
+    Modal,
+    Platform,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 export interface SearchFriend {
@@ -31,6 +31,7 @@ export interface SearchFriend {
   last_seen?: string | null;
   chat_id?: string;
 }
+
 interface Props {
   visible: boolean;
   friends: SearchFriend[];
@@ -97,7 +98,7 @@ export const FriendsSearchModal: React.FC<Props> = ({
         }),
       ]).start();
     }
-  }, [visible]);
+  }, [fadeAnim, slideAnim, visible]);
   const filteredResults = useMemo(() => {
     const q = query.toLowerCase().trim();
     if (!q) return friends;
@@ -174,8 +175,7 @@ export const FriendsSearchModal: React.FC<Props> = ({
             onPress={onClose}
             style={{ padding: 1 }}
             hitSlop={{ top: 8, bottom: 8, left: 4, right: 10 }}
-          >
-          </TouchableOpacity>
+          ></TouchableOpacity>
           <View style={sr.inputWrap}>
             <Ionicons
               name="search"
@@ -214,7 +214,9 @@ export const FriendsSearchModal: React.FC<Props> = ({
                 color={C.muted}
                 style={{ marginBottom: 12 }}
               />
-              <Text style={sr.emptyTitle}>No results for "{query}"</Text>
+              <Text style={sr.emptyTitle}>
+                No results for &quot;{query}&quot;
+              </Text>
               <Text style={sr.emptySub}>Try a different name</Text>
             </View>
           ) : (
@@ -237,6 +239,7 @@ export const FriendsSearchModal: React.FC<Props> = ({
     </Modal>
   );
 };
+
 const sr = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
@@ -256,7 +259,7 @@ const sr = StyleSheet.create({
     shadowRadius: s(8),
     shadowOffset: { width: 0, height: s(2) },
     width: "100%",
-    right:s(7)
+    right: s(7),
   },
   inputWrap: {
     flex: 1,
@@ -315,7 +318,7 @@ const sr = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-   alignSelf:'center'
+    alignSelf: "center",
   },
   emptyTitle: {
     fontSize: ms(16),

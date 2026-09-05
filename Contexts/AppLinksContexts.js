@@ -6,6 +6,7 @@ import React, {
   useEffect,
   useRef,
   useState,
+  useMemo,
 } from "react";
 import { AppState } from "react-native";
 import { FETCH_CONFIG, STATIC_LINKS } from "@/config/appLinks";
@@ -27,12 +28,10 @@ export function AppLinksProvider({ children }) {
   const lastFetchAt = useRef(0);
   const loadLinks = useCallback(async ({ forceRefresh = false } = {}) => {
     if (isFetching.current) {
-      logger.info("Fetch already in progress — skipping");
       return;
     }
     const age = Date.now() - lastFetchAt.current;
     if (!forceRefresh && age < FETCH_CONFIG.TTL_MS) {
-      logger.info(`Cache fresh (${Math.round(age / 1000)}s old) — skipping`);
       return;
     }
     isFetching.current = true;
@@ -42,13 +41,11 @@ export function AppLinksProvider({ children }) {
         setLinks({ ...STATIC_LINKS, ...cached.data });
         setIsStale(cached.isStale);
         if (!cached.isStale && !forceRefresh) {
-          logger.info("Serving fresh cache — no network call needed");
           return;
         }
       }
       const net = await NetInfo.fetch();
       if (!net.isConnected) {
-        logger.warn("Offline — using static/cached links");
         const stale = await readStaleCache();
         if (stale) setLinks({ ...STATIC_LINKS, ...stale });
         setIsStale(true);
@@ -60,9 +57,8 @@ export function AppLinksProvider({ children }) {
       setLinks(fresh);
       setIsStale(false);
       await writeCache(fresh);
-      logger.info("Links updated from network");
     } catch (err) {
-      logger.critical("AppLinksProvider unexpected error:", err);
+      logger.warn("Error loading links:", err.message);
     } finally {
       setIsLoading(false);
       isFetching.current = false;
@@ -74,7 +70,6 @@ export function AppLinksProvider({ children }) {
   useEffect(() => {
     const sub = AppState.addEventListener("change", (state) => {
       if (state === "active") {
-        logger.info("App foregrounded — checking cache freshness");
         loadLinks();
       }
     });
@@ -83,7 +78,6 @@ export function AppLinksProvider({ children }) {
   useEffect(() => {
     const unsub = NetInfo.addEventListener((state) => {
       if (state.isConnected && isStale) {
-        logger.info("Network restored — refreshing stale links");
         loadLinks({ forceRefresh: true });
       }
     });
@@ -93,18 +87,18 @@ export function AppLinksProvider({ children }) {
     (key) => links[key] ?? STATIC_LINKS[key] ?? "",
     [links],
   );
-  const value = {
-    links,
-    isLoading,
-    isStale,
-    refresh: () => loadLinks({ forceRefresh: true }),
-    getLink,
-  };
-  return (
-    <AppLinksContext.Provider value={value}>
-      {children}
-    </AppLinksContext.Provider>
-  );
+  const refresh = useCallback(() => loadLinks({ forceRefresh: true }), [loadLinks]);
+
+const value = useMemo(
+  () => ({ links, isLoading, isStale, refresh, getLink }),
+  [links, isLoading, isStale, refresh, getLink],
+);
+
+return (
+  <AppLinksContext.Provider value={value}>
+    {children}
+  </AppLinksContext.Provider>
+);
 }
 export function useAppLinks() {
   return useContext(AppLinksContext);

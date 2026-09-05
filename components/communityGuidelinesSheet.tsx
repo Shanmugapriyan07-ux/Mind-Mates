@@ -2,18 +2,18 @@ import images from "@/constants/images";
 import { ms, s, vs } from "@/utils/scale";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Image } from "expo-image";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Animated,
-  Dimensions,
-  Image,
-  Modal,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Animated,
+    Dimensions,
+    Modal,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 const AGREED_KEY = "mindmates_community_agreed_v1";
@@ -178,7 +178,7 @@ export const CommunityGuidelinesSheet: React.FC = () => {
         }
       })
       .catch(() => setState("hidden"));
-  }, []);
+  }, [bgOpacity, opacity, scale]);
 
   const animateOut = (then: () => void) => {
     if (animDone.current) return;
@@ -242,7 +242,7 @@ export const CommunityGuidelinesSheet: React.FC = () => {
           ]}
         >
           <View style={sh.logoRow}>
-            <Image source={images.icon} style={sh.logo} />
+            <Image source={images.icon} style={sh.logo} contentFit="contain" />
           </View>
           <Text style={sh.headline}>
             Welcome to <Text style={sh.headlineBrand}>MindMates</Text>

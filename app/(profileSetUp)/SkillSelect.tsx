@@ -1,5 +1,6 @@
 import { useAuthh } from "@/Contexts/authContext";
 import { useProfile } from "@/Contexts/profileContext";
+import { useRenderCount } from "@/Count";
 import { supabase, TABLES } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import { TYPOGRAPHY } from "@/theme/typography";
@@ -19,10 +20,14 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
   useWindowDimensions,
+  View,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 import { setProfileCompleting } from "../_layout";
 type Category = "Passion" | "Design" | "Tech" | "Sports" | "Business" | "Fun";
 interface Skill {
@@ -58,11 +63,26 @@ const SKILLS: Skill[] = [
   { id: 18, name: "PowerLifter", category: "Sports", icon: "barbell-outline" },
   { id: 19, name: "Bodybuilding", category: "Sports", icon: "body-outline" },
   { id: 20, name: "Programming", category: "Tech", icon: "code-slash-outline" },
-  { id: 21, name: "App Development", category: "Tech", icon: "phone-portrait-outline" },
+  {
+    id: 21,
+    name: "App Development",
+    category: "Tech",
+    icon: "phone-portrait-outline",
+  },
   { id: 22, name: "Web Development", category: "Tech", icon: "globe-outline" },
   { id: 23, name: "AI / ML", category: "Tech", icon: "hardware-chip-outline" },
-  { id: 24, name: "Cybersecurity", category: "Tech", icon: "shield-checkmark-outline" },
-  { id: 25, name: "UI/UX Design", category: "Design", icon: "color-wand-outline" },
+  {
+    id: 24,
+    name: "Cybersecurity",
+    category: "Tech",
+    icon: "shield-checkmark-outline",
+  },
+  {
+    id: 25,
+    name: "UI/UX Design",
+    category: "Design",
+    icon: "color-wand-outline",
+  },
   { id: 26, name: "Python", category: "Tech", icon: "code-slash-outline" },
   { id: 27, name: "Java", category: "Tech", icon: "code-slash-outline" },
   { id: 28, name: "Govt Prep", category: "Passion", icon: "book-outline" },
@@ -70,12 +90,22 @@ const SKILLS: Skill[] = [
   { id: 30, name: "Short Films", category: "Passion", icon: "film-outline" },
   { id: 31, name: "Football", category: "Sports", icon: "football-outline" },
   { id: 32, name: "Cricket", category: "Sports", icon: "baseball-outline" },
-  { id: 33, name: "Basketball", category: "Sports", icon: "basketball-outline" },
+  {
+    id: 33,
+    name: "Basketball",
+    category: "Sports",
+    icon: "basketball-outline",
+  },
   { id: 34, name: "Tennis", category: "Sports", icon: "tennisball-outline" },
   { id: 35, name: "Kabaddi", category: "Sports", icon: "people-outline" },
   { id: 36, name: "Athletics", category: "Sports", icon: "timer-outline" },
   { id: 37, name: "Startups", category: "Business", icon: "rocket-outline" },
-  { id: 38, name: "Content Creator", category: "Passion", icon: "create-outline" },
+  {
+    id: 38,
+    name: "Content Creator",
+    category: "Passion",
+    icon: "create-outline",
+  },
   { id: 39, name: "Music", category: "Passion", icon: "musical-notes-outline" },
   { id: 40, name: "Dancing", category: "Passion", icon: "walk-outline" },
   { id: 41, name: "Writing", category: "Passion", icon: "pencil-outline" },
@@ -89,7 +119,12 @@ const SKILLS: Skill[] = [
   { id: 64, name: "Chess", category: "Fun", icon: "grid-outline" },
   { id: 74, name: "Badminton", category: "Sports", icon: "tennisball-outline" },
   { id: 75, name: "Volleyball", category: "Sports", icon: "football-outline" },
-  { id: 76, name: "Table Tennis", category: "Sports", icon: "tennisball-outline" },
+  {
+    id: 76,
+    name: "Table Tennis",
+    category: "Sports",
+    icon: "tennisball-outline",
+  },
   { id: 78, name: "Martial Arts", category: "Sports", icon: "fitness-outline" },
   { id: 79, name: "Calisthenics", category: "Sports", icon: "body-outline" },
   { id: 83, name: "Archery", category: "Sports", icon: "navigate-outline" },
@@ -98,16 +133,46 @@ const SKILLS: Skill[] = [
   { id: 87, name: "Blockchain", category: "Tech", icon: "link-outline" },
   { id: 91, name: "DevOps", category: "Tech", icon: "server-outline" },
   { id: 93, name: "3D Printing", category: "Tech", icon: "cube-outline" },
-  { id: 95, name: "Graphic Design", category: "Design", icon: "color-wand-outline" },
+  {
+    id: 95,
+    name: "Graphic Design",
+    category: "Design",
+    icon: "color-wand-outline",
+  },
   { id: 96, name: "Motion Design", category: "Design", icon: "film-outline" },
   { id: 97, name: "3D Modeling", category: "Design", icon: "cube-outline" },
   { id: 98, name: "Illustration", category: "Design", icon: "brush-outline" },
   { id: 99, name: "Brand Design", category: "Design", icon: "ribbon-outline" },
-  { id: 103, name: "Marketing", category: "Business", icon: "megaphone-outline" },
-  { id: 106, name: "Trading", category: "Business", icon: "swap-horizontal-outline" },
-  { id: 107, name: "E-Commerce", category: "Business", icon: "storefront-outline" },
-  { id: 123, name: "Filmmaking", category: "Passion", icon: "videocam-outline" },
-  { id: 124, name: "Music Production", category: "Passion", icon: "headset-outline" },
+  {
+    id: 103,
+    name: "Marketing",
+    category: "Business",
+    icon: "megaphone-outline",
+  },
+  {
+    id: 106,
+    name: "Trading",
+    category: "Business",
+    icon: "swap-horizontal-outline",
+  },
+  {
+    id: 107,
+    name: "E-Commerce",
+    category: "Business",
+    icon: "storefront-outline",
+  },
+  {
+    id: 123,
+    name: "Filmmaking",
+    category: "Passion",
+    icon: "videocam-outline",
+  },
+  {
+    id: 124,
+    name: "Music Production",
+    category: "Passion",
+    icon: "headset-outline",
+  },
   { id: 128, name: "Skincare", category: "Passion", icon: "sparkles-outline" },
 ];
 const SkillCard = React.memo(
@@ -125,8 +190,16 @@ const SkillCard = React.memo(
     const scale = React.useRef(new Animated.Value(1)).current;
     const handlePress = useCallback(() => {
       Animated.sequence([
-        Animated.timing(scale, { toValue: 0.93, duration: 80, useNativeDriver: true }),
-        Animated.spring(scale, { toValue: 1, friction: 15, useNativeDriver: true }),
+        Animated.timing(scale, {
+          toValue: 0.93,
+          duration: 80,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scale, {
+          toValue: 1,
+          friction: 15,
+          useNativeDriver: true,
+        }),
       ]).start();
       onToggle(skill.id);
     }, [skill.id, onToggle, scale]);
@@ -134,7 +207,10 @@ const SkillCard = React.memo(
     const content = (
       <>
         {isSelected ? (
-          <LinearGradient colors={["#6D4AFF", "#6D4AFF"]} style={st.checkCircle}>
+          <LinearGradient
+            colors={["#6D4AFF", "#6D4AFF"]}
+            style={st.checkCircle}
+          >
             <Ionicons name="checkmark" size={s(13)} color="#fff" />
           </LinearGradient>
         ) : (
@@ -152,10 +228,17 @@ const SkillCard = React.memo(
     );
 
     return (
-      <TouchableOpacity activeOpacity={0.85} onPress={handlePress} style={{ width: cardSize }}>
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={handlePress}
+        style={{ width: cardSize }}
+      >
         <Animated.View style={{ transform: [{ scale }], opacity: 1 }}>
           {isSelected ? (
-            <LinearGradient colors={["#6D4AFF", "#6543ee"]} style={st.gradBorder}>
+            <LinearGradient
+              colors={["#6D4AFF", "#6543ee"]}
+              style={st.gradBorder}
+            >
               <View style={st.cardInner}>{content}</View>
             </LinearGradient>
           ) : (
@@ -167,6 +250,7 @@ const SkillCard = React.memo(
   },
 );
 export default function SkillSelection() {
+  useRenderCount("Skillselection");
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const CARD_SIZE = (width - s(52)) / 2;
@@ -176,7 +260,7 @@ export default function SkillSelection() {
   const [searchQuery, setSearchQuery] = useState("");
   const [saving, setSaving] = useState(false);
   const { user } = useAuthh();
-  const { profile, updateProfile } = useProfile();
+  const { profile, reloadProfile } = useProfile();
 
   const toggleSkill = useCallback((id: number) => {
     setSelectedIds((prev: Set<number>) => {
@@ -193,50 +277,102 @@ export default function SkillSelection() {
       : sk.category === activeCategory,
   );
 
-  
+  // const handleContinue = useCallback(async () => {
+  //   if (!user?.id || saving) return;
+
+  //   const names = Array.from(selectedIds)
+  //     .map((id) => SKILLS.find((s) => s.id === id)?.name ?? "")
+  //     .filter(Boolean);
+
+  //   if (!names.length) return;
+
+  //   setSaving(true);
+  //   await new Promise<void>((resolve) =>
+  //     requestAnimationFrame(() => resolve()),
+  //   );
+
+  //   try {
+  //     const { error } = await supabase
+  //       .from(TABLES.users)
+  //       .update({
+  //         skills: names.join(","),
+  //         is_profile_complete: true,
+  //         profile_image: profile?.profileImage ?? null,
+  //       })
+  //       .eq("user_id", user.id);
+
+  //     if (error) {
+  //       console.warn("[SkillSelection] DB write failed:", error.message);
+  //       Toast.show({
+  //         type: "error",
+  //         text1: "Something went wrong. Please try again.",
+  //       }); // see next finding
+  //       setSaving(false);
+  //       return;
+  //     }
+  //     updateProfile({
+  //       skills:            names.join(','),
+  //       skillsArray:       names,
+  //       isProfileComplete: true,
+  //     });
+  //     setProfileCompleting(true);
+  //     useAuthStore.getState().markProfileComplete();
+  //       router.dismissAll();
+  //       router.replace("/home");
+  //     setTimeout(() => setProfileCompleting(false), 500);
+
+  //   } catch (e: any) {
+  //     console.warn("[SkillSelection] unexpected error:", e?.message);
+  //     setSaving(false);
+  //   }
+  // }, [user?.id, saving, selectedIds, profile?.profileImage, updateProfile]);
+
   const handleContinue = useCallback(async () => {
-  if (!user?.id || saving) return;
+    if (!user?.id || saving) return;
 
-  const names = Array.from(selectedIds)
-    .map((id) => SKILLS.find((s) => s.id === id)?.name ?? '')
-    .filter(Boolean);
+    const names = Array.from(selectedIds)
+      .map((id) => SKILLS.find((s) => s.id === id)?.name ?? "")
+      .filter(Boolean);
 
-  if (!names.length) return;
+    if (!names.length) return;
 
-  setSaving(true);
-  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    setSaving(true);
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => resolve()),
+    );
 
-  try {
-    const { error } = await supabase
-      .from(TABLES.users)
-      .update({
-        skills:              names.join(','),
-        is_profile_complete: true,
-        profile_image:       profile?.profileImage ?? null,
-      })
-      .eq('user_id', user.id);
+    try {
+      const { error } = await supabase
+        .from(TABLES.users)
+        .update({
+          skills: names.join(","),
+          is_profile_complete: true,
+          profile_image: profile?.profileImage ?? null,
+        })
+        .eq("user_id", user.id);
 
-    if (error) {
-      console.warn('[SkillSelection] DB write failed:', error.message);
-      setSaving(false);
-      return;
-    }
-    updateProfile({
-      skills:            names.join(','),
-      skillsArray:       names,
-      isProfileComplete: true,
-    });
-    setProfileCompleting(true);
-    useAuthStore.getState().markProfileComplete();
+      if (error) {
+        console.warn("[SkillSelection] DB write failed:", error.message);
+        Toast.show({
+          type: "error",
+          text1: "Something went wrong. Please try again.",
+        });
+        setSaving(false);
+        return;
+      }
+
+      await reloadProfile(); // sync local state from the write we just confirmed — no second write
+      setProfileCompleting(true);
+      useAuthStore.getState().markProfileComplete();
       router.dismissAll();
       router.replace("/home");
-    setTimeout(() => setProfileCompleting(false), 500);
+      setTimeout(() => setProfileCompleting(false), 500);
+    } catch (e: any) {
+      console.warn("[SkillSelection] unexpected error:", e?.message);
+      setSaving(false);
+    }
+  }, [user?.id, saving, selectedIds, profile?.profileImage, reloadProfile]);
 
-  } catch (e: any) {
-    console.warn('[SkillSelection] unexpected error:', e?.message);
-    setSaving(false);
-  }
-}, [user?.id, saving, selectedIds, profile?.profileImage, updateProfile]);
   const renderSkill: ListRenderItem<Skill> = useCallback(
     ({ item }: { item: Skill }) => (
       <SkillCard
@@ -248,14 +384,17 @@ export default function SkillSelection() {
     ),
     [selectedIds, toggleSkill, CARD_SIZE],
   );
-
   return (
     <SafeAreaView style={st.safeArea} edges={["top"]}>
       <StatusBar barStyle="dark-content" />
-
       <View style={st.header}>
         <View style={st.searchWrap}>
-          <Ionicons name="search" size={s(20)} color="#575757" style={{ marginRight: s(3) }} />
+          <Ionicons
+            name="search"
+            size={s(20)}
+            color="#575757"
+            style={{ marginRight: s(3) }}
+          />
           <TextInput
             style={st.searchInput}
             placeholder="Search skills..."
@@ -266,9 +405,7 @@ export default function SkillSelection() {
             autoCorrect={false}
           />
         </View>
-
         {!searchQuery.trim() && (
-         
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -277,7 +414,11 @@ export default function SkillSelection() {
           >
             {CATEGORIES.map((cat) =>
               cat === activeCategory ? (
-                <LinearGradient key={cat} colors={["#6D4AFF", "#6340f0"]} style={st.tabActive}>
+                <LinearGradient
+                  key={cat}
+                  colors={["#6D4AFF", "#6340f0"]}
+                  style={st.tabActive}
+                >
                   <TouchableOpacity onPress={() => setActiveCategory(cat)}>
                     <Text style={st.tabTextActive}>{cat}</Text>
                   </TouchableOpacity>
@@ -296,7 +437,6 @@ export default function SkillSelection() {
           </ScrollView>
         )}
       </View>
-
       <FlatList
         data={filtered}
         renderItem={renderSkill}
@@ -331,7 +471,11 @@ export default function SkillSelection() {
               end={{ x: 1, y: 0 }}
               style={st.continueBtn}
             >
-              {saving ? <ActivityIndicator color="#fff" /> : <Text style={st.continueBtnText}>Continue</Text>}
+              {saving ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={st.continueBtnText}>Continue</Text>
+              )}
             </LinearGradient>
           ) : (
             <View style={[st.continueBtn, st.continueBtnOff]}>
@@ -343,163 +487,152 @@ export default function SkillSelection() {
     </SafeAreaView>
   );
 }
-
+SkillSelection.whyDidYouRender = true;
 const st = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#fff" },
-
   header: {
     paddingHorizontal: s(20),
-    paddingBottom:     vs(4),
+    paddingBottom: vs(4),
   },
-
   searchWrap: {
-    flexDirection:     "row",
-    alignItems:        "center",
-    backgroundColor:   "#F7F8FA",
-    borderRadius:      s(50),
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F7F8FA",
+    borderRadius: s(50),
     paddingHorizontal: s(16),
-    marginBottom:      vs(10),
-    marginTop:         vs(5),
+    marginBottom: vs(10),
+    marginTop: vs(5),
   },
-
   searchInput: {
-    flex:            1,
+    flex: 1,
     paddingVertical: vs(12),
-    color:           "#1c1b1b",
-    fontSize:      TYPOGRAPHY.body,
+    color: "#1c1b1b",
+    fontSize: TYPOGRAPHY.body,
   },
   tabs: {
-    marginBottom:     vs(2),
-    paddingVertical:  vs(4),
+    marginBottom: vs(2),
+    paddingVertical: vs(4),
     marginHorizontal: -s(20),
   },
   tabsContent: {
-    gap:               s(8),
+    gap: s(8),
     paddingHorizontal: s(20),
   },
-
   tabActive: {
     paddingHorizontal: s(20),
-    paddingVertical:   vs(9),
-    borderRadius:      s(50),
+    paddingVertical: vs(9),
+    borderRadius: s(50),
   },
-
   tabInactive: {
     paddingHorizontal: s(20),
-    paddingVertical:   vs(9),
-    borderRadius:      s(50),
-    backgroundColor:   "#fff",
-    shadowColor:       "#000",
-    shadowOffset:      { width: 0, height: vs(2) },
-    shadowOpacity:     0.06,
-    shadowRadius:      s(4),
-    elevation:         2,
+    paddingVertical: vs(9),
+    borderRadius: s(50),
+    backgroundColor: "#fff",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: vs(2) },
+    shadowOpacity: 0.06,
+    shadowRadius: s(4),
+    elevation: 2,
   },
-
-  tabTextActive:   { fontSize: TYPOGRAPHY.body, fontWeight: "600", color: "#fff" },
-  tabTextInactive: { fontSize: TYPOGRAPHY.body, fontWeight: "500", color: "#888" },
-
+  tabTextActive: {
+    fontSize: TYPOGRAPHY.body,
+    fontWeight: "600",
+    color: "#fff",
+  },
+  tabTextInactive: {
+    fontSize: TYPOGRAPHY.body,
+    fontWeight: "500",
+    color: "#888",
+  },
   gridContent: {
     paddingHorizontal: s(14),
-    paddingBottom:     vs(12),
-    paddingTop:        vs(5),
+    paddingBottom: vs(12),
+    paddingTop: vs(5),
     marginLeft: vs(4),
-    marginRight: vs(4)
+    marginRight: vs(4),
   },
   row: {
     justifyContent: "space-between",
-    marginBottom:   vs(10),
+    marginBottom: vs(10),
   },
-
   gradBorder: {
     borderRadius: s(22),
-    padding:      s(2.5),
+    padding: s(2.5),
   },
-
   cardInner: {
     backgroundColor: "#fff",
-    borderRadius:    s(20),
-    padding:         s(20),
-    paddingTop:      vs(10),
-    minHeight:       vs(120),
+    borderRadius: s(20),
+    padding: s(20),
+    paddingTop: vs(10),
+    minHeight: vs(120),
   },
-
   card: {
     borderRadius: s(20),
-    padding:      s(22),
-    paddingTop:   vs(12),
-    minHeight:    vs(123),
-    position:     "relative",
+    padding: s(22),
+    paddingTop: vs(12),
+    minHeight: vs(123),
+    position: "relative",
   },
-
   cardUnsel: {
     backgroundColor: "#fff",
-    shadowColor:     "#000",
-    shadowOffset:    { width: s(2), height: vs(3) },
-    shadowOpacity:   0.11,
-    shadowRadius:    s(8),
-    elevation:       3,
+    shadowColor: "#000",
+    shadowOffset: { width: s(2), height: vs(3) },
+    shadowOpacity: 0.11,
+    shadowRadius: s(8),
+    elevation: 3,
   },
-
   checkCircle: {
-    position:       "absolute",
-    top:            vs(10),
-    right:          s(10),
-    width:          s(24),
-    height:         s(24),
-    borderRadius:   s(12),
-    alignItems:     "center",
+    position: "absolute",
+    top: vs(10),
+    right: s(10),
+    width: s(24),
+    height: s(24),
+    borderRadius: s(12),
+    alignItems: "center",
     justifyContent: "center",
   },
-
   checkUnch: {
     backgroundColor: "#f0f0f5",
-    borderWidth:     2,
-    borderColor:     "#e5e5eb",
+    borderWidth: 2,
+    borderColor: "#e5e5eb",
   },
-
   iconWrap: {
-    marginTop:    vs(10),
+    marginTop: vs(10),
     marginBottom: vs(10),
-    alignItems:   "flex-start",
+    alignItems: "flex-start",
   },
-
   skillName: {
-    fontSize:      ms(13),
-    fontWeight:    "700",
-    color:         "#1a1a2e",
+    fontSize: ms(13),
+    fontWeight: "700",
+    color: "#1a1a2e",
     letterSpacing: -0.2,
   },
-
   emptyWrap: { alignItems: "center", paddingVertical: vs(40) },
   emptyText: { fontSize: ms(15), fontWeight: "600", color: "#aaa" },
   bottomArea: {
     paddingHorizontal: s(20),
-    paddingTop:        vs(10),
-    backgroundColor:   "#fff",
+    paddingTop: vs(10),
+    backgroundColor: "#fff",
   },
-
   countText: {
-    textAlign:    "center",
-    fontSize:     ms(13),
-    fontWeight:   "700",
-    color:        "#aaa",
+    textAlign: "center",
+    fontSize: ms(13),
+    fontWeight: "700",
+    color: "#aaa",
     marginBottom: vs(10),
   },
   countActive: { color: "#6D4AFF" },
-
   continueBtn: {
-    borderRadius:    s(50),
+    borderRadius: s(50),
     paddingVertical: vs(16),
-    alignItems:      "center",
-    justifyContent:  "center",
+    alignItems: "center",
+    justifyContent: "center",
   },
   continueBtnOff: { backgroundColor: "#d0d0dc" },
-
   continueBtnText: {
-    color:         "#fff",
-    fontSize:      ms(16),
-    fontWeight:    "700",
+    color: "#fff",
+    fontSize: ms(16),
+    fontWeight: "700",
     letterSpacing: 0.3,
   },
 });

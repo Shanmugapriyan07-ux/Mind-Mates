@@ -31,7 +31,6 @@ class PresenceService {
       this.isDestroyed = false;
       this.userId      = userId;
       console.log('[Presence] init:', userId.slice(0, 8));
-
       this.currentState = AppState.currentState as AppStateStatus;
 
       if (this.currentState === 'active') {
@@ -72,7 +71,6 @@ class PresenceService {
     this.stopHeartbeat();
     this.stopBgTimer();
     this.appStateSub?.remove();
-
     if (!silent && this.userId) {
       this.setFields({ is_online: false, active_chat_id: null }).catch(() => {});
     }
@@ -99,7 +97,6 @@ class PresenceService {
       ...(online ? {} : { active_chat_id: null }),
     });
   }
-
   private async setFields(fields: Record<string, any>) {
     if (!this.userId) return;
     const uid = this.userId;
@@ -109,7 +106,6 @@ class PresenceService {
       .eq('user_id', uid);
     if (error) throw new Error(error.message);
   }
-
   private startHeartbeat() {
     this.stopHeartbeat();
     this.heartbeatTimer = setInterval(() => {
@@ -136,14 +132,12 @@ class PresenceService {
         .eq('user_id', uid);
     } catch {}
   }
-
   private stopBgTimer() {
     if (this.bgTimer) {
       clearTimeout(this.bgTimer);
       this.bgTimer = null;
     }
   }
-
   private listenAppState() {
     this.appStateSub?.remove();
     this.appStateSub = AppState.addEventListener(
@@ -153,31 +147,26 @@ class PresenceService {
         if (nextState === this.currentState) return;
         const prevState   = this.currentState;
         this.currentState = nextState;
-
         if (nextState === 'active') {
           this.stopBgTimer();
           this.stopHeartbeat();         
           this.setOnlineWithRetry(true);
           this.startHeartbeat();
-
-        } else if (nextState === 'background') {
-          this.stopHeartbeat();
-          this.stopBgTimer();
-          if (this.userId) {
-            supabase
-              .from('users')
-              .update({ active_chat_id: null, is_online: false })
-              .eq('user_id', this.userId)
-              .then(({ error }) => {
-                if (error) console.warn('[Presence] bg sync failed');
-              });
-          }
-          this.bgTimer = setTimeout(() => {
-            if (this.currentState === 'background' && !this.isDestroyed) {
-              this.setOnline(false).catch(() => {});
-            }
-          }, BACKGROUND_DELAY);
-
+} else if (nextState === 'background') {
+  this.stopHeartbeat();
+  this.stopBgTimer();
+  if (this.userId) {
+    supabase
+      .from('users')
+      .update({ active_chat_id: null })
+      .eq('user_id', this.userId)
+      .then(({ error }) => { if (error) console.warn('[Presence] bg sync failed'); });
+  }
+  this.bgTimer = setTimeout(() => {
+    if (this.currentState === 'background' && !this.isDestroyed) {
+      this.setOnline(false).catch(() => {});
+    }
+  }, BACKGROUND_DELAY);
         } else if (nextState === 'inactive') {
           if (prevState === 'active') {
           }
@@ -186,5 +175,4 @@ class PresenceService {
     );
   }
 }
-
 export const presenceService = new PresenceService();

@@ -1,8 +1,9 @@
-import { useState, useCallback, useRef } from 'react';
-import { Platform }   from 'react-native';
-import { supabase }   from '@/lib/supabase';
-import { useAuthh }   from '@/Contexts/authContext';
+import { useAuthh } from '@/Contexts/authContext';
 import { useProfile } from '@/Contexts/profileContext';
+import { supabase } from '@/lib/supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useCallback, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 
 export interface MatchUser {
   userId:         string;
@@ -24,16 +25,14 @@ const CACHE_TTL = 5 * 60 * 1000;
 const cacheGet = async (key: string): Promise<string | null> => {
   try {
     if (Platform.OS === 'web') return localStorage.getItem(key);
-    const AS = require('@react-native-async-storage/async-storage').default;
-    return AS.getItem(key);
+    return AsyncStorage.getItem(key);
   } catch { return null; }
 };
 
 const cacheSet = async (key: string, val: string) => {
   try {
     if (Platform.OS === 'web') { localStorage.setItem(key, val); return; }
-    const AS = require('@react-native-async-storage/async-storage').default;
-    await AS.setItem(key, val);
+    await AsyncStorage.setItem(key, val);
   } catch {}
 };
 
@@ -168,17 +167,17 @@ export const useMatches = () => {
       if (ranked.length === 0) {
         setError('No MindMates yet');
       }
-        } catch (e: any) {
-      console.warn('❌ useMatches:', e?.message);
+        } catch (error: any) {
+      console.warn('❌ useMatches:', error?.message);
       if (matches.length === 0) {
-        setError(e?.message ?? 'Could not load matches. Try again.');
+        setError(error?.message ?? 'Could not load matches. Try again.');
       }
     } finally {
       setLoading(false);
       setFetching(false);
       running.current = false;
     }
-  }, [user?.id, fetchAndRank]);
+  }, [fetchAndRank, matches.length, user?.id]);
 
   const refresh = useCallback(async () => {
     if (running.current) return;
@@ -195,7 +194,7 @@ export const useMatches = () => {
       setRefreshing(false);
       running.current = false;
     }
-  }, [fetchAndRank, user?.id]);
+  }, [fetchAndRank, user]);
 
   return {
     matches, loading, fetching,

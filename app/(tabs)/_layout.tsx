@@ -1,22 +1,17 @@
 import { useAuthh } from "@/Contexts/authContext";
 import { useProfile } from "@/Contexts/profileContext";
+import { cdnProfileUrl } from "@/lib/cloudinaryUpload";
 import { supabase, TABLES } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
+import { Image } from "expo-image";
 import { Tabs } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import {
-  Image,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context"; 
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 const BAR_HEIGHT = 64;
 const SIDE_MARGIN = 24;
-const POLL_INTERVAL = 30_000; 
+const POLL_INTERVAL = 30_000;
 const useUnreadCount = (myUserId: string | undefined) => {
   const [count, setCount] = useState(0);
   const markTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -36,7 +31,7 @@ const useUnreadCount = (myUserId: string | undefined) => {
   }, [myUserId]);
   useEffect(() => {
     if (!myUserId) return;
-    fetchCount(); 
+    fetchCount();
     const channelName = `badge_${myUserId}_${Date.now()}`;
     const channel = supabase
       .channel(channelName)
@@ -101,7 +96,7 @@ const useUnreadCount = (myUserId: string | undefined) => {
           .eq("is_read", false);
       } catch (e: any) {
         console.warn("[Badge] markAllRead failed:", e?.message);
-        fetchCount(); 
+        fetchCount();
       }
     }, 300);
   }, [myUserId, count, fetchCount]);
@@ -111,7 +106,7 @@ const useUnreadCount = (myUserId: string | undefined) => {
 const Badge = React.memo(({ count }: { count: number }) => {
   if (count <= 0) return null;
   const label = count > 99 ? "99+" : String(count);
-  const isWide = count > 9; // 10+ needs wider pill
+  const isWide = count > 9;
   return (
     <View style={[bs.wrap, isWide && bs.wrapWide]}>
       <Text style={bs.text}>{label}</Text>
@@ -138,14 +133,20 @@ const FloatingBlurTabBar = React.memo(({ state, navigation }: any) => {
       style={[
         t.outerWrapper,
         {
-          bottom: bottomOffset + 16, 
+          bottom: bottomOffset + 16,
           left: SIDE_MARGIN,
           right: SIDE_MARGIN,
           pointerEvents: "box-none",
         } as any,
       ]}
     >
-      <BlurView intensity={10} style={t.blurContainer}>
+      <BlurView intensity={80} tint="light" style={t.blurContainer}>
+         <View
+      style={{
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: "rgba(255,255,255,0.12)",
+      }}
+    />
         <View
           style={[t.tabRow, { paddingBottom: Platform.OS === "ios" ? 0 : 0 }]}
         >
@@ -182,8 +183,12 @@ const FloatingBlurTabBar = React.memo(({ state, navigation }: any) => {
                   {isProfile ? (
                     profile?.profileImage ? (
                       <Image
-                        source={{ uri: profile.profileImage }}
+                        source={{
+                          uri: cdnProfileUrl(profile.profileImage, 160),
+                        }}
                         style={[t.avatar, focused && t.avatarFocused]}
+                        contentFit="cover"
+                        cachePolicy="memory-disk"
                       />
                     ) : (
                       <View
@@ -216,14 +221,12 @@ const FloatingBlurTabBar = React.memo(({ state, navigation }: any) => {
   );
 });
 
-// ─── Layout ───────────────────────────────────────────────────────────────────
 export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: { display: "none" },
-        lazy: false,
         freezeOnBlur: true,
       }}
       tabBar={(props: any) => <FloatingBlurTabBar {...props} />}
@@ -236,29 +239,28 @@ export default function TabsLayout() {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const t = StyleSheet.create({
-  outerWrapper: {
-    position: "absolute",
-    shadowColor: "#8d8d8d",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    elevation: 8,
-    borderRadius: 50,
-    overflow: "hidden",
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.6)",
-    zIndex: 999,
+outerWrapper: {
+  position: "absolute",
+  backgroundColor: "rgba(255,255,255,0.85)",
+  borderRadius: 32,
+  borderWidth: 0,
+  borderColor: "rgba(255,255,255,0.4)",
+  shadowColor: "#000",
+  shadowOffset: {
+    width: 0,
+    height: 3,
   },
-  blurContainer: {
-    borderRadius: 35,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.98)",
-    backgroundColor: "rgba(255,255,255,0.97)",
-  },
+  shadowOpacity: 0.03,
+  shadowRadius: 12,
+  elevation: 10,
+},
+blurContainer: {
+  borderRadius: 32,
+  overflow: "hidden",
+  borderWidth: 0.5,
+  borderColor: "rgba(255,255,255,0.25)",
+},
   tabRow: {
     flexDirection: "row",
     height: BAR_HEIGHT,

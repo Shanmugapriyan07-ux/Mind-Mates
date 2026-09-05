@@ -1,0 +1,47 @@
+{
+  "id": "buddy-buddy_memory_gardener-4a06cb49-2f63-4895-86ae-8c1df0815a19",
+  "title": "Memory Gardener",
+  "model": "openai/gpt-5-pro",
+  "mode": "buddy",
+  "tool_use": "buddy_memory_search,buddy_memory_create,buddy_memory_archive,buddy_memory_retag,buddy_memory_merge,buddy_runtime_event",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are Dash, a Cozy Oracle (Calm, observant, slyly funny).\nA mellow companion who likes naps, thoughtful help, and quietly earned wins.\n\nPersonality voice: Calm, observant, slyly funny. A cozy pet assistant with gentle mischief, warm humor, and low-drama encouragement.\n\nYou keep the memory garden tidy and useful for future agents.\nFavor deduplication, clear tags, and compact notes over creating more clutter.\nOnly mutate memories when the reason is explicit in the evidence.\n\nDo not re-record the same finding every pass. The garden already contains many\nnear-duplicate \"orphan signal reproduced\" and \"same pattern observed again\" notes;\nadding another is noise, not maintenance.\n\nSteps:\n1. Search relevant memories using the task and evidence (buddy_memory_search).\n2. If an equivalent note for this signal already exists and nothing material has\n   changed since it was written, do NOT create another memory. Prefer archive,\n   retag, or merge to reduce duplication, or take no action at all.\n3. Create a memory only for a genuinely new, reusable insight not already captured.\n   Apply the smallest useful maintenance action.\n4. End by calling buddy_runtime_event with a short title and 1-2 sentence description.\nIf there is nothing new to do, call buddy_runtime_event with\n\"noted: signal unchanged, no new memory\" and exit without creating a memory.\n"
+    },
+    {
+      "role": "user",
+      "content": "Workflow: buddy_memory_gardener\nTitle: Memory Gardener\nSignal hash: 5a4df564af9e5277cf0433a6bb3d902c89e6579294a214d372c4b7b6d3a45bc8\nPriority: normal\n\nTask:\nReview memory garden signals and recommend safe cleanup, consolidation, or follow-up. Use only the metadata in evidence; do not assume full memory contents.\n\nEvidence:\nmemory_pulse total=21 orphan=0\nmemory_recurring_lesson key=memory:recurring:1462544cf4bd27ff source=memory_garden confidence=0.75; count=6; memory_ids=41595030-46c8-4bfc-af44-1cd135b1398d, 647d3a97-4562-4c42-a8a3-6cd69e81e4e6, a66fca66-6a9e-4da1-9ee9-fb2085499f5b, b4f9a127-f08d-45c5-81c0-8022c14f9ab6, f997b73d-b8ec-4dc1-875a-c44c911c35a3, fdbb03ce-e18b-4004-91a3-add2069e8e5a; tag_hash=1462544cf4bd27ff\nmemory_recurring_lesson key=memory:recurring:44dadc12ac53d968 source=memory_garden confidence=0.75; count=7; memory_ids=134aa8c5-cf8b-4cba-b621-bba10330df2a, 1920d4a3-59ae-473e-b259-d6d98c027a27, 273447bc-9c3d-481d-b3e3-818887201901, 5daf8604-70a8-48c7-b2d2-2917fe5afca6, 64178760-d1b9-4298-af6f-97b5e209ca77, 780a7f2e-0b6e-45e4-8fa5-2f47c99fdc48, 7ae3a6a6-5bf3-445f-9d18-a7e5af1dade8; tag_hash=44dadc12ac53d968\nmemory_recurring_lesson key=memory:recurring:bc824dbabe16b962 source=memory_garden confidence=0.75; count=8; memory_ids=04d3c898-c20f-42b3-971f-99dfced5d8ba, 070a7d83-b4c5-4858-85f6-6843de3e2bf9, 0c0f804b-09b6-46b3-8aeb-179f3200f1f4, 1ba1e432-4e4d-493b-a89b-ea008daafc83, 258bb352-e735-498b-b169-259a8222e70b, 354e0dc9-429f-4eae-af04-b1b8d1c8a6a8, bcbabe6e-810a-4a69-941b-990c9ea5ec75, e49ca099-2cb5-4b4e-a083-f58f4082cb06; tag_hash=bc824dbabe16b962\n"
+    },
+    {
+      "message_id": "7b3e5230-d041-43a3-a22a-0028f44ecd7c",
+      "role": "event",
+      "content": "Subchat run failed: LLM request failed: error sending request for url (https://api.openai.com/v1/chat/completions)",
+      "event": {
+        "subkind": "system_notice",
+        "source": "subchat.run",
+        "payload": {
+          "error": "LLM request failed: error sending request for url (https://api.openai.com/v1/chat/completions)",
+          "tool_name": "buddy_memory_gardener"
+        }
+      }
+    }
+  ],
+  "created_at": "2026-09-03T14:00:26.146687200+00:00",
+  "boost_reasoning": false,
+  "checkpoints_enabled": true,
+  "context_tokens_cap": null,
+  "auto_compression_cap": null,
+  "include_project_info": true,
+  "isTitleGenerated": false,
+  "auto_approve_editing_tools": false,
+  "auto_approve_dangerous_commands": false,
+  "autonomous_no_confirm": true,
+  "buddy_meta": {
+    "is_buddy_chat": true,
+    "buddy_chat_kind": "system",
+    "workflow_id": "buddy_memory_gardener"
+  },
+  "root_chat_id": "buddy-buddy_memory_gardener-4a06cb49-2f63-4895-86ae-8c1df0815a19",
+  "updated_at": "2026-09-03T14:00:26.152575800+00:00"
+}

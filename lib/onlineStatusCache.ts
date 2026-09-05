@@ -58,7 +58,7 @@ class OnlineStatusCache {
       if (data) {
         this.apply(userId, data.is_online ?? false, data.last_seen ?? null);
       }
-    } catch (e) {
+    } catch {
       console.warn('[OnlineCache] initial fetch failed for', userId.slice(0, 8));
     }
     if (!this.listeners.has(userId) || this.listeners.get(userId)!.size === 0) return;
@@ -133,7 +133,6 @@ class OnlineStatusCache {
     if (isOnline && lastSeen) {
       const age = Date.now() - new Date(lastSeen).getTime();
       if (age > STALE_MS) {
-        console.log('[OnlineCache] stale presence, forcing offline for', userId.slice(0, 8));
         isOnline = false;
       }
     }

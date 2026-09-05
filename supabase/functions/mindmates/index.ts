@@ -242,13 +242,12 @@ async function pushOne(
       const errMsg  = result.data.message        ?? '';
       if (errCode === 'DeviceNotRegistered' || errMsg.includes('InvalidCredentials')) {
         await sb.from('push_tokens').delete().eq('user_id', userId).catch(() => {});
-        console.log(`[push] removed dead token for ${userId}`);
       } else {
         console.warn(`[push] delivery error for ${userId}:`, errMsg);
       }
     }
   } catch (e: unknown) {
-    console.error('[push] error:', (e as Error)?.message ?? e);
+    console.warn('[push] error:', (e as Error)?.message ?? e);
   }
 }
 const EXPO_PUSH_URL   = 'https://exp.host/--/api/v2/push/send';
@@ -270,7 +269,7 @@ async function pushBroadcast(
       .from('push_tokens')
       .select('token, user_id')
       .range(page * DB_PAGE_SIZE, (page + 1) * DB_PAGE_SIZE - 1);
-    if (error) { console.error('[broadcast] DB page error:', error.message); break; }
+    if (error) { console.warn('[broadcast] DB page error:', error.message); break; }
     if (!rows || rows.length === 0) break;
     const valid = (rows as { token: string; user_id: string }[])
       .filter(r => r.token?.startsWith('ExponentPushToken'));
@@ -302,7 +301,7 @@ async function pushBroadcast(
             body:    JSON.stringify(messages),
           });
         }
-        if (!res.ok) { console.error(`[broadcast] HTTP error: ${res.status}`); failed += batch.length; continue; }
+        if (!res.ok) { console.warn(`[broadcast] HTTP error: ${res.status}`); failed += batch.length; continue; }
         const result = await res.json().catch(() => ({ data: [] }));
         const items  = Array.isArray(result?.data) ? result.data : [];
         (items as any[]).forEach((r: any, idx: number) => {
@@ -315,7 +314,7 @@ async function pushBroadcast(
           }
         });
       } catch (e: unknown) {
-        console.error('[broadcast] batch error:', (e as Error)?.message);
+        console.warn('[broadcast] batch error:', (e as Error)?.message);
         failed += batch.length;
       }
       if (i + BROADCAST_BATCH < valid.length) await sleep(BROADCAST_DELAY);
@@ -374,12 +373,12 @@ serve(async (req: Request) => {
     if (!svcKey || authHeader !== `Bearer ${svcKey}`) return json({ error: 'Unauthorized' }, 401);
     return doBroadcast(sb, action === 'broadcast_morning' ? 'morning' : 'night');
   }
-  if (!senderId) return json({ error: 'Unauthorized' }, 401);
+  if (!senderId) return json({ warn: 'Unauthorized' }, 401);
   try {
     return await doAction(sb, action, body, senderId);
   } catch (e: unknown) {
     console.error(`[${action}] uncaught:`, (e as Error)?.message ?? e);
-    return json({ error: 'Internal server error' }, 500);
+    return json({ warn: 'Internal server error' }, 500);
   }
 });
 
@@ -452,7 +451,7 @@ async function doAction(
     const { data: conn, error: connErr } = await sb.from(T.conn)
       .insert({ sender_id: senderId, receiver_id: receiverId, status: 'pending' })
       .select('id').single();
-    if (connErr) { console.error('[send_request] insert:', connErr.message); return json({ error: connErr.message }, 500); }
+    if (connErr) { console.warn('[send_request] insert:', connErr.message); return json({ error: connErr.message }, 500); }
     _mc.delete(`m_${senderId}`);
     _mc.delete(`m_${receiverId}`);
     Promise.all([
@@ -469,7 +468,7 @@ async function doAction(
         senderImage: ensureHttps(sp?.profile_image),
         connectionId: conn.id,
       }),
-    ]).catch(e => console.error('[send_request] bg error:', e?.message));
+    ]).catch(e => console.warn('[send_request] bg error:', e?.message));
     return json({ success: true, connectionId: conn.id });
   }
 
@@ -541,20 +540,73 @@ async function doAction(
     return json({ success: true, chatId });
   }
 
-  if (action === 'reject_request') {
-    const { connectionId, notifId } = body as { connectionId?: string; notifId?: string };
-    if (!connectionId) return json({ error: 'Missing connectionId' }, 400);
-    const { data: conn } = await sb.from(T.conn).select('receiver_id, status, sender_id').eq('id', connectionId).single();
-    if (!conn)                                     return json({ error: 'Not found' }, 404);
-    if ((conn.receiver_id as string) !== senderId) return json({ error: 'Not authorized' }, 403);
-    if ((conn.status as string) !== 'pending')     return json({ error: 'Not pending' }, 409);
-    await Promise.all([
-      sb.from(T.conn).delete().eq('id', connectionId),
-      notifId ? sb.from(T.notif).delete().eq('id', notifId).catch(() => {}) : Promise.resolve(),
-    ]);
-    _mc.delete(`m_${senderId}`);
-    return json({ success: true });
+ if (action === 'reject_request') {
+  let { connectionId, notifId } = body as { connectionId?: string; notifId?: string };
+  if (!connectionId && !notifId) return json({ error: 'Missing connectionId' }, 400);
+
+  let conn: Record<string, unknown> | null = null;
+
+  if (connectionId) {
+    const { data, error: connErr } = await sb.from(T.conn)
+      .select('id, receiver_id, status, sender_id')
+      .eq('id', connectionId)
+      .maybeSingle();
+    if (connErr) {
+      console.warn('[reject_request] lookup error:', connErr.message);
+      return json({ error: connErr.message }, 500);
+    }
+    conn = data;
   }
+  if (!conn && notifId) {
+    const { data: notif } = await sb.from(T.notif)
+      .select('connection_id, sender_id')
+      .eq('id', notifId)
+      .maybeSingle();
+    if (notif?.connection_id) {
+      const { data } = await sb.from(T.conn)
+        .select('id, receiver_id, status, sender_id')
+        .eq('id', notif.connection_id)
+        .maybeSingle();
+      if (data) { conn = data; connectionId = data.id as string; }
+    }
+    if (!conn && notif?.sender_id) {
+      const { data } = await sb.from(T.conn)
+        .select('id, receiver_id, status, sender_id')
+        .eq('sender_id', notif.sender_id)
+        .eq('receiver_id', senderId)
+        .eq('status', 'pending')
+        .maybeSingle();
+      if (data) { conn = data; connectionId = data.id as string; }
+    }
+  }
+  if (!conn) return json({ error: 'Connection not found' }, 404);
+  if ((conn.receiver_id as string) !== senderId) return json({ error: 'Not authorized' }, 403);
+  if ((conn.status as string) !== 'pending') return json({ error: 'Not pending' }, 409);
+  let resolvedNotifId = notifId ?? null;
+  if (!resolvedNotifId) {
+    const { data: notifRow } = await sb.from(T.notif)
+      .select('id')
+      .eq('connection_id', connectionId)
+      .maybeSingle();
+    resolvedNotifId = notifRow?.id ?? null;
+  }
+  if (resolvedNotifId) {
+    const { error: notifDelErr } = await sb.from(T.notif).delete().eq('id', resolvedNotifId);
+    if (notifDelErr) {
+      console.warn('[reject_request] notif delete warn:', notifDelErr.message);
+    }
+  }
+
+  const { error: connDelErr } = await sb.from(T.conn).delete().eq('id', connectionId);
+  if (connDelErr) {
+    console.error('[reject_request] conn delete error:', connDelErr.message);
+    return json({ error: connDelErr.message }, 500);
+  }
+
+  _mc.delete(`m_${senderId}`);
+  _mc.delete(`m_${conn.sender_id as string}`);
+  return json({ success: true });
+}
 
   if (action === 'cancel_request') {
     const { connectionId } = body as { connectionId?: string };
@@ -638,7 +690,7 @@ async function doAction(
       : trimmed;
 
     const nowIso = new Date().toISOString();
-    const receiverIdx  = parts.indexOf(receiverId);            // 0 or 1
+    const receiverIdx  = parts.indexOf(receiverId);            
     const unreadField  = receiverIdx === 0 ? 'unread_p1' : 'unread_p2';
     const currentUnread = receiverIdx === 0 ? (chat.unread_p1 ?? 0) : (chat.unread_p2 ?? 0);
     const msgAt = saved.created_at ?? nowIso;
@@ -675,7 +727,7 @@ await sb.from(T.chats).update({
           senderImage: ensureHttps(snd?.profile_image),
         },
       );
-    }).catch((e) => console.error('[send_message] bg push error:', e?.message));
+    }).catch((e) => console.warn('[send_message] bg push error:', e?.message));
 
     return json({ success: true, messageId: saved.id, createdAt: saved.created_at ?? nowIso, type: resolvedType });
   }
@@ -692,25 +744,18 @@ await sb.from(T.chats).update({
     const { data: chat } = await sb.from(T.chats).select('participants').eq('id', msg.chat_id).single();
     if (!(chat?.participants as string[])?.includes(senderId))
       return json({ error: 'Not a chat member' }, 403);
-
-    // Safely parse deleted_for — Supabase can return Postgres literal "{a,b}" not a JS array
     const safeArr = (v: unknown): string[] => {
       if (Array.isArray(v)) return (v as string[]).filter(Boolean);
       if (typeof v === 'string' && v.startsWith('{') && v.endsWith('}'))
         return v.slice(1, -1).split(',').map(s => s.trim().replace(/^"|"$/g, '')).filter(Boolean);
       return [];
     };
-
     const current    = safeArr(msg.deleted_for);
     const allMembers = chat!.participants as string[];
-
-    // Already deleted by this user — idempotent
     if (current.includes(senderId)) return json({ success: true });
 
     const updatedDeleted = [...current, senderId];
     await sb.from(T.messages).update({ deleted_for: updatedDeleted }).eq('id', messageId);
-
-    // Recompute each user's preview independently
     const myIdx    = allMembers.indexOf(senderId);
     const other    = allMembers.find(p => p !== senderId) ?? '';
     const otherIdx = allMembers.indexOf(other);
@@ -743,11 +788,6 @@ await sb.from(T.chats).update({
       last_sender_id:      trueLastRow?.sender_id  ?? null,
       last_message_status: 'sent',
     }).eq('id', msg.chat_id);
-
-    // ── Cloudinary: delete asset when BOTH users have deleted ─────────────────
-    // Works identically for voice, image, and video now that all three store a
-    // clean asset URL in audio_url at send time. resolveAssetUrl() also covers
-    // legacy rows sent before this fix by parsing the message column directly.
     const everyoneDeleted = allMembers.every(uid => updatedDeleted.includes(uid));
     if (everyoneDeleted) {
       const apiKey    = Deno.env.get('CLOUDINARY_API_KEY')    ?? '';
@@ -777,11 +817,7 @@ await sb.from(T.chats).update({
     if ((msg.sender_id as string) !== senderId) return json({ error: 'Only sender can unsend' }, 403);
     if (Date.now() - new Date(msg.created_at as string).getTime() > 60_000)
       return json({ error: 'Unsend window expired (60 s)' }, 403);
-
-    // Delete the message row
     await sb.from(T.messages).delete().eq('id', messageId);
-
-    // Recompute both users' previews
     const { data: chat } = await sb.from(T.chats).select('participants').eq('id', msg.chat_id).single();
     const allMembers = (chat?.participants as string[]) ?? [];
     const [p1, p2]   = allMembers;
@@ -811,8 +847,6 @@ await sb.from(T.chats).update({
       last_sender_id:      trueLastRow?.sender_id  ?? null,
       last_message_status: 'sent',
     }).eq('id', msg.chat_id);
-
-    // ── Cloudinary: delete immediately — message is gone for everyone ─────────
     const apiKey    = Deno.env.get('CLOUDINARY_API_KEY')    ?? '';
     const apiSecret = Deno.env.get('CLOUDINARY_API_SECRET') ?? '';
     const cloudName = Deno.env.get('CLOUDINARY_CLOUD_NAME') ?? '';
@@ -834,10 +868,6 @@ await sb.from(T.chats).update({
     const { data: chat } = await sb.from(T.chats).select('participants').eq('id', chatId).single();
     if (!chat) return json({ error: 'Chat not found' }, 404);
     if (!(chat.participants as string[]).includes(senderId)) return json({ error: 'Not a member' }, 403);
-
-    // Fetch every message the user hasn't already cleared, so we can clean up
-    // Cloudinary assets for media the OTHER user has also deleted (or will
-    // never see the preview of again) — mirrors delete_for_me semantics.
     const { data: msgsForCleanup } = await sb.from(T.messages)
       .select('id, deleted_for, type, audio_url, message')
       .eq('chat_id', chatId);
@@ -876,8 +906,6 @@ await sb.from(T.chats).update({
       last_message_status: 'sent',
       [myIdx === 0 ? 'cleared_at_p1' : 'cleared_at_p2']: new Date().toISOString(),
     }).eq('id', chatId);
-
-    // ── Cloudinary: delete any media message now deleted by BOTH members ──────
     const apiKey    = Deno.env.get('CLOUDINARY_API_KEY')    ?? '';
     const apiSecret = Deno.env.get('CLOUDINARY_API_SECRET') ?? '';
     const cloudName = Deno.env.get('CLOUDINARY_CLOUD_NAME') ?? '';
@@ -915,8 +943,6 @@ await sb.from(T.chats).update({
       const { data: c } = await sb.from(T.chats).select('id').eq('chat_key', chatKey).maybeSingle();
       chatId = c?.id ?? null;
     }
-
-    // Clean up any leftover Cloudinary assets before deleting the messages/chat.
     if (chatId) {
       const apiKey    = Deno.env.get('CLOUDINARY_API_KEY')    ?? '';
       const apiSecret = Deno.env.get('CLOUDINARY_API_SECRET') ?? '';
@@ -1064,8 +1090,6 @@ await sb.from(T.chats).update({
     try {
       const { data: userChats } = await sb.from(T.chats).select('id').contains('participants', [userId]);
       const chatIds = (userChats ?? []).map((c: { id: string }) => c.id);
-
-      // Clean up Cloudinary assets across all of the user's chats before wiping rows.
       if (chatIds.length) {
         const apiKey    = Deno.env.get('CLOUDINARY_API_KEY')    ?? '';
         const apiSecret = Deno.env.get('CLOUDINARY_API_SECRET') ?? '';
@@ -1162,10 +1186,6 @@ await sb.from(T.chats).update({
 
   return json({ error: `Unknown action: ${action}` }, 400);
 }
-
-// Helper for clear_chat's Cloudinary cleanup: given a message's existing
-// deleted_for list, would adding `senderId` mean ALL chat members have now
-// deleted it? (i.e. safe to purge the Cloudinary asset)
 function allMembers_(parts: string[], existingDeletedFor: string[], senderId: string): boolean {
   const willBeDeletedFor = new Set([...existingDeletedFor, senderId]);
   return parts.every(p => willBeDeletedFor.has(p));
@@ -1233,6 +1253,5 @@ async function doGetMatches(
     .slice(0, lim);
   const result = { matches: ranked, total: ranked.length, hasMore: false };
   _mc.set(cacheKey, { data: result, at: Date.now(), skillsKey, connKey });
-  console.log(`[getMatches] ${userId}: ${ranked.length} matches (excluded ${excluded.size}) in ${Date.now() - t0}ms`);
   return json({ ...result, ms: Date.now() - t0 });
 }

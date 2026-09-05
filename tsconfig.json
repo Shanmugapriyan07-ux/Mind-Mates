@@ -1,6 +1,7 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
+    "declaration": true,
     "strict": true,
     "jsx": "react-native",
     "esModuleInterop": true,
@@ -11,19 +12,21 @@
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "allowSyntheticDefaultImports": true,
-    "ignoreDeprecations": "6.0",
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {
       "@/*": [
         "./*"
       ]
-    }
+    },
+    "ignoreDeprecations": "5.0"
   },
   "include": [
     "**/*.ts",
     "**/*.tsx",
     "nativewind-env.d.ts"
   ],
-  "extends": "expo/tsconfig.base"
+   "exclude": [
+    "supabase/functions"
+  ],
 }

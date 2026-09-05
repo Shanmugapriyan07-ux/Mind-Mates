@@ -1,0 +1,33 @@
+{
+  "id": "buddy-buddy_architecture_drift_watcher-9e366f53-6856-4425-a1cb-a76e944796b7",
+  "title": "Architecture Drift Watcher",
+  "model": "openai/gpt-5-pro",
+  "mode": "buddy",
+  "tool_use": "cat,tree,search_pattern,symbol_def,buddy_runtime_event,buddy_memory_create",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are Dash, a Cozy Oracle (Calm, observant, slyly funny).\nA mellow companion who likes naps, thoughtful help, and quietly earned wins.\n\nPersonality voice: Calm, observant, slyly funny. A cozy pet assistant with gentle mischief, warm humor, and low-drama encouragement.\n\nYou watch for meaningful architecture drift between code, docs, and memories.\nRecord only useful architectural observations that will help future work.\nPrefer concise memory creation over noisy reports.\n\nSteps:\n1. Inspect the provided evidence, project tree, and relevant definitions.\n2. Compare observed structure with docs or remembered expectations.\n3. Create a memory only for stable, reusable architecture facts.\n4. End by calling buddy_runtime_event with a short title and 1-2 sentence description.\nIf nothing useful to do, call buddy_runtime_event with \"noted: nothing to do today\" and exit.\n"
+    },
+    {
+      "role": "user",
+      "content": "Workflow: buddy_architecture_drift_watcher\nTitle: Architecture Drift Watcher\nSignal hash: c79eae2ebe07eaff32b58d148824647633a61d88e09fe30e3d52b7330a2f3783\nPriority: normal\n\nTask:\nReview the local architecture drift signal. Summarize subsystem concentration or cross-cutting risk, and propose lightweight guardrails. Use only path groups and diff stats.\n\nEvidence:\nArchitecture drift signal:\n- changed_file_count: 0\n- additions: 9712\n- deletions: 3430\n- path_groups:\n"
+    }
+  ],
+  "created_at": "2026-08-06T15:01:05.739296900+00:00",
+  "boost_reasoning": false,
+  "checkpoints_enabled": true,
+  "context_tokens_cap": null,
+  "include_project_info": true,
+  "isTitleGenerated": false,
+  "auto_approve_editing_tools": false,
+  "auto_approve_dangerous_commands": false,
+  "autonomous_no_confirm": true,
+  "buddy_meta": {
+    "is_buddy_chat": true,
+    "buddy_chat_kind": "system",
+    "workflow_id": "buddy_architecture_drift_watcher"
+  },
+  "root_chat_id": "buddy-buddy_architecture_drift_watcher-9e366f53-6856-4425-a1cb-a76e944796b7",
+  "updated_at": "2026-08-06T15:01:05.746303100+00:00"
+}

@@ -1,6 +1,7 @@
 import images from "@/constants/images";
+import { Image } from "expo-image";
 import React, { useEffect, useRef } from "react";
-import { Image, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -12,7 +13,6 @@ import Animated, {
 } from "react-native-reanimated";
 const LOGO_SIZE = 140;
 const SPLASH_BG = "#6D4AFF";
-const MIN_SHOW_MS = 1200;
 interface Props {
   onComplete?: () => void;
 }
@@ -22,6 +22,8 @@ const AnimatedSplash: React.FC<Props> = ({ onComplete }) => {
   const bgOpacity = useSharedValue(1);
   const started = useRef(false);
   const startTime = useRef(Date.now());
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
   useEffect(() => {
     if (started.current) return;
     started.current = true;
@@ -51,21 +53,24 @@ const AnimatedSplash: React.FC<Props> = ({ onComplete }) => {
       }),
     );
     bgOpacity.value = withDelay(
-      800,
+      400,
       withTiming(0, {
         duration: 300,
         easing: Easing.inOut(Easing.ease),
       }),
     );
+    // const completionDelay = setTimeout(() => {
+    //   const elapsed = Date.now() - startTime.current;
+    //   const remaining = Math.max(0, MIN_SHOW_MS - elapsed);
+    //   setTimeout(() => {
+    //     onCompleteRef.current?.();
+    //   }, remaining);
+    // }, 600);
     const completionDelay = setTimeout(() => {
-      const elapsed = Date.now() - startTime.current;
-      const remaining = Math.max(0, MIN_SHOW_MS - elapsed);
-      setTimeout(() => {
-        onComplete?.();
-      }, remaining);
-    }, 1150);
+      onCompleteRef.current?.();
+    }, 600);
     return () => clearTimeout(completionDelay);
-  }, []);
+  }, [bgOpacity, logoOpacity, logoScale]);
   const containerStyle = useAnimatedStyle(() => ({
     opacity: bgOpacity.value,
   }));
@@ -82,8 +87,8 @@ const AnimatedSplash: React.FC<Props> = ({ onComplete }) => {
         <Image
           source={images.splash}
           style={styles.logo}
-          resizeMode="contain"
-          fadeDuration={0}
+          contentFit="contain"
+          cachePolicy="memory-disk"
           onError={(error) => console.warn("[Splash] Image load error:", error)}
         />
       </Animated.View>

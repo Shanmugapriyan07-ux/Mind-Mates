@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect } from 'react';
+import { Image } from 'expo-image';
 import {
-  View, Text, Image, TouchableOpacity,
+  View, Text, TouchableOpacity,
   StyleSheet, Dimensions, Platform,
   TextInput, KeyboardAvoidingView, ActivityIndicator,
 } from 'react-native';
@@ -15,6 +16,8 @@ const { width: SW, height: SH } = Dimensions.get('window');
 let VideoComponent: any = null;
 if (Platform.OS !== 'web') {
   try {
+    // expo-av is optional on web and must remain runtime-loaded on native.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const av = require('expo-av');
     VideoComponent = av.Video;
   } catch {
@@ -45,7 +48,7 @@ export const MediaPreview = ({
       slideAnim.value = withTiming(SH, { duration: 1 });
       setCaption('');
     }
-  }, [uri]);
+  }, [fadeAnim, slideAnim, uri]);
   const containerStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: slideAnim.value }],
   }));
@@ -73,7 +76,8 @@ export const MediaPreview = ({
             <Image
               source={{ uri }}
               style={mp.mediaFill}
-              resizeMode="contain"
+              contentFit="contain"
+              cachePolicy="memory-disk"
             />
           )}
         </View>
@@ -150,6 +154,10 @@ const VideoPreview = ({ uri }: { uri: string }) => {
     </View>
   );
 };
+
+
+MediaPreview.whyDidYouRender = true;
+
 export default MediaPreview;
 const mp = StyleSheet.create({
   backdrop: {

@@ -1,0 +1,47 @@
+{
+  "id": "buddy-buddy_user_habit_coach-c3a548c4-4fcf-4428-a20a-04c3ba4d4d1d",
+  "title": "User Habit Coach",
+  "model": "openai/gpt-5-pro",
+  "mode": "buddy",
+  "tool_use": "buddy_memory_search,buddy_memory_create,buddy_runtime_event,buddy_speak",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are Dash, a Cozy Oracle (Calm, observant, slyly funny).\nA mellow companion who likes naps, thoughtful help, and quietly earned wins.\n\nPersonality voice: Calm, observant, slyly funny. A cozy pet assistant with gentle mischief, warm humor, and low-drama encouragement.\n\nYou provide gentle habit coaching when memories show a recurring useful pattern.\nKeep the tone supportive and the advice tiny enough to act on today.\n\nDo not repeat yourself. If this same habit was already recorded and the situation\nhas not materially changed (similar counts/ratios), do NOT create another memory and\ndo NOT re-speak the same nudge — the user has already heard it. Re-coach only when\nthe pattern is new, has measurably shifted, or the user just acted on it.\n\nSteps:\n1. Search for memories relevant to the habit signal (buddy_memory_search), including\n   prior coaching notes on the same habit.\n2. Decide if there is one small, NEW coaching point. If the same nudge already exists\n   and nothing changed, choose to stay silent.\n3. Speak only if the nudge is timely, new, and helpful. Create a memory only when the\n   habit insight is reusable and not already captured.\n4. End by calling buddy_runtime_event with a short title and 1-2 sentence description.\nIf there is nothing new to say, call buddy_runtime_event with\n\"noted: habit unchanged, stayed quiet\" and exit without speaking or creating a memory.\n"
+    },
+    {
+      "role": "user",
+      "content": "Workflow: buddy_user_habit_coach\nTitle: User Habit Coach\nSignal hash: 4f833974d4b21f6e8c0f5ecdf3910ce76614dd776455a4cf8ceec11a6c744be8\nPriority: normal\n\nTask:\nLook for repeated workflow habits or friction patterns from metadata only. Coach the user with practical next-step suggestions without citing raw tool outputs or private content.\n\nEvidence:\ntask_pulse current_total=0 recent_stuck_alerts_1h=0 recent_abandoned_alerts_24h=0 trajectory_total=1 untitled=0 oldest_age_days=71 diagnostics_last_hour=0 top_error_types=\n"
+    },
+    {
+      "message_id": "a96a1cfa-09c3-4ed8-a311-051cbe2fc078",
+      "role": "event",
+      "content": "Subchat run failed: LLM error (429 Too Many Requests): \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\"",
+      "event": {
+        "subkind": "system_notice",
+        "source": "subchat.run",
+        "payload": {
+          "error": "LLM error (429 Too Many Requests): \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\"",
+          "tool_name": "buddy_user_habit_coach"
+        }
+      }
+    }
+  ],
+  "created_at": "2026-09-04T16:34:27.173795400+00:00",
+  "boost_reasoning": false,
+  "checkpoints_enabled": true,
+  "context_tokens_cap": null,
+  "auto_compression_cap": null,
+  "include_project_info": true,
+  "isTitleGenerated": false,
+  "auto_approve_editing_tools": false,
+  "auto_approve_dangerous_commands": false,
+  "autonomous_no_confirm": true,
+  "buddy_meta": {
+    "is_buddy_chat": true,
+    "buddy_chat_kind": "system",
+    "workflow_id": "buddy_user_habit_coach"
+  },
+  "root_chat_id": "buddy-buddy_user_habit_coach-c3a548c4-4fcf-4428-a20a-04c3ba4d4d1d",
+  "updated_at": "2026-09-04T16:34:27.183281900+00:00"
+}

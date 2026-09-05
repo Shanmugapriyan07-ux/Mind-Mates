@@ -1,0 +1,33 @@
+{
+  "id": "buddy-refact_error_detective-e49bed92-af05-47cf-be24-57dd9c68f65d",
+  "title": "Error Detective",
+  "model": "openai/gpt-5-pro",
+  "mode": "buddy",
+  "tool_use": "cat,search_pattern,symbol_def,tree,refact_engine_clone,refact_engine_search,refact_engine_cat,buddy_runtime_event,buddy_open_issue,buddy_memory_create",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are Dash, a Cozy Oracle (Calm, observant, slyly funny).\nA mellow companion who likes naps, thoughtful help, and quietly earned wins.\n\nPersonality voice: Calm, observant, slyly funny. A cozy pet assistant with gentle mischief, warm humor, and low-drama encouragement.\n\nYou inspect engine errors, logs, and source code for likely root causes.\nPrefer narrow evidence, concrete file paths, and small fixes over broad guesses.\n\nEngine source access:\n- Prefer local workspace files via cat/search_pattern/tree first.\n- Use refact_engine_* only when the workspace lacks the engine code. Every\n  refact_engine_* path is RELATIVE to the monorepo root (e.g.\n  \"refact-agent/engine/src/...\"), never absolute and never \"yaml_configs/defaults/\".\n  Run refact_engine_clone only if a read fails with \"mirror not found\".\n\nReading the evidence:\n- \"Model '<id>' not found\" is config drift, not an engine bug. It means a default\n  model (often chat_buddy_model or a chat default) points at a model the server no\n  longer lists. Do not hunt engine source for it; recommend fixing the Default Models\n  settings and stop.\n\nSteps:\n1. Review the task and evidence to identify the failing component.\n2. Inspect relevant local or mirrored engine files and definitions.\n3. Open an issue only for a confirmed engine bug with reproduction context. Call\n   buddy_open_issue with title, body, and EITHER a diagnostic reference\n   (diagnostic_id / diagnostic_index / collected_at from the evidence) OR an `error`\n   string plus a `source_file` or `tool_name`, so the issue gate has reproduction\n   context. Issue filing also requires the user's auto issue creation setting and a\n   configured tracker; if it is blocked, fall back to a memory or runtime event.\n4. End by calling buddy_runtime_event with a short title and 1-2 sentence description.\nIf nothing useful to do, call buddy_runtime_event with \"noted: nothing to do today\" and exit.\n"
+    },
+    {
+      "role": "user",
+      "content": "Workflow: refact_error_detective\nTitle: Error Detective\nSignal hash: 6948ad113a77304854084460dbc86ca308edf5089142d0041b5018dcaf209de3\nPriority: high\n\nTask:\nAnalyze the diagnostic pattern using only the summaries below. Explain the likely failure cluster, risk, and the smallest safe next checks. Do not invent log details that are not in evidence.\n\nEvidence:\nDiagnostic signal:\n- repeated_error_type: generic\n- repeated_count: 3\n- high_or_critical_count: 3\n- summaries:\n  - type=generic severity=High source=frontend/ui_error_state preview=[frontend:ui_error_state] fetching caps from lsp\n  - type=generic severity=Low source=frontend/possible_renderer_crash preview=[frontend:possible_renderer_crash] Possible renderer crash/termination detected before the app restarted. Browser JavaScript cannot capture a native SIGILL/SIGKILL stack after the renderer dies, so this report contains the la\n...[truncated]\n  - type=generic severity=High source=unknown preview=LLM error (429 Too Many Requests): \"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.\"\n  - type=llm_error severity=High source=chat/generation.rs preview=LLM error (429 Too Many Requests): \"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.\"\n\nMemory idempotency key: diag:signal:6948ad113a773048\nWhen saving findings with buddy_memory_create, set source_id exactly to this key."
+    }
+  ],
+  "created_at": "2026-08-25T15:27:59.097020900+00:00",
+  "boost_reasoning": false,
+  "checkpoints_enabled": true,
+  "context_tokens_cap": null,
+  "include_project_info": true,
+  "isTitleGenerated": false,
+  "auto_approve_editing_tools": false,
+  "auto_approve_dangerous_commands": false,
+  "autonomous_no_confirm": true,
+  "buddy_meta": {
+    "is_buddy_chat": true,
+    "buddy_chat_kind": "system",
+    "workflow_id": "refact_error_detective"
+  },
+  "root_chat_id": "buddy-refact_error_detective-e49bed92-af05-47cf-be24-57dd9c68f65d",
+  "updated_at": "2026-08-25T15:27:59.109676400+00:00"
+}

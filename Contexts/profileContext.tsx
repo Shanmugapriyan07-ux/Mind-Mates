@@ -1,20 +1,21 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
-  useRef,
-} from "react";
-import { Platform } from "react-native";
 import { useAuthh } from "@/Contexts/authContext";
 import { supabase, TABLES } from "@/lib/supabase";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { Platform } from "react-native";
 const storage = {
   get: async (key: string): Promise<string | null> => {
     try {
       if (Platform.OS === "web") return localStorage.getItem(key);
-      const AS = require("@react-native-async-storage/async-storage").default;
-      return AS.getItem(key);
+      return AsyncStorage.getItem(key);
     } catch {
       return null;
     }
@@ -25,8 +26,7 @@ const storage = {
         localStorage.setItem(key, val);
         return;
       }
-      const AS = require("@react-native-async-storage/async-storage").default;
-      await AS.setItem(key, val);
+      await AsyncStorage.setItem(key, val);
     } catch {}
   },
   remove: async (key: string): Promise<void> => {
@@ -35,8 +35,7 @@ const storage = {
         localStorage.removeItem(key);
         return;
       }
-      const AS = require("@react-native-async-storage/async-storage").default;
-      await AS.removeItem(key);
+      await AsyncStorage.removeItem(key);
     } catch {}
   },
 };
@@ -122,7 +121,7 @@ const rowToProfile = (row: any): Profile => {
 };
 const toInsertPayload = (p: Profile, authId: string): Record<string, any> => ({
   id: authId,
-  user_id: authId, 
+  user_id: authId,
   full_name: p.fullName ?? "",
   bio: p.bio ?? "",
   location: p.location ?? "",
@@ -171,7 +170,7 @@ class WriteQueue {
         await job.task();
         this.q.shift();
       } catch (e: any) {
-        console.warn(`❌ Write failed (${job.retries + 1}):`, e?.message);
+        console.warn(` Write failed (${job.retries + 1}):`, e?.message);
         job.retries++;
         if (job.retries >= 5) {
           this.q.shift();
@@ -245,9 +244,6 @@ export const ProfileProvider = ({
           err?.code === "PGRST301";
         if (attempt < 4) {
           const delay = isNetworkError ? Math.pow(2, attempt) * 1000 : 800;
-          console.log(
-            `[fetchFromDB] Attempt ${attempt} failed. Retrying in ${delay}ms...`,
-          );
           await new Promise((r) => setTimeout(r, delay));
           return fetchFromDB(userId, attempt + 1);
         }
@@ -280,7 +276,7 @@ export const ProfileProvider = ({
               profileRef.current = cp;
               setIsLoading(false);
               isLoadingRef.current = false;
-              setProfileStatus("loaded"); 
+              setProfileStatus("loaded");
               if (Date.now() - (_at ?? 0) >= CACHE_TTL) {
                 fetchFromDB(userId).catch(() => {});
               }
@@ -291,7 +287,7 @@ export const ProfileProvider = ({
             try {
               const fresh = await fetchFromDB(userId);
               setProfileStatus(fresh ? "loaded" : "not_found");
-            } catch (e) {
+            } catch {
               setProfileStatus(cp.$id ? "loaded" : "not_found");
             }
             setIsLoading(false);
@@ -424,27 +420,32 @@ export const ProfileProvider = ({
     if (hasFired.current) return;
     hasFired.current = true;
     loadProfileForUser(user.id);
-  }, [user?.id, isLoggedIn]);
+  }, [clearProfile, isLoggedIn, loadProfileForUser, user?.id]);
 
-  return (
-    <ProfileContext.Provider
-      value={{
-        profile,
-        isLoading,
-        profileStatus,
-        error,
-        updateProfile,
-        completeProfile,
-        clearProfile,
-        reloadProfile,
-        loadProfile: () => {
-          if (user?.id) loadProfileForUser(user.id);
-        },
-      }}
-    >
-      {children}
-    </ProfileContext.Provider>
-  );
+const loadProfile = useCallback(() => {
+  if (user?.id) loadProfileForUser(user.id);
+}, [user?.id, loadProfileForUser]);
+
+const value = useMemo(
+  () => ({
+    profile,
+    isLoading,
+    profileStatus,
+    error,
+    updateProfile,
+    completeProfile,
+    clearProfile,
+    reloadProfile,
+    loadProfile,
+  }),
+  [profile, isLoading, profileStatus, error, updateProfile, completeProfile, clearProfile, reloadProfile, loadProfile],
+);
+
+return (
+  <ProfileContext.Provider value={value}>
+    {children}
+  </ProfileContext.Provider>
+);
 };
 export const useProfile = () => {
   const ctx = useContext(ProfileContext);

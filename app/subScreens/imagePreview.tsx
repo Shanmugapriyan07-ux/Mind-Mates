@@ -1,25 +1,27 @@
 import { useAuthh } from "@/Contexts/authContext";
 import { useProfile } from "@/Contexts/profileContext";
+import { useRenderCount } from "@/Count";
 import { useProfileImage } from "@/hooks/useProfileImage";
 import { ms, s, vs } from "@/utils/scale";
 import { BlurView } from "expo-blur";
+import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useRef } from "react";
 import {
-  Animated,
-  Dimensions,
-  Image,
-  Platform,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Animated,
+    Dimensions,
+    Platform,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 const { width: W } = Dimensions.get("window");
 const IMAGE_SIZE = W * 0.78;
 export default function ImagePreviewScreen() {
+  useRenderCount("imagepreviwe");
   const { user } = useAuthh();
   const { profile } = useProfile();
   const {
@@ -57,7 +59,7 @@ export default function ImagePreviewScreen() {
         delay: 10,
       }),
     ]).start();
-  }, []);
+  }, [backdropOpacity, imageScale, sheetY]);
   const dismiss = () => {
     Animated.parallel([
       Animated.timing(backdropOpacity, {
@@ -122,7 +124,8 @@ export default function ImagePreviewScreen() {
             <Image
               source={{ uri: displayImage }}
               style={st.image}
-              resizeMode="cover"
+              contentFit="cover"
+              cachePolicy="memory-disk"
             />
           ) : (
             <View style={st.initialsCircle}>
@@ -135,6 +138,9 @@ export default function ImagePreviewScreen() {
     </View>
   );
 }
+
+ImagePreviewScreen.whyDidYouRender = true;
+
 const st = StyleSheet.create({
   root: { flex: 1, backgroundColor: "transparent" },
   backdrop: { ...StyleSheet.absoluteFillObject, zIndex: 0 },

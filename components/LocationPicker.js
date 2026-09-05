@@ -1,3 +1,4 @@
+import { ms, s, vs } from "@/utils/scale";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo, useState } from "react";
 import {
@@ -10,22 +11,74 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { s, vs, ms } from "@/utils/scale";
 const TAMILNADU_DISTRICTS = [
-  "Ariyalur", "Chengalpattu", "Chennai", "Coimbatore", "Cuddalore",
-  "Dharmapuri", "Dindigul", "Erode", "Kallakurichi", "Kancheepuram",
-  "Karur", "Krishnagiri", "Madurai", "Mayiladuthurai", "Nagapattinam",
-  "Namakkal", "Nilgiris", "Perambalur", "Pudukkottai", "Ramanathapuram",
-  "Ranipet", "Salem", "Sivaganga", "Tenkasi", "Thanjavur", "Theni",
-  "Thoothukudi", "Tiruchirappalli", "Tirunelveli", "Tirupathur", "Tiruppur",
-  "Tiruvallur", "Tiruvannamalai", "Tiruvarur", "Vellore", "Viluppuram",
+  "Ariyalur",
+  "Chengalpattu",
+  "Chennai",
+  "Coimbatore",
+  "Cuddalore",
+  "Dharmapuri",
+  "Dindigul",
+  "Erode",
+  "Kallakurichi",
+  "Kancheepuram",
+  "Karur",
+  "Krishnagiri",
+  "Madurai",
+  "Mayiladuthurai",
+  "Nagapattinam",
+  "Namakkal",
+  "Nilgiris",
+  "Perambalur",
+  "Pudukkottai",
+  "Ramanathapuram",
+  "Ranipet",
+  "Salem",
+  "Sivaganga",
+  "Tenkasi",
+  "Thanjavur",
+  "Theni",
+  "Thoothukudi",
+  "Tiruchirappalli",
+  "Tirunelveli",
+  "Tirupathur",
+  "Tiruppur",
+  "Tiruvallur",
+  "Tiruvannamalai",
+  "Tiruvarur",
+  "Vellore",
+  "Viluppuram",
   "Virudhunagar",
-  "Bangalore Bagalkot", "Ballari", "Belagavi", "Bengaluru Rural",
-  "Bengaluru Urban", "Bidar", "Chamarajanagar", "Chikballapur",
-  "Chikkamagaluru", "Chitradurga", "Dakshina Kannada", "Davanagere",
-  "Dharwad", "Gadag", "Hassan", "Haveri", "Kalaburagi", "Kodagu", "Kolar",
-  "Koppal", "Mandya", "Mysuru", "Raichur", "Ramanagara", "Shivamogga",
-  "Tumakuru", "Udupi", "Uttara Kannada", "Vijayapura", "Vijayanagara",
+  "Bangalore Bagalkot",
+  "Ballari",
+  "Belagavi",
+  "Bengaluru Rural",
+  "Bengaluru Urban",
+  "Bidar",
+  "Chamarajanagar",
+  "Chikballapur",
+  "Chikkamagaluru",
+  "Chitradurga",
+  "Dakshina Kannada",
+  "Davanagere",
+  "Dharwad",
+  "Gadag",
+  "Hassan",
+  "Haveri",
+  "Kalaburagi",
+  "Kodagu",
+  "Kolar",
+  "Koppal",
+  "Mandya",
+  "Mysuru",
+  "Raichur",
+  "Ramanagara",
+  "Shivamogga",
+  "Tumakuru",
+  "Udupi",
+  "Uttara Kannada",
+  "Vijayapura",
+  "Vijayanagara",
   "Yadgir",
 ];
 export default function LocationPicker({
@@ -33,10 +86,10 @@ export default function LocationPicker({
   onSelect,
   placeholder = "Select District",
   onFocus,
-  onBlur
+  onBlur,
 }) {
   const [modalVisible, setModalVisible] = useState(false);
-  const [search, setSearch]             = useState("");
+  const [search, setSearch] = useState("");
   const filtered = useMemo(() => {
     if (!search.trim()) return TAMILNADU_DISTRICTS;
     return TAMILNADU_DISTRICTS.filter((d) =>
@@ -113,7 +166,9 @@ export default function LocationPicker({
                 style={[st.item, value === item && st.itemSelected]}
                 onPress={() => handleSelect(item)}
               >
-                <Text style={[st.itemText, value === item && st.itemTextSelected]}>
+                <Text
+                  style={[st.itemText, value === item && st.itemTextSelected]}
+                >
                   {item}
                 </Text>
                 {value === item && (
@@ -132,65 +187,68 @@ export default function LocationPicker({
     </>
   );
 }
+
+LocationPicker.whyDidYouRender = true;
+
 const st = StyleSheet.create({
   selectButton: {
-    flexDirection:  "row",
+    flexDirection: "row",
     justifyContent: "space-between",
-    alignItems:     "center",         
-    marginLeft:     s(3),
-    marginRight:    s(16),
+    alignItems: "center",
+    marginLeft: s(3),
+    marginRight: s(16),
   },
-  selectText:  { fontSize: ms(14), color: "#1F2937" },
+  selectText: { fontSize: ms(14), color: "#1F2937" },
   placeholder: { color: "#9CA3AF" },
   modal: {
-    flex:            1,
+    flex: 1,
     backgroundColor: "#FFFFFF",
   },
   header: {
-    flexDirection:     "row",
-    alignItems:        "center",
-    justifyContent:    "space-between",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: s(16),
-    paddingVertical:   vs(8),
+    paddingVertical: vs(8),
     borderBottomWidth: 1,
     borderBottomColor: "#F3F4F6",
   },
   closeBtn: {
-    width:           s(40),
-    height:          vs(44),
-    alignItems:      "center",
-    justifyContent:  "center",
+    width: s(40),
+    height: vs(44),
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: { fontSize: ms(15), fontWeight: "600", color: "#111827" },
   searchContainer: {
-    flexDirection:     "row",
-    alignItems:        "center",
-    backgroundColor:   "#F7F8FA",
-    borderRadius:      25,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F7F8FA",
+    borderRadius: 25,
     paddingHorizontal: s(12),
-    minHeight:         vs(44),
-    margin:            s(16),
-    gap:               s(3),
+    minHeight: vs(44),
+    margin: s(16),
+    gap: s(3),
   },
   searchInput: {
-    flex:     1,
+    flex: 1,
     fontSize: ms(13),
-    color:    "#252525",
+    color: "#252525",
   },
 
   item: {
-    flexDirection:     "row",
-    alignItems:        "center",
-    justifyContent:    "space-between",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: s(20),
-    paddingVertical:   vs(16),
+    paddingVertical: vs(16),
     borderBottomWidth: 1,
     borderBottomColor: "#F3F4F6",
   },
-  itemSelected:     { backgroundColor: "#F9FAFB" },
-  itemText:         { fontSize: ms(14), color: "#1F2937" },
+  itemSelected: { backgroundColor: "#F9FAFB" },
+  itemText: { fontSize: ms(14), color: "#1F2937" },
   itemTextSelected: { fontWeight: "600", color: "#6D4AFF" },
 
-  empty:     { alignItems: "center", padding: s(40) },
+  empty: { alignItems: "center", padding: s(40) },
   emptyText: { fontSize: ms(16), color: "#9CA3AF" },
 });

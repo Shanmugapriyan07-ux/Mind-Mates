@@ -1,4 +1,3 @@
-
 import { FETCH_CONFIG, STATIC_LINKS } from "../config/appLinks";
 import { isSupabaseAvailable, supabase } from "../config/supabase";
 import { log as logger } from "../utils/logger";
@@ -14,7 +13,6 @@ async function fetchWithTimeout(queryFn, timeoutMs = FETCH_CONFIG.TIMEOUT_MS) {
 }
 async function fetchFromSupabase() {
   if (!isSupabaseAvailable) {
-    logger.info("Supabase not configured — using static links");
     return null;
   }
   const { data, error, status } = await fetchWithTimeout((signal) =>
@@ -38,14 +36,13 @@ async function fetchFromSupabase() {
     return null;
   }
   if (!data || data.length === 0) {
-    logger.warn("app_links table exists but is empty. Seed default rows.");
+    logger.warn("app_links");
     return null;
   }
   const remoteMap = {};
   for (const row of data) {
     if (row.key && row.url) remoteMap[row.key] = row.url;
   }
-  logger.info(`Fetched ${Object.keys(remoteMap).length} links from Supabase`);
   return remoteMap;
 }
 async function withRetry(fn, retries = FETCH_CONFIG.MAX_RETRIES) {
@@ -53,11 +50,9 @@ async function withRetry(fn, retries = FETCH_CONFIG.MAX_RETRIES) {
     try {
       const result = await fn();
       if (result !== null) return result;
-    } catch {
-    }
+    } catch {}
     if (attempt < retries) {
       const delay = FETCH_CONFIG.RETRY_DELAY_MS * 2 ** attempt;
-      logger.info(`Retry attempt ${attempt + 1} in ${delay}ms`);
       await new Promise((r) => setTimeout(r, delay));
     }
   }
@@ -68,7 +63,7 @@ export async function fetchAllLinks() {
     const remote = await withRetry(fetchFromSupabase);
     return { ...STATIC_LINKS, ...(remote ?? {}) };
   } catch (err) {
-    logger.critical("fetchAllLinks unexpected error:", err);
+    logger.warn("fetchAllLinks unexpected error:", err);
     return { ...STATIC_LINKS };
   }
 }

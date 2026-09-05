@@ -48,6 +48,7 @@ export const useVoiceRecorder = () => {
   const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(0);
   const rawMeterRef = useRef<number[]>([]); 
+  const stopAndSaveRef = useRef<(() => Promise<RecordingResult | null>) | null>(null);
   const clearTimers = useCallback(() => {
     if (meterTimerRef.current) {
       clearInterval(meterTimerRef.current);
@@ -109,7 +110,7 @@ export const useVoiceRecorder = () => {
         const elapsed = Date.now() - startTimeRef.current;
         setElapsedMs(elapsed);
         if (elapsed >= MAX_DURATION_MS) {
-          stopAndSave().catch(console.error);
+          stopAndSaveRef.current?.().catch(console.error);
         }
       }, 250);
       meterTimerRef.current = setInterval(async () => {
@@ -168,6 +169,7 @@ export const useVoiceRecorder = () => {
       return null;
     }
   }, [clearTimers]);
+  stopAndSaveRef.current = stopAndSave;
   const stopAndDiscard = useCallback(async () => {
     clearTimers();
     await releaseRecording();

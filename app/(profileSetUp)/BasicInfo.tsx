@@ -1,6 +1,7 @@
 import LocationPicker from "@/components/LocationPicker";
 import { useAuthh } from "@/Contexts/authContext";
 import { useProfile } from "@/Contexts/profileContext";
+import { useRenderCount } from "@/Count";
 import { useResponsive } from "@/hooks/useResponsive";
 import { readDraft, saveDraft } from "@/lib/profileDraft";
 import { RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
@@ -9,27 +10,26 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    KeyboardAvoidingView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import {
-  SafeAreaView,
-  useSafeAreaInsets,
+    SafeAreaView,
+    useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
-
 const BasicInfo = () => {
+  useRenderCount("Basicinfo");
   const { profile, updateProfile } = useProfile();
   const { user } = useAuthh();
   const { isSmallPhone, contentMaxWidth } = useResponsive();
   const insets = useSafeAreaInsets();
-
   const [formData, setFormData] = useState({
     fullName: profile?.fullName ?? "",
     InterestedSkills: profile?.InterestedSkills ?? "",
@@ -39,15 +39,13 @@ const BasicInfo = () => {
   const [focused, setFocused] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const isMounted = useRef(true);
-
+  const hasHydratedFromProfile = useRef(false);
   const handleChange = useCallback((field: string, value: string) => {
     setFormData((prev: any) => ({ ...prev, [field]: value }));
   }, []);
-
   const handleLocationSelect = useCallback((district: string) => {
     setFormData((prev: any) => ({ ...prev, location: district }));
   }, []);
-
   const onNameChange = useCallback(
     (t: string) => handleChange("fullName", t),
     [handleChange],
@@ -68,14 +66,12 @@ const BasicInfo = () => {
   );
   const onBioFocus = useCallback(() => setFocused("bio"), []);
   const onBioBlur = useCallback(() => setFocused(null), []);
-
   useEffect(() => {
     isMounted.current = true;
     return () => {
       isMounted.current = false;
     };
   }, []);
-
   useEffect(() => {
     if (!user?.id) return;
     readDraft(user.id).then((draft) => {
@@ -88,6 +84,18 @@ const BasicInfo = () => {
       });
     });
   }, [user?.id]);
+
+  useEffect(() => {
+  if (hasHydratedFromProfile.current) return; // only sync once — don't fight the user's typing after that
+  if (!profile) return; // wait until profile has actually loaded
+  hasHydratedFromProfile.current = true;
+  setFormData((prev) => ({
+    fullName: prev.fullName || profile.fullName || "",
+    InterestedSkills: prev.InterestedSkills || profile.InterestedSkills || "",
+    location: prev.location || profile.location || "",
+    bio: prev.bio || profile.bio || "",
+  }));
+}, [profile]);
 
   const handleNext = useCallback(async () => {
     if (!formData.fullName.trim()) {
@@ -106,16 +114,19 @@ const BasicInfo = () => {
       InterestedSkills: formData.InterestedSkills,
     };
     updateProfile(payload);
-    if (user?.id) {
-      saveDraft(user.id, { ...payload, currentStep: 1 }).catch((e: any) =>
-        console.warn("Draft save failed:", e),
-      );
-    }
+   if (user?.id) {
+  saveDraft(user.id, {
+    full_Name: formData.fullName.trim(),
+    bio: formData.bio.trim(),
+    location: formData.location.trim(),
+    InterestedSkills: formData.InterestedSkills,
+    currentStep: 1,
+  }).catch((e: any) => console.warn("Draft save failed:", e));
+}
     setSaving(false);
     setFormData({ fullName: "", InterestedSkills: "", location: "", bio: "" });
     router.push("/(profileSetUp)/ProfileImage");
   }, [formData, updateProfile, user?.id]);
-
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
       <KeyboardAvoidingView
@@ -145,7 +156,7 @@ const BasicInfo = () => {
               maxWidth: contentMaxWidth,
             }}
           >
-            <Text style={s.subtitle}>Let's get to know you!</Text>
+            <Text style={s.subtitle}>Let&apos;s get to know you!</Text>
 
             <View style={s.inputGroup}>
               <Text style={s.label}>Full Name *</Text>
@@ -289,6 +300,8 @@ const BasicInfo = () => {
   );
 };
 
+BasicInfo.whyDidYouRender = true;
+
 const s = StyleSheet.create({
   safe: {
     flex: 1,
@@ -382,7 +395,6 @@ const s = StyleSheet.create({
     paddingTop: SPACING.md,
     borderTopWidth: 1,
     borderTopColor: "#F3F4F6",
-    // paddingBottom injected inline via useSafeAreaInsets — see above
   },
   btnOuter: {
     borderRadius: RADIUS.lg,

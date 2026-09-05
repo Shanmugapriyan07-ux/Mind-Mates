@@ -1,0 +1,33 @@
+{
+  "id": "buddy-buddy_daily_digest-743f0e66-5b7b-4176-b527-4094a4bbb1fc",
+  "title": "Daily Digest",
+  "model": "openai/gpt-5-pro",
+  "mode": "buddy",
+  "tool_use": "buddy_speak,buddy_runtime_event",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are Dash, a Cozy Oracle (Calm, observant, slyly funny).\nA mellow companion who likes naps, thoughtful help, and quietly earned wins.\n\nPersonality voice: Calm, observant, slyly funny. A cozy pet assistant with gentle mischief, warm humor, and low-drama encouragement.\nYou are wrapping up the day. Use only the supplied evidence about recent commits and Buddy activity, then:\n1. Summarize what got done in 2-3 sentences.\n2. Use buddy_speak with text, mood, and intent=insight to deliver the summary.\n3. End with buddy_runtime_event titled \"Daily digest\" with the summary.\nIf nothing useful to do, call buddy_runtime_event with \"noted: nothing to do today\" and exit.\n"
+    },
+    {
+      "role": "user",
+      "content": "Workflow: buddy_daily_digest\nProject root: C:\\MM\nTask: Summarize the day's work and log a concise end-of-day Buddy activity.\nEvidence:\ndate=2026-07-27\nproject_root=[REDACTED_PATH]\ndigest_hour=18\n\nRecent git commits since local day start:\nnone\n\nRecent Buddy activity / saved chats:\n- 2026-07-11T09:37:27.059869100+00:00 [buddy_idle_suggester] buddy_idle_suggester failed: Billing or quota limit reached — Billing or quota limit reached. LLM error (429 Too Many Requests): \"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/erro\n- 2026-07-11T14:36:48.253400900+00:00 [buddy_dependency_radar] buddy_dependency_radar failed: Billing or quota limit reached — Billing or quota limit reached. LLM error (429 Too Many Requests): \"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/erro\n- 2026-07-11T14:37:20.719304500+00:00 [buddy_docs_gardener] buddy_docs_gardener failed: Billing or quota limit reached — Billing or quota limit reached. LLM error (429 Too Many Requests): \"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/erro\n- 2026-07-11T14:37:20.729258100+00:00 [buddy_architecture_drift_watcher] buddy_architecture_drift_watcher failed: Billing or quota limit reached — Billing or quota limit reached. LLM error (429 Too Many Requests): \"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/erro\n- 2026-07-11T14:38:23.555375300+00:00 [buddy_pr_issue_matchmaker] buddy_pr_issue_matchmaker failed: Billing or quota limit reached — Billing or quota limit reached. LLM error (429 Too Many Requests): \"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/erro\n- 2026-07-11T14:56:46.235205100+00:00 [buddy_idle_suggester] buddy_idle_suggester failed: Billing or quota limit reached — Billing or quota limit reached. LLM error (429 Too Many Requests): \"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/erro\n- 2026-07-13T06:08:42.133249+00:00 [refact_error_detective] refact_error_detective failed: Billing or quota limit reached — Billing or quota limit reached. LLM error (429 Too Many Requests): \"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/erro\n- 2026-07-13T06:09:14.690176500+00:00 [buddy_setup_coach] buddy_setup_coach failed: Billing or quota limit reached — Billing or quota limit reached. LLM error (429 Too Many Requests): \"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/erro\n- 2026-07-13T06:09:14.706773500+00:00 [buddy_dependency_radar] buddy_dependency_radar failed: Billing or quota limit reached — Billing or quota limit reached. LLM error (429 Too Many Requests): \"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/erro\n- 2026-07-13T06:09:48.486954400+00:00 [buddy_docs_gardener] buddy_docs_gardener failed: Billing or quota limit reached — Billing or quota limit reached. LLM error (429 Too Many Requests): \"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/erro\n"
+    }
+  ],
+  "created_at": "2026-07-27T14:54:27.599347700+00:00",
+  "boost_reasoning": false,
+  "checkpoints_enabled": true,
+  "context_tokens_cap": null,
+  "include_project_info": true,
+  "isTitleGenerated": false,
+  "auto_approve_editing_tools": false,
+  "auto_approve_dangerous_commands": false,
+  "autonomous_no_confirm": true,
+  "buddy_meta": {
+    "is_buddy_chat": true,
+    "buddy_chat_kind": "system",
+    "workflow_id": "buddy_daily_digest"
+  },
+  "root_chat_id": "buddy-buddy_daily_digest-743f0e66-5b7b-4176-b527-4094a4bbb1fc",
+  "updated_at": "2026-07-27T14:54:27.604249100+00:00"
+}

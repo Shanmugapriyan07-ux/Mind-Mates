@@ -1,5 +1,5 @@
+import { supabase, TABLES } from "@/lib/supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import supabase, { TABLES } from "@/lib/supabase";
 
 const RETRY_KEY = 'profile_retry_queue';
 
@@ -94,7 +94,7 @@ export const syncProfileToAppwrite = async (
     }
     await removeFromRetryQueue(payload.user_id);
   } catch (error) {
-    console.warn(" Appwrite sync failed, queuing retry");
+    console.warn("Appwrite");
     await addToRetryQueue(payload, existingDocId ?? null);
     throw error;
   }

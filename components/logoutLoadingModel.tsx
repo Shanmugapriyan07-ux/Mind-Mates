@@ -82,6 +82,9 @@ export function LogoutLoadingModal() {
   );
 }
 
+
+LogoutLoadingModal.whyDidYouRender = true;
+
 const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,

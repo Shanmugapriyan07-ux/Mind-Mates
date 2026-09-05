@@ -1,4 +1,4 @@
-import supabase, { TABLES } from '@/lib/supabase';
+import { supabase, TABLES } from '@/lib/supabase';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { useEffect } from 'react';
@@ -90,6 +90,6 @@ const registerAndSaveToken = async (userId: string) => {
     } else {
       console.warn(' User doc not found for userId:', userId);
     }
-  } catch (e: any) {
+  } catch {
   }
 };

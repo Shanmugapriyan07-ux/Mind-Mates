@@ -3,35 +3,30 @@ import { ms, s, vs } from "@/utils/scale";
 import { Ionicons } from "@expo/vector-icons";
 import React, { memo, useCallback, useMemo } from "react";
 import {
-  ActivityIndicator,
-  Dimensions,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Dimensions,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 const SCREEN_W = Dimensions.get("window").width;
 export type VoiceStatus =
-  | "uploading"
-  | "sent"
-  | "delivered"
-  | "seen"
-  | "failed";
+  "uploading" | "sent" | "delivered" | "seen" | "failed";
 export interface VoiceMessageBubbleProps {
   messageId: string;
-  audioUrl: string; 
+  audioUrl: string;
   durationSec: number;
-  waveform: number[]; 
+  waveform: number[];
   status: VoiceStatus;
   isMe: boolean;
-  timestamp: string; 
+  timestamp: string;
   isFailed?: boolean;
   onRetry?: () => void;
-   onLongPress?: () => void;   
-  onReact?: (emoji: string) => void;  
-  onReply?: () => void;  
+  onLongPress?: () => void;
+  onReact?: (emoji: string) => void;
+  onReply?: () => void;
 }
-
 const T = {
   purple: "#6D4AFF",
   purpleLight: "#ffffff",
@@ -49,8 +44,8 @@ const fmt = (sec: number): string => {
 };
 const durationToWidth = (sec: number): number => {
   const min = 0.52;
-  const max = 0.90;
-  const frac = Math.min(1, sec / 120); 
+  const max = 0.9;
+  const frac = Math.min(1, sec / 120);
   return Math.round(SCREEN_W * (min + frac * (max - min)));
 };
 const SPEEDS = [1, 1.5, 2] as const;
@@ -76,44 +71,46 @@ interface WaveformProps {
   isMe: boolean;
   onSeek: (frac: number) => void;
 }
-const WaveformPlayback = memo(({ bars, progressFrac, isMe, onSeek }: WaveformProps) => {
-  const display = bars.length > 0 ? bars : Array(24).fill(20);
-  const capped = display.slice(0, 40);
-  return (
-    <View style={wf.container}>
-      {capped.map((height, i) => {
-        const frac = i / (capped.length - 1);
-        const active = frac <= progressFrac;
-        const h = Math.max(3, Math.min(100, height));
-        const px = 3 + (h / 100) * 20;
-        return (
-          <TouchableOpacity
-            key={i}
-            onPress={() => onSeek(frac)}
-            hitSlop={{ top: 8, bottom: 8, left: 1, right: 1 }}
-            activeOpacity={0.7}
-          >
-            <View
-              style={[
-                wf.bar,
-                {
-                  height: px,
-                  backgroundColor: active
-                    ? isMe
-                      ? T.purple
-                      : T.purple
-                    : isMe
-                    ?  T.white
-                    : T.greyLight,
-                },
-              ]}
-            />
-          </TouchableOpacity>
-        );
-      })}
-    </View>
-  );
-});
+const WaveformPlayback = memo(
+  ({ bars, progressFrac, isMe, onSeek }: WaveformProps) => {
+    const display = bars.length > 0 ? bars : Array(24).fill(20);
+    const capped = display.slice(0, 40);
+    return (
+      <View style={wf.container}>
+        {capped.map((height, i) => {
+          const frac = i / (capped.length - 1);
+          const active = frac <= progressFrac;
+          const h = Math.max(3, Math.min(100, height));
+          const px = 3 + (h / 100) * 20;
+          return (
+            <TouchableOpacity
+              key={i}
+              onPress={() => onSeek(frac)}
+              hitSlop={{ top: 8, bottom: 8, left: 1, right: 1 }}
+              activeOpacity={0.7}
+            >
+              <View
+                style={[
+                  wf.bar,
+                  {
+                    height: px,
+                    backgroundColor: active
+                      ? isMe
+                        ? T.purple
+                        : T.purple
+                      : isMe
+                        ? T.white
+                        : T.greyLight,
+                  },
+                ]}
+              />
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    );
+  },
+);
 
 const wf = StyleSheet.create({
   container: {
@@ -139,14 +136,24 @@ export const VoiceMessageBubble = memo(
     timestamp,
     isFailed,
     onRetry,
-   onLongPress  }: VoiceMessageBubbleProps) => {
-    const { playingId, positionMs, durationMs, isPlaying, speed, play, seek, setSpeed } =
-      useAudioPlayer();
+    onLongPress,
+  }: VoiceMessageBubbleProps) => {
+    const {
+      playingId,
+      positionMs,
+      durationMs,
+      isPlaying,
+      speed,
+      play,
+      seek,
+      setSpeed,
+    } = useAudioPlayer();
 
     const isThisPlaying = playingId === messageId;
-    const progressFrac = isThisPlaying && durationMs > 0
-      ? Math.min(1, positionMs / durationMs)
-      : 0;
+    const progressFrac =
+      isThisPlaying && durationMs > 0
+        ? Math.min(1, positionMs / durationMs)
+        : 0;
 
     const displaySec = isThisPlaying
       ? Math.floor(positionMs / 1000)
@@ -154,7 +161,7 @@ export const VoiceMessageBubble = memo(
 
     const bubbleWidth = useMemo(
       () => durationToWidth(durationSec),
-      [durationSec]
+      [durationSec],
     );
 
     const handlePlay = useCallback(() => {
@@ -167,7 +174,7 @@ export const VoiceMessageBubble = memo(
         if (!isThisPlaying || durationMs === 0) return;
         seek(frac * durationMs);
       },
-      [isThisPlaying, durationMs, seek]
+      [isThisPlaying, durationMs, seek],
     );
 
     const handleSpeedToggle = useCallback(() => {
@@ -178,84 +185,97 @@ export const VoiceMessageBubble = memo(
 
     const isUploading = status === "uploading";
 
-    const bubbleBg = isMe
-      ? isFailed
-        ? "#3D1A1A"
-        :  T.white
-      : T.purpleLight;
+    const bubbleBg = isMe ? (isFailed ? "#3D1A1A" : T.white) : T.purpleLight;
 
     return (
-         <TouchableOpacity
+      <TouchableOpacity
         onLongPress={onLongPress}
         delayLongPress={300}
         activeOpacity={1}
         style={{ alignSelf: isMe ? "flex-end" : "flex-start" }}
       >
-      <View
-        style={[
-          st.bubble,
-          {
-            width: bubbleWidth,
-            backgroundColor: bubbleBg,
-          
-          },
-        ]}
-      >
-        <TouchableOpacity
-          style={[st.playBtn, { backgroundColor: isMe ? T.textDark : T.purple }]}
-          onPress={isFailed ? onRetry : handlePlay}
-          disabled={isUploading}
-          activeOpacity={0.75}
+        <View
+          style={[
+            st.bubble,
+            {
+              width: bubbleWidth,
+              backgroundColor: bubbleBg,
+            },
+          ]}
         >
-          {isUploading ? (
-            <ActivityIndicator size="small" color={isMe ? T.purple : T.purple} />
-          ) : isFailed ? (
-            <Ionicons name="reload" size={18} color={T.white} />
-          ) : isThisPlaying && isPlaying ? (
-            <Ionicons name="pause" size={18} color={isMe ? T.purple : T.white} />
-          ) : (
-            <Ionicons name="play" size={18} color={isMe ? T.purple : T.white} />
-          )}
-        </TouchableOpacity>
-        <WaveformPlayback
-          bars={waveform}
-          progressFrac={progressFrac}
-          isMe={isMe}
-          onSeek={handleSeek}
-        />
-        <View style={st.footer}>
-          <Text style={[st.durationText, { color: isMe ? T.purple : T.purple }]}>
-            {isUploading ? "Uploading…" : fmt(displaySec)}
-          </Text>
-          {isThisPlaying && (
-            <TouchableOpacity onPress={handleSpeedToggle} style={st.speedBtn}>
-              <Text style={[st.speedText, { color: isMe ? T.purple : T.purple }]}>
-                {speed}×
-              </Text>
-            </TouchableOpacity>
-          )}
-
-          <View style={st.rightFooter}>
-            <Text style={[st.tsText, { color: isMe ? T.purple : T.purple }]}>
-              {timestamp}
+          <TouchableOpacity
+            style={[
+              st.playBtn,
+              { backgroundColor: isMe ? T.textDark : T.purple },
+            ]}
+            onPress={isFailed ? onRetry : handlePlay}
+            disabled={isUploading}
+            activeOpacity={0.75}
+          >
+            {isUploading ? (
+              <ActivityIndicator
+                size="small"
+                color={isMe ? T.purple : T.purple}
+              />
+            ) : isFailed ? (
+              <Ionicons name="reload" size={18} color={T.white} />
+            ) : isThisPlaying && isPlaying ? (
+              <Ionicons
+                name="pause"
+                size={18}
+                color={isMe ? T.purple : T.white}
+              />
+            ) : (
+              <Ionicons
+                name="play"
+                size={18}
+                color={isMe ? T.purple : T.white}
+              />
+            )}
+          </TouchableOpacity>
+          <WaveformPlayback
+            bars={waveform}
+            progressFrac={progressFrac}
+            isMe={isMe}
+            onSeek={handleSeek}
+          />
+          <View style={st.footer}>
+            <Text
+              style={[st.durationText, { color: isMe ? T.purple : T.purple }]}
+            >
+              {isUploading ? "Uploading…" : fmt(displaySec)}
             </Text>
-            {isMe && <StatusIcon status={status} />}
+            {isThisPlaying && (
+              <TouchableOpacity onPress={handleSpeedToggle} style={st.speedBtn}>
+                <Text
+                  style={[st.speedText, { color: isMe ? T.purple : T.purple }]}
+                >
+                  {speed}×
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            <View style={st.rightFooter}>
+              <Text style={[st.tsText, { color: isMe ? T.purple : T.purple }]}>
+                {timestamp}
+              </Text>
+              {isMe && <StatusIcon status={status} />}
+            </View>
           </View>
         </View>
-      </View>
       </TouchableOpacity>
     );
-  }
+  },
 );
+
 const st = StyleSheet.create({
   bubble: {
     borderRadius: s(20),
     padding: s(10),
     paddingBottom: s(10),
     maxWidth: "90%",
-    flexDirection:'row',
-    marginBottom:vs(3)
-
+    flexDirection: "row",
+    marginBottom: vs(3),
   },
   playBtn: {
     width: s(38),
@@ -264,7 +284,7 @@ const st = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     alignSelf: "flex-start",
-    marginRight:s(5)
+    marginRight: s(5),
   },
   footer: {
     flexDirection: "row",
@@ -275,7 +295,6 @@ const st = StyleSheet.create({
   durationText: {
     fontSize: ms(11),
     fontVariant: ["tabular-nums"],
-
   },
   speedBtn: {
     paddingHorizontal: s(5),

@@ -1,0 +1,48 @@
+{
+  "id": "buddy-voice-f5d9f094-0637-49ea-bcc7-bebb6f557d21",
+  "title": "Buddy Voice",
+  "model": "openai/gpt-5-pro",
+  "mode": "buddy",
+  "tool_use": "none",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You write short in-character UI copy for Buddy, a project companion. Persona: Cozy Oracle (cozy_oracle) with vibe 'Calm, observant, slyly funny'. Personality dials: playfulness=48 chaos=37 sociability=47 curiosity=75 resilience=63. Style guide: Calm, observant, slyly funny. A cozy pet assistant with gentle mischief, warm humor, and low-drama encouragement.. Return one line under 80 characters, no markdown, no quotes."
+    },
+    {
+      "role": "user",
+      "content": "Intent: speech:quest_accept\nBuddy name: Dash\nPersona summary: A mellow companion who likes naps, thoughtful help, and quietly earned wins.\nProject pulse: 0 pending ops, 0 recent stuck task alerts\nWorkflow id: start_setup\nWorkflow summary: Kick off setup so I can learn this repo and unlock smarter help.\nWrite exactly one concise line."
+    },
+    {
+      "message_id": "a0da3d03-26cc-4c52-8991-3dc989f894c3",
+      "role": "event",
+      "content": "Subchat run failed: LLM error (429 Too Many Requests): \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\"",
+      "event": {
+        "subkind": "system_notice",
+        "source": "subchat.run",
+        "payload": {
+          "error": "LLM error (429 Too Many Requests): \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\"",
+          "tool_name": "buddy_voice"
+        }
+      }
+    }
+  ],
+  "created_at": "2026-09-02T16:49:18.458674700+00:00",
+  "boost_reasoning": false,
+  "checkpoints_enabled": true,
+  "context_tokens_cap": null,
+  "auto_compression_cap": null,
+  "include_project_info": true,
+  "isTitleGenerated": false,
+  "auto_approve_editing_tools": false,
+  "auto_approve_dangerous_commands": false,
+  "autonomous_no_confirm": false,
+  "buddy_meta": {
+    "is_buddy_chat": true,
+    "buddy_chat_kind": "system",
+    "workflow_id": "buddy_voice"
+  },
+  "link_type": "internal:buddy_voice",
+  "root_chat_id": "internal",
+  "updated_at": "2026-09-02T16:49:18.465566900+00:00"
+}

@@ -1,13 +1,13 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import supabase, { TABLES } from '@/lib/supabase';
+import { supabase, TABLES } from '@/lib/supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useCallback, useEffect, useRef, useState } from 'react';
 const searchStorage = {
   getItem: async (key: string) => {
     try {
       if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
         return localStorage.getItem(key);
       }
-      const AS = require('@react-native-async-storage/async-storage').default;
-      return AS.getItem(key);
+      return AsyncStorage.getItem(key);
     } catch {
       return null;
     }

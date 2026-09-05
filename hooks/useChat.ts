@@ -84,9 +84,21 @@ const withRetry = async <T>(fn: () => Promise<T>, tries = 3): Promise<T> => {
   }
   throw last;
 };
-const pendingRegistry = new Map<string, string>();
-const makePendingKey  = (chatId: string, senderId: string, message: string) =>
+const pendingRegistry = new Map<string, { tempId: string; at: number }>();
+const PENDING_TTL = 30_000;
+
+const makePendingKey = (chatId: string, senderId: string, message: string) =>
   `${chatId}|${senderId}|${message}`;
+
+const getPendingTempId = (key: string): string | undefined => {
+  const entry = pendingRegistry.get(key);
+  if (!entry) return undefined;
+  if (Date.now() - entry.at > PENDING_TTL) {
+    pendingRegistry.delete(key);
+    return undefined;
+  }
+  return entry.tempId;
+};
 
 export const useMessages = (chatId: string) => {
   const { user } = useAuthh();
@@ -225,7 +237,7 @@ export const useMessages = (chatId: string) => {
         }
 
         const pKey   = makePendingKey(msg.chatId, msg.senderId, msg.message);
-        const tempId = pendingRegistry.get(pKey);
+        const tempId = getPendingTempId(pKey);
 
         setMessages(prev => {
           if (tempId) {
@@ -352,7 +364,7 @@ export const useMessages = (chatId: string) => {
       supabase.removeChannel(channel);
       channelRef.current = null;
     };
-  }, [chatId, user?.id]);
+  }, [chatId, loadMessages, scheduleSyncMutableFields, user?.id]);
   const sendMessage = useCallback(async (
     text: string,
     opts?: {
@@ -366,7 +378,7 @@ export const useMessages = (chatId: string) => {
     const tempId = `tmp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
     const pKey = makePendingKey(chatId, uid, text);
-    pendingRegistry.set(pKey, tempId);
+    pendingRegistry.set(pKey, { tempId, at: Date.now() });
 
     setMessages(prev => [...prev, {
       $id:           tempId,

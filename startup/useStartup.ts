@@ -20,8 +20,13 @@ export function useStartup(): UseStartupReturn {
   const hasRun       = useRef(false);
   const contentReady = useRef(false);
   const animDone     = useRef(false);
-  const setPhaseRef = useRef(setPhase);
-  useEffect(() => { setPhaseRef.current = setPhase; }, [setPhase]);
+  const preloadDone  = useRef(false); 
+
+  const maybeTransition = useCallback(() => {
+    if (animDone.current && contentReady.current && preloadDone.current) {
+      setPhase("done");
+    }
+  }, []);
 
   useEffect(() => {
     if (hasRun.current) return;
@@ -32,12 +37,16 @@ export function useStartup(): UseStartupReturn {
       try {
         const result = await runCriticalPreloads();
         setPreloadData(result);
+        if (__DEV__) console.log(`[Startup] preload took ${result.elapsed}ms`);
       } catch (e) {
         console.warn("[Startup] Preload failed:", e);
         setPreloadData({ session: null, fontsReady: false, elapsed: 0 });
       }
 
+      preloadDone.current = true;
       setPhase("splash_animating");
+      maybeTransition();
+
       await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
       try {
         await hideNativeSplash();
@@ -45,12 +54,7 @@ export function useStartup(): UseStartupReturn {
         console.warn("[Startup] hideNativeSplash failed:", error);
       }
     })();
-  }, []);
-  const maybeTransition = useCallback(() => {
-    if (animDone.current && contentReady.current) {
-      setPhaseRef.current("done");
-    }
-  }, []);
+  }, [maybeTransition]);
 
   const onSplashAnimationComplete = useCallback(() => {
     animDone.current = true;

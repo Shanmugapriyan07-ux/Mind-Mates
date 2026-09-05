@@ -1,25 +1,30 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator,
-} from 'react-native';
+import LocationPicker from '@/components/LocationPicker';
+import { useProfile } from '@/Contexts/profileContext';
+import { useRenderCount } from '@/Count';
+import { SPACING } from '@/theme/Spacing';
+import { ms, s, vs } from '@/utils/scale';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useProfile }     from '@/Contexts/profileContext';
-import Toast              from 'react-native-toast-message';
-import { router }         from 'expo-router';
-import { SafeAreaView }   from 'react-native-safe-area-context';
-import Ionicons           from '@expo/vector-icons/Ionicons';
-import LocationPicker     from '@/components/LocationPicker';
-import { s, vs, ms }     from '@/utils/scale';
-import { SPACING }        from '@/theme/Spacing';
+import { router } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+    ActivityIndicator,
+    KeyboardAvoidingView, Platform,
+    ScrollView,
+    StyleSheet,
+    Text, TextInput, TouchableOpacity,
+    View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Toast from 'react-native-toast-message';
 const Edit = () => {
   const { profile, updateProfile, isLoading: contextLoading } = useProfile();
-
   const [formData, setFormData] = useState({
     fullName: '', InterestedSkills: '', location: '', bio: '',
   });
   const [focused, setFocused] = useState<string | null>(null);
   const [, setSaving] = useState(false);
+    useRenderCount("editprofile");
   useEffect(() => {
     if (profile) {
       const newData = {
@@ -35,7 +40,7 @@ const Edit = () => {
         newData.bio              !== formData.bio
       ) { setFormData(newData); }
     }
-  }, [profile]);
+  }, [profile, formData.InterestedSkills, formData.bio, formData.fullName, formData.location]);
 
   const handleChange = useCallback((field: string, value: string) => {
     setFormData((prev: any) => ({ ...prev, [field]: value }));
@@ -180,6 +185,8 @@ const Edit = () => {
     </SafeAreaView>
   );
 };
+
+Edit.whyDidYouRender = true;
 const st = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#FFFFFF' },
   kav:  { flex: 1, backgroundColor: '#FFFFFF' },

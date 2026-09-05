@@ -1,5 +1,5 @@
+import { supabase, TABLES } from "@/lib/supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import supabase, { TABLES } from "@/lib/supabase";
 import { userKey } from "./persistentStorage";
 const draftKey = (userId: string) => `profile_draft_${userId}`;
 export type ProfileDraft = {

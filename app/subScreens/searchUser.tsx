@@ -1,37 +1,38 @@
 import { ProfileAvatar } from "@/components/Profileavatar";
 import { useAuthh } from "@/Contexts/authContext";
+import { useRenderCount } from "@/Count";
 import { useConnection } from "@/hooks/useConnection";
 import { supabase } from "@/lib/supabase";
 import { ms, s, vs } from "@/utils/scale";
 import { Ionicons } from "@expo/vector-icons";
+import { FlashList } from "@shopify/flash-list";
 import { router } from "expo-router";
 import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
 } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    FlatList,
+    NativeScrollEvent,
+    NativeSyntheticEvent,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import Animated, {
-  Easing,
-  interpolate,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
+    Easing,
+    interpolate,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+    withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -329,7 +330,7 @@ const EmptyState = React.memo(
             color={C.muted}
             style={{ marginBottom: vs(12) }}
           />
-          <Text style={st.emptyTitle}>No results for "{query}"</Text>
+          <Text style={st.emptyTitle}>No results for &quot;{query}&quot;</Text>
           <Text style={st.emptySub}>
             Try a different{" "}
             {filter === "people"
@@ -344,6 +345,7 @@ const EmptyState = React.memo(
   ),
 );
 export default function SearchScreen() {
+  useRenderCount("searchUser");
   const { user } = useAuthh();
   const { loadStatuses } = useConnection();
   const [query, setQuery] = useState("");
@@ -366,13 +368,13 @@ export default function SearchScreen() {
       stiffness: 300,
       mass: 0.8,
     });
-  }, []);
+  }, [tabsVisible]);
   const hideTabs = useCallback(() => {
     tabsVisible.value = withTiming(0, {
       duration: 200,
       easing: Easing.out(Easing.ease),
     });
-  }, []);
+  }, [tabsVisible]);
 
   const tabsAnimStyle = useAnimatedStyle(() => ({
     transform: [
@@ -458,9 +460,9 @@ export default function SearchScreen() {
   );
 
   useEffect(() => {
-  const t = setTimeout(() => inputRef.current?.focus(), 150);
-  return () => clearTimeout(t);
-}, []);
+    const t = setTimeout(() => inputRef.current?.focus(), 150);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -483,7 +485,6 @@ export default function SearchScreen() {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [query, filter, fetchUsers]);
-
   const handleFilterChange = (f: FilterTab) => {
     setFilter(f);
     if (query.trim().length >= 2) {
@@ -500,7 +501,6 @@ export default function SearchScreen() {
     if (running.current || !hasMore || query.trim().length < 2) return;
     fetchUsers(query.trim(), filter, offset);
   }, [query, filter, offset, hasMore, fetchUsers]);
-
   const keyExtractor = useCallback((item: SearchUser) => item.user_id, []);
   const getItemLayout = useCallback(
     (_: any, index: number) => ({
@@ -516,11 +516,9 @@ export default function SearchScreen() {
   );
   const placeholder =
     TABS.find((t) => t.key === filter)?.placeholder ?? "Search...";
-
   return (
     <SafeAreaView style={st.safe} edges={["top"]}>
       <StatusBar barStyle="dark-content" />
-
       <View style={st.headerWrap}>
         <View style={st.searchRow}>
           <View style={st.searchBar}>
@@ -555,36 +553,39 @@ export default function SearchScreen() {
         </View>
         <View style={st.tabsClip}>
           <Animated.View style={tabsAnimStyle}>
-            <ScrollView
+            <FlashList
               horizontal
+              data={TABS}
+              keyExtractor={(item) => item.key}
+              extraData={filter}
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={st.tabsScroll}
               keyboardShouldPersistTaps="handled"
-            >
-              {TABS.map((tab) => (
+              renderItem={({ item }) => (
                 <TouchableOpacity
-                  key={tab.key}
-                  style={[st.tab, filter === tab.key && st.tabActive]}
-                  onPress={() => handleFilterChange(tab.key)}
+                  style={[st.tab, filter === item.key && st.tabActive]}
+                  onPress={() => handleFilterChange(item.key)}
                   activeOpacity={0.75}
                 >
                   <Ionicons
-                    name={tab.icon as any}
+                    name={item.icon as any}
                     size={s(14)}
-                    color={filter === tab.key ? "#fff" : C.muted}
+                    color={filter === item.key ? "#fff" : C.muted}
                   />
                   <Text
-                    style={[st.tabText, filter === tab.key && st.tabTextActive]}
+                    style={[
+                      st.tabText,
+                      filter === item.key && st.tabTextActive,
+                    ]}
                   >
-                    {tab.label}
+                    {item.label}
                   </Text>
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
+              )}
+            />
           </Animated.View>
         </View>
       </View>
-
       {loading && users.length === 0 ? (
         <View style={{ paddingTop: vs(8) }}>
           <SkeletonCard />
@@ -623,7 +624,7 @@ export default function SearchScreen() {
     </SafeAreaView>
   );
 }
-
+SearchScreen.whyDidYouRender = true;
 const st = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.white },
   headerWrap: {
@@ -661,7 +662,6 @@ const st = StyleSheet.create({
     justifyContent: "center",
     width: "100%",
   },
-
   tabsScroll: {
     paddingHorizontal: s(16),
     paddingBottom: vs(6),
@@ -670,7 +670,6 @@ const st = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-
   tab: {
     flexDirection: "row",
     gap: s(6),
@@ -682,6 +681,7 @@ const st = StyleSheet.create({
     backgroundColor: C.white,
     alignItems: "center",
     justifyContent: "center",
+    marginRight: s(5),
   },
   tabActive: { backgroundColor: C.purple, borderColor: C.purple },
   tabText: { fontSize: ms(12), fontWeight: "600", color: C.muted },

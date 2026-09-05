@@ -1,32 +1,35 @@
 import { useAuthh } from "@/Contexts/authContext";
 import { useProfile } from "@/Contexts/profileContext";
+import { useRenderCount } from "@/Count";
 import { useProfileImage } from "@/hooks/useProfileImage";
 import { ms, s, vs } from "@/utils/scale";
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
+import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useRef } from "react";
 import {
-  ActivityIndicator,
-  Animated,
-  Dimensions,
-  Image,
-  Platform,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Animated,
+    Dimensions,
+    Platform,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import {
-  SafeAreaView,
-  useSafeAreaInsets,
+    SafeAreaView,
+    useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
 const { width: W } = Dimensions.get("window");
 const IMAGE_SIZE = W * 0.78;
 
 export default function ImageEditScreen() {
+
+  useRenderCount("imagedit");
   const { user } = useAuthh();
   const { profile } = useProfile();
   const insets = useSafeAreaInsets();
@@ -68,7 +71,7 @@ export default function ImageEditScreen() {
         delay: 1,
       }),
     ]).start();
-  }, []);
+  }, [backdropOpacity, imageScale, sheetY]);
 
   const dismiss = () => {
     Animated.parallel([
@@ -160,7 +163,8 @@ export default function ImageEditScreen() {
             <Image
               source={{ uri: displayImage }}
               style={st.image}
-              resizeMode="cover"
+              contentFit="cover"
+              cachePolicy="memory-disk"
             />
           ) : (
             <View style={st.initialsCircle}>
@@ -232,6 +236,10 @@ export default function ImageEditScreen() {
     </View>
   );
 }
+
+
+ImageEditScreen.whyDidYouRender = true;
+
 const SHEET_RADIUS = s(24);
 const st = StyleSheet.create({
   root: { flex: 1, backgroundColor: "transparent" },

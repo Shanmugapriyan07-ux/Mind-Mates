@@ -26,6 +26,14 @@ export default {
     "expo-router",
     "expo-secure-store",
     [
+    "@sentry/react-native",
+     {
+        "url": "https://sentry.io/",
+        "project": "react-native-vb",
+        "organization": "mindmates"
+      }
+    ],
+    [
       "expo-notifications",
       {
         color: "#6D4AFF",

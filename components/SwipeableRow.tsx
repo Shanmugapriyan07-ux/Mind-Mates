@@ -1,23 +1,26 @@
+import { ProfileAvatar } from '@/components/Profileavatar';
+import { useRenderCount } from '@/Count';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { ms, s, vs } from '@/utils/scale';
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet,
-  Animated, PanResponder,
+    Animated, PanResponder,
+    StyleSheet,
+    Text, TouchableOpacity,
+    View,
 } from 'react-native';
 import Reanimated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withTiming,
-  withDelay,
-  withSequence,
-  runOnJS,
+    runOnJS,
+    useAnimatedStyle,
+    useSharedValue,
+    withDelay,
+    withSequence,
+    withSpring,
+    withTiming,
 } from 'react-native-reanimated';
-import AsyncStorage                from '@react-native-async-storage/async-storage';
-import { router }                  from 'expo-router';
-import { Ionicons }                from '@expo/vector-icons';
-import { ProfileAvatar }           from '@/components/Profileavatar';
-import { useOnlineStatus }         from '@/hooks/useOnlineStatus';
-import { s, vs, ms }               from '@/utils/scale';
 
 export interface Friend {
   connection_id:         string;
@@ -121,6 +124,30 @@ interface Props {
   onAnyPress:       (id: string) => void;
   onMarkRead:       (chatId: string) => void;
 }
+const areRowPropsEqual = (prev: Props, next: Props) => {
+  const a = prev.item, b = next.item;
+  return (
+    a.user_id             === b.user_id &&
+    a.full_name           === b.full_name &&
+    a.profile_image       === b.profile_image &&
+    a.last_message         === b.last_message &&
+    a.last_message_at      === b.last_message_at &&
+    a.last_message_is_mine === b.last_message_is_mine &&
+    a.last_message_status  === b.last_message_status &&
+    a.last_seen             === b.last_seen &&
+    a.unread_count           === b.unread_count &&
+    a.is_hidden               === b.is_hidden &&
+    a.chat_id                  === b.chat_id &&
+    prev.onDelete         === next.onDelete &&
+    prev.onClear           === next.onClear &&
+    prev.onSwipeLeftOpen    === next.onSwipeLeftOpen &&
+    prev.onSwipeLeftClose    === next.onSwipeLeftClose &&
+    prev.registerClose         === next.registerClose &&
+    prev.onAnyPress              === next.onAnyPress &&
+    prev.onMarkRead                === next.onMarkRead
+  );
+};
+
 export const SwipeableRow = React.memo(({
   item, onDelete, onClear, onSwipeLeftOpen, onSwipeLeftClose,
   registerClose, onAnyPress, onMarkRead,
@@ -139,6 +166,7 @@ export const SwipeableRow = React.memo(({
   const hintPlaying = useRef(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const { isOnline: userIsOnline } = useOnlineStatus(item.user_id);
+    useRenderCount("SwipeableRow");
   const unread = item.unread_count ?? 0;
   useEffect(() => {
     const id = tx.addListener(({ value }) => {
@@ -146,7 +174,7 @@ export const SwipeableRow = React.memo(({
       setPanelOpen(value < -DELETE_W * 0.4);
     });
     return () => tx.removeListener(id);
-  }, []);
+  }, [tx]);
   const deleteOpacity = tx.interpolate({
     inputRange:  [-DELETE_W, -DELETE_W * 0.5, 0],
     outputRange: [1, 0.85, 0],
@@ -160,7 +188,7 @@ export const SwipeableRow = React.memo(({
   const spring = useCallback((v: number, cb?: () => void) =>
     Animated.spring(tx, {
       toValue: v, useNativeDriver: true, damping: 22, stiffness: 220, mass: 0.75,
-    }).start(cb), []);
+    }).start(cb), [tx]);
   const close = useCallback(() => {
     spring(0);
     setPanelOpen(false);
@@ -331,7 +359,10 @@ export const SwipeableRow = React.memo(({
       </Reanimated.View>
     </View>
   );
-});
+}, areRowPropsEqual);
+
+
+
 const sw = StyleSheet.create({
   wrapper:    { position:'relative', backgroundColor:C.white },
   rightPanel: {

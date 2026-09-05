@@ -1,25 +1,27 @@
 import images from "@/constants/images";
 import { ms, s, vs } from "@/utils/scale";
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { router } from "expo-router";
 import { memo, useCallback, useRef, useState } from "react";
 import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  useWindowDimensions,
-  View,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    useWindowDimensions,
+    View,
 } from "react-native";
 import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
+    Easing,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+    withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-// ─── Design tokens ────────────────────────────────────────────────────────────
+const AnimatedExpoImage = Animated.createAnimatedComponent(Image);
+
 const DOT_SIZE = s(10);
 const ACTIVE_WIDTH = s(24);
 const IMAGE_ASPECT = 1.07;
@@ -49,7 +51,6 @@ const SLIDES = [
   },
 ];
 
-// ─── Dot component ────────────────────────────────────────────────────────────
 const Dot = memo(
   ({ index, activeIndex }: { index: number; activeIndex: number }) => {
     const dotStyle = useAnimatedStyle(() => {
@@ -111,7 +112,7 @@ export default function Onboarding() {
         isAnimating.current = false;
       }, 350);
     }, 260);
-  }, [currentIndex]);
+  }, [currentIndex, imageOpacity, textOpacity]);
 
   const animatedImageStyle = useAnimatedStyle(() => ({
     opacity: imageOpacity.value,
@@ -126,7 +127,7 @@ export default function Onboarding() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={[styles.topHalf, { height: topPanelHeight }]}>
-        <Animated.Image
+        <AnimatedExpoImage
           source={slide.image}
           style={[
             animatedImageStyle,
@@ -135,7 +136,7 @@ export default function Onboarding() {
               height: imageHeight,
             },
           ]}
-          resizeMode="contain"
+          contentFit="contain"
         />
       </View>
 
@@ -167,6 +168,8 @@ export default function Onboarding() {
     </SafeAreaView>
   );
 }
+Onboarding.whyDidYouRender = true;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,

@@ -2,7 +2,6 @@ import Googlesigninbutton from "@/components/Googlesigninbutton";
 import images from "@/constants/images";
 import { useAppLinks } from "@/Contexts/AppLinksContexts";
 import { useOpenLink } from "@/hooks/useOpenLink";
-
 import { signInWithGoogle } from "@/services/authServices";
 import {
   selIsSigningIn,
@@ -10,10 +9,10 @@ import {
   useAuthStore,
 } from "@/stores/authStore";
 import { ms, s, vs } from "@/utils/scale";
+import { Image } from "expo-image";
 import React, { useCallback, useEffect, useRef } from "react";
 import {
   Animated,
-  Image,
   InteractionManager,
   StyleSheet,
   Text,
@@ -22,17 +21,13 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 const IMAGE_PANEL_FLEX = 0.42;
-
 const Welcome = () => {
-  const { width, height } = useWindowDimensions();
-
+  const { height } = useWindowDimensions();
   const { openByKey } = useOpenLink();
   useAppLinks();
-
   const isSigningIn = useAuthStore(selIsSigningIn);
   const isTransitioning = useAuthStore(selIsTransitioning);
   const setError = useAuthStore((st) => st.setError);
-
   const contentOpacity = useRef(new Animated.Value(0)).current;
   const contentTranslate = useRef(new Animated.Value(24)).current;
   const topPanelHeight = height * IMAGE_PANEL_FLEX;
@@ -55,7 +50,7 @@ const Welcome = () => {
       ]).start();
     });
     return () => task.cancel();
-  }, []);
+  }, [contentOpacity, contentTranslate]);
   useEffect(() => {
     if (isTransitioning) {
       Animated.timing(contentOpacity, {
@@ -64,10 +59,10 @@ const Welcome = () => {
         useNativeDriver: true,
       }).start();
     }
-  }, [isTransitioning]);
+  }, [isTransitioning, contentOpacity]);
   useEffect(() => {
     setError(null);
-  }, []);
+  }, [setError]);
   const tap = useCallback(
     (key: string, name: string) => () => openByKey(key, name),
     [openByKey],
@@ -83,11 +78,10 @@ const Welcome = () => {
           style={[
             styles.image,
             {
-        
               height: splashImageHeight,
-            }
+            },
           ]}
-          resizeMode="contain"
+          contentFit="contain"
         />
       </View>
 
@@ -140,12 +134,11 @@ const Welcome = () => {
           </Text>
           <Text style={styles.versionText}>Mind Mates V.11.33</Text>
         </Animated.View>
-
       </View>
     </SafeAreaView>
   );
 };
-
+Welcome.whyDidYouRender = true;
 const styles = StyleSheet.create({
   container: {
     flex: 1,

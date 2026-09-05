@@ -1,5 +1,6 @@
 import { useAuthh } from '@/Contexts/authContext';
 import { supabase } from '@/lib/supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 export type ConnectStatus = 'none' | 'pending' | 'accepted' | 'rejected';
@@ -11,19 +12,19 @@ export interface ConnectTarget {
 const cacheGet = async (k: string): Promise<string | null> => {
   try {
     if (Platform.OS === 'web') return localStorage.getItem(k);
-    return require('@react-native-async-storage/async-storage').default.getItem(k);
+    return AsyncStorage.getItem(k);
   } catch { return null; }
 };
 const cacheSet = async (k: string, v: string) => {
   try {
     if (Platform.OS === 'web') { localStorage.setItem(k, v); return; }
-    require('@react-native-async-storage/async-storage').default.setItem(k, v).catch(() => {});
+    AsyncStorage.setItem(k, v).catch(() => {});
   } catch {}
 };
 const cacheDel = async (k: string) => {
   try {
     if (Platform.OS === 'web') { localStorage.removeItem(k); return; }
-    require('@react-native-async-storage/async-storage').default.removeItem(k).catch(() => {});
+    AsyncStorage.removeItem(k).catch(() => {});
   } catch {}
 };
 const callFn = async (body: Record<string, any>): Promise<any> => {
@@ -174,7 +175,7 @@ export const useConnection = () => {
         persist(merged);
         return merged;
       });
-    } catch (e: any) { }
+    } catch { }
   }, [user?.id, persist]);
   const clearStatuses = useCallback(() => {
     if (!user?.id) return;

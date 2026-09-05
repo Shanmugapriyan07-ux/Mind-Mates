@@ -1,5 +1,6 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 const unreadStorage = createJSONStorage(() => {
   if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
     return {
@@ -8,8 +9,7 @@ const unreadStorage = createJSONStorage(() => {
       removeItem: async (name: string) => Promise.resolve(localStorage.removeItem(name)),
     };
   }
-  const AS = require('@react-native-async-storage/async-storage').default;
-  return AS;
+  return AsyncStorage;
 });
 export interface UnreadState {
   chatUnread:    number;

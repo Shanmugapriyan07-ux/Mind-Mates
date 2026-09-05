@@ -1,16 +1,17 @@
+import { useRenderCount } from "@/Count";
 import { ms, s, vs } from "@/utils/scale";
 import { Ionicons } from "@expo/vector-icons";
 import React, { memo, useEffect } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Animated, {
-  interpolate,
-  SharedValue,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withSpring,
-  withTiming,
+    interpolate,
+    SharedValue,
+    useAnimatedStyle,
+    useSharedValue,
+    withRepeat,
+    withSequence,
+    withSpring,
+    withTiming,
 } from "react-native-reanimated";
 interface Props {
   visible: boolean;
@@ -84,7 +85,7 @@ const RecordDot = memo(() => {
     return () => {
       scale.value = 1;
     };
-  }, []);
+  }, [scale]);
 
   const dotStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -109,7 +110,7 @@ export const VoiceRecordingOverlay = memo(
       mountAnim.value = visible
         ? withSpring(1, { damping: 18, stiffness: 260 })
         : withTiming(0, { duration: 150 });
-    }, [visible]);
+    }, [mountAnim, visible]);
     const slideHintStyle = useAnimatedStyle(() => {
       const progress = Math.min(1, Math.abs(translateX.value) / cancelThreshold);
       return {
@@ -125,6 +126,7 @@ export const VoiceRecordingOverlay = memo(
         ],
       };
     });
+      useRenderCount("VoiceRecordingOverlay");
     const containerStyle = useAnimatedStyle(() => ({
       opacity: mountAnim.value,
       transform: [

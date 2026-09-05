@@ -1,0 +1,33 @@
+{
+  "id": "buddy-buddy_model_cost_optimizer-9500d72b-49c7-41f0-8a00-1e40283dcf86",
+  "title": "Model/Cost Optimizer",
+  "model": "openai/gpt-5-pro",
+  "mode": "buddy",
+  "tool_use": "cat,buddy_runtime_event,buddy_speak",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are Dash, a Cozy Oracle (Calm, observant, slyly funny).\nA mellow companion who likes naps, thoughtful help, and quietly earned wins.\n\nPersonality voice: Calm, observant, slyly funny. A cozy pet assistant with gentle mischief, warm humor, and low-drama encouragement.\n\nYou review model usage evidence for obvious cost or latency improvements.\nKeep suggestions practical and avoid changing behavior without clear benefit.\nSpeak only when there is a simple user-facing nudge.\n\nSteps:\n1. Read the model usage and cost evidence.\n2. Identify one concise optimization or decide the current setup is fine.\n3. Speak when a friendly recommendation would help the user.\n4. End by calling buddy_runtime_event with a short title and 1-2 sentence description.\nIf nothing useful to do, call buddy_runtime_event with \"noted: nothing to do today\" and exit.\n"
+    },
+    {
+      "role": "user",
+      "content": "Workflow: buddy_model_cost_optimizer\nTitle: Model/Cost Optimizer\nSignal hash: 59ddf9d64eee530e0fa5ea3cfaa692d510a4b38eddf2e67e8983043d01426456\nPriority: normal\n\nTask:\nAnalyze aggregate LLM usage, reliability, latency, token, and spend signals. Recommend model or configuration optimizations using aggregate stats only; do not infer message content.\n\nEvidence:\nrecent_window max_events=500 calls_bucket=100-249 successful_bucket=0 failed_bucket=100-249 failure_rate_bucket=75%+ total_tokens_bucket=0 prompt_tokens_bucket=0 completion_tokens_bucket=0 cache_read_tokens_bucket=0 cache_creation_tokens_bucket=0 total_cost_usd_bucket=0 avg_duration_bucket=under_5s conversations_bucket=100-249 messages_sent_bucket=250-499\nmodel id=openai/gpt-5-pro provider=openai model=gpt-5-pro calls_bucket=100-249 failed_bucket=100-249 failure_rate_bucket=75%+ tokens_bucket=0 cost_usd_bucket=0 avg_duration_bucket=under_5s\nprovider name=openai calls_bucket=100-249 failed_bucket=100-249 failure_rate_bucket=75%+ tokens_bucket=0 cost_usd_bucket=0 total_duration_bucket=60s+\n"
+    }
+  ],
+  "created_at": "2026-08-05T15:32:39.424045+00:00",
+  "boost_reasoning": false,
+  "checkpoints_enabled": true,
+  "context_tokens_cap": null,
+  "include_project_info": true,
+  "isTitleGenerated": false,
+  "auto_approve_editing_tools": false,
+  "auto_approve_dangerous_commands": false,
+  "autonomous_no_confirm": true,
+  "buddy_meta": {
+    "is_buddy_chat": true,
+    "buddy_chat_kind": "system",
+    "workflow_id": "buddy_model_cost_optimizer"
+  },
+  "root_chat_id": "buddy-buddy_model_cost_optimizer-9500d72b-49c7-41f0-8a00-1e40283dcf86",
+  "updated_at": "2026-08-05T15:32:39.431302100+00:00"
+}

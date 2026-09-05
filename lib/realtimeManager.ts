@@ -45,35 +45,34 @@ class RealtimeManager {
     this.channels.set(key, channel);
   }
   private subscribeToChats(userId: string) {
-    const key = `chats_preview:${userId}`;
-    if (this.channels.has(key)) return;
+  const key = `chats_preview:${userId}`;
+  if (this.channels.has(key)) return;
+  const channel = supabase
+    .channel(key)
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'chats' },
+      (payload) => {
+        const row = payload.new as {
+          id: string; last_message: string;
+          last_message_at: string; last_message_type: string;
+        };
+        const known = useChatStore.getState().conversations?.some(
+          (c: any) => c.chatId === row.id
+        );
+        if (!known) return;
 
-    const channel = supabase
-      .channel(key)
-      .on(
-        'postgres_changes',
-        {
-          event:  'UPDATE',
-          schema: 'public',
-          table:  'chats',
-        },
-        (payload) => {
-          const row = payload.new as {
-            id: string; last_message: string;
-            last_message_at: string; last_message_type: string;
-          };
-          useChatStore.getState().upsertConversation({
-            chatId:          row.id,
-            lastMessage:     row.last_message,
-            lastMessageAt:   row.last_message_at,
-            lastMessageType: row.last_message_type,
-          });
-        }
-      )
-      .subscribe();
-
-    this.channels.set(key, channel);
-  }
+        useChatStore.getState().upsertConversation({
+          chatId: row.id,
+          lastMessage: row.last_message,
+          lastMessageAt: row.last_message_at,
+          lastMessageType: row.last_message_type,
+        });
+      }
+    )
+    .subscribe();
+  this.channels.set(key, channel);
+}
   subscribeToMessages(
     chatId: string,
     onMessage: (msg: any) => void

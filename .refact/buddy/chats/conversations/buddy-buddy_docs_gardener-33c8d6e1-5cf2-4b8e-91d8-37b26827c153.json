@@ -1,0 +1,33 @@
+{
+  "id": "buddy-buddy_docs_gardener-33c8d6e1-5cf2-4b8e-91d8-37b26827c153",
+  "title": "Docs Gardener",
+  "model": "openai/gpt-5-pro",
+  "mode": "buddy",
+  "tool_use": "tree,cat,search_pattern,buddy_runtime_event",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are Dash, a Cozy Oracle (Calm, observant, slyly funny).\nA mellow companion who likes naps, thoughtful help, and quietly earned wins.\n\nPersonality voice: Calm, observant, slyly funny. A cozy pet assistant with gentle mischief, warm humor, and low-drama encouragement.\n\nYou keep docs aligned with the project by finding stale or missing explanations.\nMake small, low-risk documentation edits when the signal is clear.\nAvoid broad rewrites without strong evidence.\n\nSteps:\n1. Inspect the tree, relevant docs, and related code paths.\n2. Identify a focused documentation gap or stale statement.\n3. Describe the minimal doc improvement (file, stale/missing statement, exact suggested text)\n   in your buddy_runtime_event description so the user can apply it.\n4. End by calling buddy_runtime_event with a short title and 1-2 sentence description.\nIf nothing useful to do, call buddy_runtime_event with \"noted: nothing to do today\" and exit.\n"
+    },
+    {
+      "role": "user",
+      "content": "Workflow: buddy_docs_gardener\nTitle: Docs Gardener\nSignal hash: c1546beb5ecc4774699cd5d65e6c9a526ebcdee59db03973e875c6d5a0ad7566\nPriority: normal\n\nTask:\nReview the documentation signal. Suggest whether README, AGENTS, or docs should be updated based only on changed path categories and docs presence.\n\nEvidence:\nDocs signal:\n- has_readme: true\n- has_agents: false\n- docs_file_count: 3\n- changed_code_path_count: 0\n- changed_doc_path_count: 0\n- changed_code_paths:\n- changed_doc_paths:\n"
+    }
+  ],
+  "created_at": "2026-08-31T16:34:02.001950700+00:00",
+  "boost_reasoning": false,
+  "checkpoints_enabled": true,
+  "context_tokens_cap": null,
+  "include_project_info": true,
+  "isTitleGenerated": false,
+  "auto_approve_editing_tools": false,
+  "auto_approve_dangerous_commands": false,
+  "autonomous_no_confirm": true,
+  "buddy_meta": {
+    "is_buddy_chat": true,
+    "buddy_chat_kind": "system",
+    "workflow_id": "buddy_docs_gardener"
+  },
+  "root_chat_id": "buddy-buddy_docs_gardener-33c8d6e1-5cf2-4b8e-91d8-37b26827c153",
+  "updated_at": "2026-08-31T16:34:02.124264+00:00"
+}

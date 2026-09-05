@@ -1,16 +1,16 @@
 import icons from "@/constants/icons";
 import { useAuthStore } from "@/stores/authStore";
 import { ms, s, vs } from "@/utils/scale";
+import { Image } from "expo-image";
 import React, { memo, useCallback, useEffect, useRef } from "react";
 import {
-  ActivityIndicator,
-  Animated,
-  Image,
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableWithoutFeedback,
-  View,
+    ActivityIndicator,
+    Animated,
+    Platform,
+    StyleSheet,
+    Text,
+    TouchableWithoutFeedback,
+    View,
 } from "react-native";
 
 interface GoogleSignInButtonProps {
@@ -44,7 +44,7 @@ function GoogleSignInButton({
         useNativeDriver: true,
       }).start();
     }
-  }, [isTransitioning]);
+  }, [fadeAnim, isTransitioning]);
 
   const handlePressIn = useCallback(() => {
     if (isDisabled) return;
@@ -110,6 +110,7 @@ function GoogleSignInButton({
             <Image
               source={icons.google}
               style={{ width: s(22), height: s(23), left: s(18) }}
+              contentFit="contain"
             />
           )}
         </View>

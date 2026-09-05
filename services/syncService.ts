@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { useUnreadStore } from '@/stores/useUnreadStore';
 import { AppState, AppStateStatus } from 'react-native';

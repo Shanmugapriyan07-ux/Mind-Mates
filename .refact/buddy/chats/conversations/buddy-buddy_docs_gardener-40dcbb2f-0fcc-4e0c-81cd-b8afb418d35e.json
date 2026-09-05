@@ -1,0 +1,33 @@
+{
+  "id": "buddy-buddy_docs_gardener-40dcbb2f-0fcc-4e0c-81cd-b8afb418d35e",
+  "title": "Docs Gardener",
+  "model": "openai/gpt-5-pro",
+  "mode": "buddy",
+  "tool_use": "tree,cat,search_pattern,buddy_runtime_event",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are Dash, a Cozy Oracle (Calm, observant, slyly funny).\nA mellow companion who likes naps, thoughtful help, and quietly earned wins.\n\nPersonality voice: Calm, observant, slyly funny. A cozy pet assistant with gentle mischief, warm humor, and low-drama encouragement.\n\nYou keep docs aligned with the project by finding stale or missing explanations.\nMake small, low-risk documentation edits when the signal is clear.\nAvoid broad rewrites without strong evidence.\n\nSteps:\n1. Inspect the tree, relevant docs, and related code paths.\n2. Identify a focused documentation gap or stale statement.\n3. Describe the minimal doc improvement (file, stale/missing statement, exact suggested text)\n   in your buddy_runtime_event description so the user can apply it.\n4. End by calling buddy_runtime_event with a short title and 1-2 sentence description.\nIf nothing useful to do, call buddy_runtime_event with \"noted: nothing to do today\" and exit.\n"
+    },
+    {
+      "role": "user",
+      "content": "Workflow: buddy_docs_gardener\nTitle: Docs Gardener\nSignal hash: df7c2f49c110431a626b87a739595f5c84e598224a1e4f2a1dd52ec3d9ace881\nPriority: normal\n\nTask:\nReview the documentation signal. Suggest whether README, AGENTS, or docs should be updated based only on changed path categories and docs presence.\n\nEvidence:\nDocs signal:\n- has_readme: true\n- has_agents: false\n- docs_file_count: 3\n- changed_code_path_count: 15\n- changed_doc_path_count: 0\n- changed_code_paths:\n  - Contexts/AppLinksContexts.js (modified)\n  - Contexts/profileContext.tsx (modified)\n  - app.config.js (modified)\n  - app/(profileSetUp)/ProfileImage.tsx (modified)\n  - app/(tabs)/_layout.tsx (modified)\n  - app/(tabs)/chat.tsx (modified)\n  - app/(tabs)/profile.tsx (modified)\n  - app/(tabs)/search.tsx (modified)\n  - app/_layout.tsx (modified)\n  - app/index.tsx (modified)\n  - app/subScreens/chatScreen.tsx (modified)\n  - app/subScreens/chatScreen/[chatId].tsx (modified)\n  - app/subScreens/friendsList.tsx (modified)\n  - app/subScreens/userProfile/[userId].tsx (modified)\n  - components/Profileavatar.tsx (modified)\n- changed_doc_paths:\n"
+    }
+  ],
+  "created_at": "2026-07-27T14:52:01.489498200+00:00",
+  "boost_reasoning": false,
+  "checkpoints_enabled": true,
+  "context_tokens_cap": null,
+  "include_project_info": true,
+  "isTitleGenerated": false,
+  "auto_approve_editing_tools": false,
+  "auto_approve_dangerous_commands": false,
+  "autonomous_no_confirm": true,
+  "buddy_meta": {
+    "is_buddy_chat": true,
+    "buddy_chat_kind": "system",
+    "workflow_id": "buddy_docs_gardener"
+  },
+  "root_chat_id": "buddy-buddy_docs_gardener-40dcbb2f-0fcc-4e0c-81cd-b8afb418d35e",
+  "updated_at": "2026-07-27T14:52:01.621266+00:00"
+}

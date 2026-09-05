@@ -1,9 +1,8 @@
 const isDev = typeof __DEV__ !== 'undefined' ? __DEV__ : true;
-type Level = 'auth' | 'nav' | 'error' | 'info';
+type Level = 'auth' | 'nav' | 'info';
 const prefix: Record<Level, string> = {
   auth:  '🔐 [Auth]',
   nav:   '🧭 [Nav]',
-  error: '❌ [Error]',
   info:  'ℹ️  [Info]',
 };
 
@@ -16,6 +15,5 @@ function make(level: Level) {
 export const log = {
   auth:  make('auth'),
   nav:   make('nav'),
-  error: make('error'),
   info:  make('info'),
 };

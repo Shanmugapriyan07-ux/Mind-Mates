@@ -1,14 +1,16 @@
 import { ChatMenuSheet } from "@/components/blockSheet";
-import CommunityGuidelinesSheet from "@/components/communityGuidelinesSheet";
+import { CommunityGuidelinesSheet } from "@/components/communityGuidelinesSheet";
 import ConfirmModal from "@/components/confirmModel";
 import { FriendsSearchModal } from "@/components/FriendSearchModel";
 import { Friend, SwipeableRow } from "@/components/SwipeableRow";
 import { useAuthh } from "@/Contexts/authContext";
+import { useRenderCount } from "@/Count";
 import { callFn } from "@/lib/callFn";
 import { supabase, TABLES } from "@/lib/supabase";
 import { TYPOGRAPHY } from "@/theme/typography";
 import { ms, s, vs } from "@/utils/scale";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -26,14 +28,10 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-
-// ─── Cache helpers ────────────────────────────────────────────────────────────
 const cacheGet = async (k: string): Promise<string | null> => {
   try {
     if (Platform.OS === "web") return localStorage.getItem(k);
-    return require("@react-native-async-storage/async-storage").default.getItem(
-      k,
-    );
+    return await AsyncStorage.getItem(k);
   } catch {
     return null;
   }
@@ -44,12 +42,9 @@ const cacheSet = async (k: string, v: string) => {
       localStorage.setItem(k, v);
       return;
     }
-    require("@react-native-async-storage/async-storage")
-      .default.setItem(k, v)
-      .catch(() => {});
+    await AsyncStorage.setItem(k, v);
   } catch {}
 };
-
 const C = {
   white: "#FFFFFF",
   purple: "#6D4AFF",
@@ -58,11 +53,9 @@ const C = {
   red: "#EF4444",
   skeleton: "#E9EAEC",
 };
-
 const CACHE_KEY = (uid: string) => `friends_v6_${uid}`;
 const CACHE_TTL = 60 * 1000;
 const toMs = (ts?: string | null) => (ts ? new Date(ts).getTime() : 0);
-
 const sortFriends = (list: Friend[]) =>
   [...list].sort((a, b) => {
     const ua = a.unread_count ?? 0,
@@ -74,8 +67,6 @@ const sortFriends = (list: Friend[]) =>
 const orderChanged = (a: Friend[], b: Friend[]) =>
   a.length !== b.length ||
   a.some((f, i) => f.connection_id !== b[i]?.connection_id);
-
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
 const SkeletonRow = ({ opacity = 1 }: { opacity?: number }) => (
   <View style={[sk.row, { opacity }]}>
     <View
@@ -116,8 +107,7 @@ const sk = StyleSheet.create({
     minHeight: vs(72),
   },
 });
-
-const BulkDeleteBar = ({
+const BulkDeleteBar = React.memo(({
   count,
   onDeleteAll,
 }: {
@@ -125,7 +115,6 @@ const BulkDeleteBar = ({
   onDeleteAll: () => void;
 }) => {
   const anim = useRef(new Animated.Value(0)).current;
-
   useEffect(() => {
     Animated.spring(anim, {
       toValue: count >= 2 ? 1 : 0,
@@ -133,10 +122,8 @@ const BulkDeleteBar = ({
       damping: 150,
       stiffness: 350,
     }).start();
-  }, [count >= 2]);
-
+  }, [anim, count]);
   if (count < 2) return null;
-
   return (
     <Animated.View
       style={[
@@ -170,8 +157,7 @@ const BulkDeleteBar = ({
       </TouchableOpacity>
     </Animated.View>
   );
-};
-
+});
 const bk = StyleSheet.create({
   bar: {
     flexDirection: "row",
@@ -211,14 +197,33 @@ const bk = StyleSheet.create({
   },
   btnTxt: { color: "#ffffff", fontWeight: "600", fontSize: ms(13) },
 });
-
-// ─── ChatListScreen ───────────────────────────────────────────────────────────
+const Header = React.memo(({
+  onSearch,
+  onMenuPress,
+}: {
+  onSearch: () => void;
+  onMenuPress: () => void;
+}) => (
+  <View style={st.header}>
+    <Text style={st.headerTitle}>MindMates</Text>
+    <View style={{ flex: 1 }} />
+    <TouchableOpacity onPress={onSearch} style={st.headerIconBtn}>
+      <Ionicons name="search-outline" size={s(20)} color={C.text} />
+    </TouchableOpacity>
+    <TouchableOpacity onPress={onMenuPress} style={st.headerIconBtn}>
+      <Ionicons
+        name="ellipsis-vertical"
+        size={s(20)}
+        color={C.text}
+        style={{ marginLeft: 16, left: s(7) }}
+      />
+    </TouchableOpacity>
+  </View>
+));
 export default function ChatListScreen() {
+  useRenderCount("home");
   const { user } = useAuthh();
-
-  // CHANGE 3: Runtime safe area inset for list bottom padding
   const insets = useSafeAreaInsets();
-
   const [friends, setFriends] = useState<Friend[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -227,7 +232,6 @@ export default function ChatListScreen() {
   const [swipedIds, setSwipedIds] = useState<Set<string>>(new Set());
   const [deleteModal, setDeleteModal] = useState<Friend | null>(null);
   const [clearModal, setClearModal] = useState<Friend | null>(null);
-
   const listKeyRef = useRef(0);
   const friendsRef = useRef<Friend[]>([]);
   const allFriendsRef = useRef<Friend[]>([]);
@@ -260,8 +264,6 @@ export default function ChatListScreen() {
       }),
     [],
   );
-
-  // ─── fetchFresh ─────────────────────────────────────────────────────────────
   const fetchFresh = useCallback(async (): Promise<Friend[]> => {
     if (!user?.id) return [];
     const uid = user.id;
@@ -339,7 +341,6 @@ export default function ChatListScreen() {
             ? (ch?.cleared_at_p2 ?? null)
             : null;
       const lastMsgAt = ch?.last_message_at ?? null;
-      // In your realtime handler — this runs for User B too:
       const userHasCleared =
         myClearedAt && lastMsgAt
           ? new Date(myClearedAt) >= new Date(lastMsgAt)
@@ -398,7 +399,6 @@ export default function ChatListScreen() {
     return sortFriends(result);
   }, [user?.id]);
 
-  // ─── loadFriends ────────────────────────────────────────────────────────────
   const loadFriends = useCallback(
     async (isRefresh = false) => {
       if (!user?.id) return;
@@ -447,8 +447,6 @@ export default function ChatListScreen() {
   useEffect(() => {
     loadFriends();
   }, [loadFriends]);
-
-  // ─── Focus refresh ──────────────────────────────────────────────────────────
   useFocusEffect(
     useCallback(() => {
       if (isFirstFocus.current) {
@@ -475,8 +473,6 @@ export default function ChatListScreen() {
         .catch(() => {});
     }, [fetchFresh]),
   );
-
-  // ─── Realtime ───────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!user?.id) return;
     const uid = user.id;
@@ -619,7 +615,8 @@ export default function ChatListScreen() {
         channelRef.current = null;
       }
     };
-  }, [user?.id]);
+  }, [user?.id, loadFriends]);
+
   const markReadLocally = useCallback((chatId: string) => {
     localZeroedChats.current.add(chatId);
     setFriends((prev) => {
@@ -630,6 +627,7 @@ export default function ChatListScreen() {
       return next;
     });
   }, []);
+
   const handleClear = useCallback((f: Friend) => {
     if (!f.chat_id) return;
     setClearModal(f);
@@ -663,9 +661,11 @@ export default function ChatListScreen() {
     },
     [loadFriends],
   );
+
   const handleDelete = useCallback((f: Friend) => {
     setDeleteModal(f);
   }, []);
+
   const doHideChat = useCallback(async (f: Friend) => {
     setFriends((prev) => {
       const next = prev.filter((x) => x.connection_id !== f.connection_id);
@@ -688,9 +688,13 @@ export default function ChatListScreen() {
       await callFn({ action: "hide_chat", chatId: f.chat_id });
     } catch {
       setFriends((prev) => sortFriends([{ ...f, is_hidden: false }, ...prev]));
-      listKeyRef.current += 1;
+     allFriendsRef.current = allFriendsRef.current.map((x) =>
+    x.connection_id === f.connection_id ? { ...x, is_hidden: false } : x,
+  );
+  listKeyRef.current += 1;
     }
   }, []);
+
   const handleBulkDelete = useCallback(async () => {
     const ids = Array.from(swipedIds);
     const targets = friends.filter((f) => ids.includes(f.connection_id));
@@ -702,10 +706,41 @@ export default function ChatListScreen() {
   }, [swipedIds, friends, doHideChat, closeAllExcept]);
 
   const keyExtractor = useCallback((item: Friend) => item.connection_id, []);
+  const renderRow = useCallback(
+    ({ item }: { item: Friend }) => (
+      <SwipeableRow
+        item={item}
+        onDelete={handleDelete}
+        onClear={handleClear}
+        onSwipeLeftOpen={onSwipeLeftOpen}
+        onSwipeLeftClose={onSwipeLeftClose}
+        registerClose={registerClose}
+        onAnyPress={closeAllExcept}
+        onMarkRead={markReadLocally}
+      />
+    ),
+    [
+      handleDelete,
+      handleClear,
+      onSwipeLeftOpen,
+      onSwipeLeftClose,
+      registerClose,
+      closeAllExcept,
+      markReadLocally,
+    ],
+  );
+
+  const handleSearchOpen = useCallback(() => setSearchOpen(true), []);
+  const handleMenuOpen = useCallback(() => setMenuSheet(true), []);
+  const handleDiscoverPress = useCallback(
+    () => router.push("/(tabs)/search"),
+    [],
+  );
+
   if (loading && !friends.length)
     return (
       <SafeAreaView style={st.safe} edges={["top"]}>
-        <Header onSearch={() => setSearchOpen(true)} onMenuPress={() => {}} />
+        <Header onSearch={handleSearchOpen} onMenuPress={() => {}} />
         <SkeletonRow />
         <SkeletonRow opacity={0.75} />
         <SkeletonRow opacity={0.5} />
@@ -716,27 +751,13 @@ export default function ChatListScreen() {
   return (
     <SafeAreaView style={st.safe} edges={["top"]}>
       <StatusBar barStyle="dark-content" />
-      <Header
-        onSearch={() => setSearchOpen(true)}
-        onMenuPress={() => setMenuSheet(true)}
-      />
+      <Header onSearch={handleSearchOpen} onMenuPress={handleMenuOpen} />
       <BulkDeleteBar count={swipedIds.size} onDeleteAll={handleBulkDelete} />
 
       <FlatList
-        key={String(listKeyRef.current)}
+        // key={String(listKeyRef.current)}
         data={friends}
-        renderItem={({ item }) => (
-          <SwipeableRow
-            item={item}
-            onDelete={handleDelete}
-            onClear={handleClear}
-            onSwipeLeftOpen={onSwipeLeftOpen}
-            onSwipeLeftClose={onSwipeLeftClose}
-            registerClose={registerClose}
-            onAnyPress={(id) => closeAllExcept(id)}
-            onMarkRead={markReadLocally}
-          />
-        )}
+        renderItem={renderRow}
         keyExtractor={keyExtractor}
         extraData={friends}
         contentContainerStyle={[
@@ -764,14 +785,13 @@ export default function ChatListScreen() {
                 color={C.purple}
               />
             </View>
-
             <Text style={st.emptyTitle}>No connections yet</Text>
             <Text style={st.emptySub}>
               Accept a connection request{"\n"}to start chatting
             </Text>
             <TouchableOpacity
               style={st.discoverBtn}
-              onPress={() => router.push("/(tabs)/search")}
+              onPress={handleDiscoverPress}
             >
               <Text style={st.discoverTxt}>Discover People</Text>
             </TouchableOpacity>
@@ -782,13 +802,11 @@ export default function ChatListScreen() {
         windowSize={5}
         removeClippedSubviews
       />
-
       <FriendsSearchModal
         visible={searchOpen}
         friends={allFriendsRef.current}
         onClose={() => setSearchOpen(false)}
       />
-
       <ChatMenuSheet
         visible={menuSheet}
         onClose={() => setMenuSheet(false)}
@@ -800,7 +818,6 @@ export default function ChatListScreen() {
           },
         ]}
       />
-
       <ConfirmModal
         visible={!!clearModal}
         title="Clear Chat?"
@@ -816,7 +833,6 @@ export default function ChatListScreen() {
         }}
         onCancel={() => setClearModal(null)}
       />
-
       <ConfirmModal
         visible={!!deleteModal}
         title="Delete Chat?"
@@ -832,33 +848,11 @@ export default function ChatListScreen() {
         }}
         onCancel={() => setDeleteModal(null)}
       />
-       <CommunityGuidelinesSheet />
+      <CommunityGuidelinesSheet />
     </SafeAreaView>
   );
 }
-const Header = ({
-  onSearch,
-  onMenuPress,
-}: {
-  onSearch: () => void;
-  onMenuPress: () => void;
-}) => (
-  <View style={st.header}>
-    <Text style={st.headerTitle}>MindMates</Text>
-    <View style={{ flex: 1 }} />
-    <TouchableOpacity onPress={onSearch} style={st.headerIconBtn}>
-      <Ionicons name="search-outline" size={s(20)} color={C.text} />
-    </TouchableOpacity>
-    <TouchableOpacity onPress={onMenuPress} style={st.headerIconBtn}>
-      <Ionicons
-        name="ellipsis-vertical"
-        size={s(20)}
-        color={C.text}
-        style={{ marginLeft: 16, left: s(7) }}
-      />
-    </TouchableOpacity>
-  </View>
-);
+ChatListScreen.whyDidYouRender = true;
 const st = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.white },
   listContent: {},

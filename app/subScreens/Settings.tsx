@@ -1,12 +1,14 @@
 import { useAppLinks } from "@/Contexts/AppLinksContexts";
 import { useAuthh } from "@/Contexts/authContext";
 import { useProfile } from "@/Contexts/profileContext";
+import { useRenderCount } from "@/Count";
 import { useOpenLink } from "@/hooks/useOpenLink";
 import { deleteAccount, logout } from "@/services/authServices";
 import { clearAppIconBadge } from "@/services/badgeService";
 import { useAuthStore } from "@/stores/authStore";
 import { ms, s, vs } from "@/utils/scale";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
@@ -45,8 +47,7 @@ const clearCache = async (userId: string) => {
   try {
     if (Platform.OS === "web") keys.forEach((k) => localStorage.removeItem(k));
     else {
-      const AS = require("@react-native-async-storage/async-storage").default;
-      await AS.multiRemove(keys);
+      await AsyncStorage.multiRemove(keys);
     }
   } catch {}
 };
@@ -252,6 +253,7 @@ const h = StyleSheet.create({
   },
 });
 export default function SettingsScreen() {
+  useRenderCount("settings");
   const { user } = useAuthh();
   const { clearProfile } = useProfile();
   const [logoutLoading, setLogoutLoading] = useState(false);
@@ -308,7 +310,7 @@ const handleDelete = useCallback(async () => {
     setDeleteLoading(false);
     setConfirmText('');
   }
-}, [confirmText, clearProfile]);
+}, [confirmText, clearProfile, user?.id]);
   const rows = [
     {
       icon: <Ionicons name="person-outline" size={s(24)} color={T.icon} />,
@@ -504,6 +506,10 @@ const handleDelete = useCallback(async () => {
     </SafeAreaView>
   );
 }
+
+
+SettingsScreen.whyDidYouRender = true;
+
 const st = StyleSheet.create({
   safe: {
     flex: 1,

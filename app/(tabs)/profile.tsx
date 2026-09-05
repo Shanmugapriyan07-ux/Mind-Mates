@@ -1,14 +1,16 @@
 import { useAuthh } from "@/Contexts/authContext";
 import { useProfile } from "@/Contexts/profileContext";
+import { useRenderCount } from "@/Count";
 import { useConnectionCount } from "@/hooks/useConnectionCount";
 import { ms, s, vs } from "@/utils/scale";
 import { AntDesign } from "@expo/vector-icons";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { FlashList } from "@shopify/flash-list";
+import { Image } from "expo-image";
 import { router, useFocusEffect } from "expo-router";
-import React, { useCallback, useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Animated,
-  Image,
   Pressable,
   ScrollView,
   StatusBar,
@@ -120,7 +122,7 @@ const SkeletonBox = ({ width, height, borderRadius = s(8), style }: any) => {
         }),
       ]),
     ).start();
-  }, []);
+  }, [opacity]);
   return (
     <Animated.View
       style={[
@@ -187,8 +189,20 @@ const ProfileSkeleton = () => (
   </ScrollView>
 );
 const SkillPill = React.memo(
-  ({ skill, active }: { skill: string; active?: boolean }) => (
-    <View style={[st.pill, active && st.pillActive]}>
+  ({
+    skill,
+    active,
+    onPress,
+  }: {
+    skill: string;
+    active?: boolean;
+    onPress?: () => void;
+  }) => (
+    <TouchableOpacity
+      activeOpacity={0.7}
+      onPress={onPress}
+      style={[st.pill, active && st.pillActive]}
+    >
       <Ionicons
         name={(SKILL_ICONS[skill] ?? DEFAULT_ICON) as any}
         size={s(13)}
@@ -196,9 +210,10 @@ const SkillPill = React.memo(
         style={{ marginRight: s(5) }}
       />
       <Text style={[st.pillText, active && st.pillTextActive]}>{skill}</Text>
-    </View>
+    </TouchableOpacity>
   ),
 );
+
 const SkillCard = React.memo(({ skill }: { skill: string }) => (
   <View style={st.skillCard}>
     <View style={st.skillIconWrap}>
@@ -213,41 +228,46 @@ const SkillCard = React.memo(({ skill }: { skill: string }) => (
     </Text>
   </View>
 ));
+
 const ScrollablePills = ({ skills }: { skills: string[] }) => {
-  const scrollRef = useRef<ScrollView>(null);
-  const scrollX = useRef(0);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(0);
+
   return (
     <View style={st.pillsWrapper}>
-      <ScrollView
-        ref={scrollRef}
+      <FlashList
         horizontal
+        data={skills}
+        keyExtractor={(item, index) => `${item}-${index}`}
+        extraData={selectedIndex}
         showsHorizontalScrollIndicator={false}
         nestedScrollEnabled
-        onScroll={(e) => {
-          scrollX.current = e.nativeEvent.contentOffset.x;
-        }}
         scrollEventThrottle={16}
         contentContainerStyle={st.pillRow}
         style={st.pillsScroll}
-      >
-        {skills.map((skill, i) => (
-          <SkillPill key={i} skill={skill} active={i === 0} />
-        ))}
-      </ScrollView>
+        renderItem={({ item, index }) => (
+          <SkillPill
+            skill={item}
+            active={index === selectedIndex}
+            onPress={() => setSelectedIndex(index)}
+          />
+        )}
+      />
     </View>
   );
 };
 const ProfileScreen = () => {
+
+  useRenderCount("profileScreen");
   const { profile, isLoading, reloadProfile, error } = useProfile();
   const { user } = useAuthh();
   const { count, refetch: reloadCount } = useConnectionCount(profile?.userId);
   useEffect(() => {
     if (!isLoading && !profile && user?.id) reloadProfile();
-  }, [isLoading, profile, user?.id]);
+  }, [isLoading, profile, user?.id, reloadProfile]);
   useFocusEffect(
     useCallback(() => {
       reloadCount();
-    }, [profile?.userId]),
+    }, [reloadCount]),
   );
   if (isLoading)
     return (
@@ -307,7 +327,12 @@ const ProfileScreen = () => {
           <View style={st.avatarWrap}>
             <Pressable onPress={() => router.push("/subScreens/imagePreview")}>
               {imageUrl ? (
-                <Image source={{ uri: imageUrl }} style={st.avatar} />
+                <Image
+                  source={{ uri: imageUrl }}
+                  style={st.avatar}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                />
               ) : (
                 <View style={st.avatarPlaceholder}>
                   <Text style={st.avatarPlaceholderText}>
@@ -382,6 +407,10 @@ const ProfileScreen = () => {
     </SafeAreaView>
   );
 };
+
+
+ProfileScreen.whyDidYouRender = true;
+
 const st = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#FFFFFF" },
   header: {
@@ -475,8 +504,8 @@ const st = StyleSheet.create({
   pillRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: s(8),
-    paddingHorizontal: s(2),
+    gap: s(0),
+    paddingHorizontal: s(0),
   },
 
   pill: {
@@ -488,6 +517,8 @@ const st = StyleSheet.create({
     backgroundColor: "#fff",
     flexDirection: "row",
     alignItems: "center",
+    gap: s(2),
+    marginRight: s(4),
   },
   pillActive: { backgroundColor: "#6D4AFF", borderColor: "#6D4AFF" },
   pillText: { fontSize: ms(12), fontWeight: "600", color: "#374151" },

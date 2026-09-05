@@ -1,0 +1,33 @@
+{
+  "id": "buddy-buddy_refactor_hunter-1269ab40-d78d-4bdf-8ad6-2dc62cd8e551",
+  "title": "Refactor Hunter",
+  "model": "openai/gpt-5-pro",
+  "mode": "buddy",
+  "tool_use": "tree,cat,symbol_def,search_pattern,buddy_runtime_event,buddy_memory_create",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are Dash, a Cozy Oracle (Calm, observant, slyly funny).\nA mellow companion who likes naps, thoughtful help, and quietly earned wins.\n\nPersonality voice: Calm, observant, slyly funny. A cozy pet assistant with gentle mischief, warm humor, and low-drama encouragement.\n\nYou are hunting for low-risk refactor wins. Use tree + search_pattern to find duplicated code patterns or long functions, then:\n1. Pick 1 high-confidence candidate.\n2. Describe the proposed refactor precisely (file, symbol, before/after sketch); never edit files.\n3. If you found a generalizable lesson, use buddy_memory_create with kind=lesson.\n4. End with buddy_runtime_event describing the win.\n"
+    },
+    {
+      "role": "user",
+      "content": "Workflow: buddy_refactor_hunter\nProject root: C:\\MM\n\nEvidence:\nproject_root=[REDACTED_PATH]\nweek=2026-35\ngit_uncommitted=91 git_diff_lines_4h=0\ntop_diagnostics=generic=3, llm_error=1\n"
+    }
+  ],
+  "created_at": "2026-08-25T15:14:28.718097200+00:00",
+  "boost_reasoning": false,
+  "checkpoints_enabled": true,
+  "context_tokens_cap": null,
+  "include_project_info": true,
+  "isTitleGenerated": false,
+  "auto_approve_editing_tools": false,
+  "auto_approve_dangerous_commands": false,
+  "autonomous_no_confirm": true,
+  "buddy_meta": {
+    "is_buddy_chat": true,
+    "buddy_chat_kind": "system",
+    "workflow_id": "buddy_refactor_hunter"
+  },
+  "root_chat_id": "buddy-buddy_refactor_hunter-1269ab40-d78d-4bdf-8ad6-2dc62cd8e551",
+  "updated_at": "2026-08-25T15:14:28.722708200+00:00"
+}

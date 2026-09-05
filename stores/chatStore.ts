@@ -10,8 +10,8 @@ export interface ConversationMeta {
   unreadCount:     number;
   isOnline:        boolean;
   lastSeen:        string | null;
-activeChatId: string | null;
-setActiveChatId: (chatId: string | null) => void;
+// activeChatId: string | null;
+// setActiveChatId: (chatId: string | null) => void;
 }
 
 interface ChatStore {
@@ -32,30 +32,28 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     const totalUnread = conversations.reduce((s, c) => s + c.unreadCount, 0);
     set({ conversations, totalUnread });
   },
-
   upsertConversation: (partial) => {
-    set(state => {
-      const existing = state.conversations.find(c => c.chatId === partial.chatId);
-      let next: ConversationMeta[];
-
-      if (existing) {
-        next = state.conversations
-          .map(c => c.chatId === partial.chatId ? { ...c, ...partial } : c)
-          .sort((a, b) =>
-            new Date(b.lastMessageAt ?? 0).getTime() -
-            new Date(a.lastMessageAt ?? 0).getTime()
-          );
-      } else {
-        next = [partial as ConversationMeta, ...state.conversations];
+  set(state => {
+    const existing = state.conversations.find(c => c.chatId === partial.chatId);
+    if (!existing) {
+      if (__DEV__) {
+        console.warn('[chatStore] upsertConversation: ignoring unknown chatId', partial.chatId);
       }
+      return state;
+    }
+    const next = state.conversations
+      .map(c => c.chatId === partial.chatId ? { ...c, ...partial } : c)
+      .sort((a, b) =>
+        new Date(b.lastMessageAt ?? 0).getTime() -
+        new Date(a.lastMessageAt ?? 0).getTime()
+      );
 
-      return {
-        conversations: next,
-        totalUnread:   next.reduce((s, c) => s + c.unreadCount, 0),
-      };
-    });
-  },
-
+    return {
+      conversations: next,
+      totalUnread: next.reduce((s, c) => s + c.unreadCount, 0),
+    };
+  });
+},
   markRead: (chatId) => {
     set(state => {
       const next = state.conversations.map(c =>
