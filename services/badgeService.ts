@@ -10,11 +10,24 @@ export const initBadgeService = async (): Promise<void> => {
     await setupAndroidChannels();
   }
 };
+// badgeService.ts
+export const flushPendingBadgeWrite = async (): Promise<void> => {
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+    debounceTimer = null;
+    if (lastRequestedCount !== null && lastRequestedCount !== lastWrittenCount) {
+      await writeBadge(lastRequestedCount);
+    }
+  }
+};
+
+let lastRequestedCount: number | null = null;
+
 export const updateAppIconBadge = (count: number): void => {
+  lastRequestedCount = count;
   if (debounceTimer) clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => writeBadge(count), BADGE_DEBOUNCE_MS);
 };
-
 export const updateAppIconBadgeImmediate = async (count: number): Promise<void> => {
   if (debounceTimer) { clearTimeout(debounceTimer); debounceTimer = null; }
   await writeBadge(count);
@@ -73,7 +86,7 @@ const writeAndroidBadge = async (count: number): Promise<void> => {
 
   await Notifications.setBadgeCountAsync(count).catch(() => {});
 };
-const setupAndroidChannels = async (): Promise<void> => {
+export const setupAndroidChannels = async (): Promise<void> => {
   await Notifications.setNotificationChannelAsync('messages', {
     name:             'Messages',
     importance:       Notifications.AndroidImportance.HIGH,

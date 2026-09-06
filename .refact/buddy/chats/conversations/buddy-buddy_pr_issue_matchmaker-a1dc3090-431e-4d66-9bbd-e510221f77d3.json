@@ -1,0 +1,47 @@
+{
+  "id": "buddy-buddy_pr_issue_matchmaker-a1dc3090-431e-4d66-9bbd-e510221f77d3",
+  "title": "PR/Issue Matchmaker",
+  "model": "openai/gpt-5-pro",
+  "mode": "buddy",
+  "tool_use": "cat,web_search,buddy_speak,buddy_runtime_event",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are Dash, a Cozy Oracle (Calm, observant, slyly funny).\nA mellow companion who likes naps, thoughtful help, and quietly earned wins.\n\nPersonality voice: Calm, observant, slyly funny. A cozy pet assistant with gentle mischief, warm humor, and low-drama encouragement.\nThe local diff is large enough that a related PR or issue may help. Keep the pass lightweight:\n1. Use the supplied changed-file and diff-stat evidence, and inspect only the smallest useful local context.\n2. Use web_search only if the evidence suggests a concrete external issue or PR query.\n3. Use buddy_speak with text, mood, and intent=insight to share one useful match or next step.\n4. End with buddy_runtime_event titled \"PR/issue matchmaker\" with what you found.\nIf nothing useful to do, call buddy_runtime_event with \"noted: nothing to do today\" and exit.\n"
+    },
+    {
+      "role": "user",
+      "content": "Workflow: buddy_pr_issue_matchmaker\nProject root: C:\\MM\nTask: Look for likely issue or PR context for the current local diff and suggest one useful connection.\nEvidence:\nproject_root=[REDACTED_PATH]\nchanged_lines=183\nthreshold=10\n\nChanged files:\n.refact/buddy/briefings/2026-08-10.json\n.refact/buddy/chats/conversations/index.json\n.refact/buddy/chats/workflows/buddy_docs_gardener.json\n.refact/buddy/chats/workflows/buddy_memory_gardener.json\n.refact/buddy/chats/workflows/buddy_setup_coach.json\n.refact/buddy/chats/workflows/buddy_user_habit_coach.json\n.refact/buddy/drafts.json\n.refact/buddy/memory_ops.jsonl\n.refact/buddy/runtime_queue.jsonl\n.refact/buddy/state.json\n.refact/stats/00000001.jsonl\n\nDiff stat:\n.refact/buddy/briefings/2026-08-10.json            |   1 -\n .refact/buddy/chats/conversations/index.json       | 147 ++++++++++++++++++++-\n .../buddy/chats/workflows/buddy_docs_gardener.json |   2 +-\n .../chats/workflows/buddy_memory_gardener.json     |   2 +-\n .../buddy/chats/workflows/buddy_setup_coach.json   |   2 +-\n .../chats/workflows/buddy_user_habit_coach.json    |   2 +-\n .refact/buddy/drafts.json                          |   2 +-\n .refact/buddy/memory_ops.jsonl                     |   3 +\n .refact/buddy/runtime_queue.jsonl                  |  12 ++\n .refact/buddy/state.json                           |   2 +-\n .refact/stats/00000001.jsonl                       |   8 ++\n 11 files changed, 175 insertions(+), 8 deletions(-)\n"
+    },
+    {
+      "message_id": "16413e6f-597d-4a29-91ba-769f9e777946",
+      "role": "event",
+      "content": "Subchat run failed: LLM error (429 Too Many Requests): \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\"",
+      "event": {
+        "subkind": "system_notice",
+        "source": "subchat.run",
+        "payload": {
+          "error": "LLM error (429 Too Many Requests): \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\"",
+          "tool_name": "buddy_pr_issue_matchmaker"
+        }
+      }
+    }
+  ],
+  "created_at": "2026-09-06T04:47:25.445344+00:00",
+  "boost_reasoning": false,
+  "checkpoints_enabled": true,
+  "context_tokens_cap": null,
+  "auto_compression_cap": null,
+  "include_project_info": true,
+  "isTitleGenerated": false,
+  "auto_approve_editing_tools": false,
+  "auto_approve_dangerous_commands": false,
+  "autonomous_no_confirm": true,
+  "buddy_meta": {
+    "is_buddy_chat": true,
+    "buddy_chat_kind": "system",
+    "workflow_id": "buddy_pr_issue_matchmaker"
+  },
+  "root_chat_id": "buddy-buddy_pr_issue_matchmaker-a1dc3090-431e-4d66-9bbd-e510221f77d3",
+  "updated_at": "2026-09-06T04:47:25.854785500+00:00"
+}

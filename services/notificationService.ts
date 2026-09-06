@@ -1,10 +1,12 @@
 import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/stores/authStore';
 import { useChatStore } from '@/stores/chatStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { setupAndroidChannels } from './badgeService';
 export type NotificationPayload = {
   type:         'new_message' | 'connection_request' | 'connection_accepted' | 'daily_morning' | 'daily_night';
   chatId?:      string;
@@ -13,44 +15,30 @@ export type NotificationPayload = {
   senderImage?: string;
   url:          string;
 };
+export function isNotificationSuppressed(data: NotificationPayload | undefined): boolean {
+  if (!data) return false;
+  if ((data.type as string) === 'badge_sync') return true;
+  const activeChatId = useChatStore.getState().activeChatId;
+  return data.type === 'new_message' && data.chatId != null && activeChatId === data.chatId;
+}
+
 Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
-    const data         = notification.request.content.data as NotificationPayload;
-    const activeChatId = useChatStore.getState().activeChatId;
-    if ((data?.type as string) === 'badge_sync') {
-      return {
-        shouldPlaySound:  false,
-        shouldSetBadge:   false,
-        shouldShowBanner: false,
-        shouldShowList:   false,
-      };
+    const data = notification.request.content.data as NotificationPayload;
+    if (isNotificationSuppressed(data)) {
+      return { shouldPlaySound: false, shouldSetBadge: false, shouldShowBanner: false, shouldShowList: false };
     }
-    const suppressForActiveChat =
-      data?.type === 'new_message' &&
-      data?.chatId != null &&
-      activeChatId === data.chatId;
-    if (suppressForActiveChat) {
-      return {
-        shouldPlaySound:  false,
-        shouldSetBadge:   false,
-        shouldShowBanner: false,
-        shouldShowList:   false,
-      };
-    }
-    return {
-      shouldPlaySound:  true,
-      shouldSetBadge:   true,
-      shouldShowBanner: true,
-      shouldShowList:   true,
-    };
+    return { shouldPlaySound: true, shouldSetBadge: true, shouldShowBanner: true, shouldShowList: true };
   },
 });
+
 class NotificationService {
   private _tapListener:        Notifications.Subscription | null = null;
   private _foregroundListener: Notifications.Subscription | null = null;
   private _retryCount  = 0;
   private _maxRetries  = 3;
   private _retryBaseMs = 1000;
+  private _retryTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private _isValidToken(token: unknown): token is string {
     if (!token || typeof token !== 'string') return false;
     return /^ExponentPushToken\[[A-Za-z0-9_-]+\]$/.test(token.trim());
@@ -82,11 +70,10 @@ class NotificationService {
         return null;
       }
       if (Platform.OS === 'android') {
-        await this._createAndroidChannels();
+        await setupAndroidChannels();
       }
       const { data: rawToken } = await Notifications.getExpoPushTokenAsync({ projectId });
       const token = typeof rawToken === 'string' ? rawToken.trim() : rawToken;
-
       if (!this._isValidToken(token)) {
         console.warn('[Notif] Invalid token received:', token);
         return null;
@@ -111,13 +98,26 @@ class NotificationService {
   if (this._retryCount < this._maxRetries) {
     this._retryCount++;
     const delay = this._retryBaseMs * Math.pow(2, this._retryCount - 1);
-    setTimeout(() => {
-      this.registerForPushNotifications(userId).catch(() => {});
-    }, delay);
+   this._retryTimeoutId = setTimeout(() => {
+          // Guard: only proceed if this is still the currently authenticated
+          // user. Prevents a stale retry (scheduled before a logout/account
+          // switch) from attributing this device's push token to a user
+          // who is no longer signed in.
+          if (useAuthStore.getState().user?.id !== userId) return;
+          this.registerForPushNotifications(userId).catch(() => {});
+        }, delay);
   }
   return null;
 }
   }
+   cancelPendingRegistration(): void {
+    if (this._retryTimeoutId) {
+      clearTimeout(this._retryTimeoutId);
+      this._retryTimeoutId = null;
+    }
+    this._retryCount = 0;
+  }
+
   private async _createAndroidChannels(): Promise<void> {
     await Promise.all([
       Notifications.setNotificationChannelAsync('messages', {

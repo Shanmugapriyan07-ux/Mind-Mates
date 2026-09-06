@@ -9,6 +9,7 @@ import { useRealtimeManager } from "@/hooks/useRealtimeManager";
 import { GlobalProvider } from "@/lib/GlobalProvider";
 import { NotificationProvider } from "@/providers/notificationProvider";
 import {
+  flushPendingNavigation,
   handleColdStartNotification,
   navigateFromNotification,
   NotificationData,
@@ -117,11 +118,6 @@ function RootLayoutNav({
     const t = setTimeout(() => onContentReady(), 50);
     return () => clearTimeout(t);
   }, [onContentReady]);
-
-  // useEffect(() => {
-  //   const t = setTimeout(() => SplashScreen.hideAsync().catch(() => {}), 1500);
-  //   return () => clearTimeout(t);
-  // }, []);
 
   useEffect(() => {
     if (phase === "authenticated" || phase === "profile_incomplete") {
@@ -268,39 +264,17 @@ export default function RootLayout() {
     configureGoogleSignIn();
   }, [navRef, phase]);
 
-  // useEffect(() => {
-  //   registerNavRef(navRef);
-  //   if (phase !== "done") return;
-  //   handleColdStartNotification();
-  //   if (_notifSub) return;
-  //   _notifSub = Notifications.addNotificationResponseReceivedListener(
-  //     (response) => {
-  //       const data = response.notification.request.content
-  //         .data as unknown as NotificationData;
-  //       if (!data?.url || data?.type === "badge_sync") {
-  //         return;
-  //       }
-  //       navigateFromNotification(data);
-  //     },
-  //   );
-  // }, [phase]);
-
-  useEffect(() => {
-    registerNavRef(navRef);
-    if (phase !== "done") return;
-    handleColdStartNotification();
-
-    const sub = Notifications.addNotificationResponseReceivedListener(
-      (response) => {
-        const data = response.notification.request.content
-          .data as unknown as NotificationData;
-        if (!data?.url || data?.type === "badge_sync") return;
-        navigateFromNotification(data);
-      },
-    );
-
-    return () => sub.remove();
-  }, [navRef, phase]);
+useEffect(() => {
+  registerNavRef(navRef);
+  if (phase !== "done") return;
+  handleColdStartNotification().then(() => flushPendingNavigation());
+  const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+    const data = response.notification.request.content.data as unknown as NotificationData;
+    if (!data?.url || data?.type === "badge_sync") return;
+    navigateFromNotification(data);
+  });
+  return () => sub.remove();
+}, [navRef, phase]);
 
   useEffect(() => {
     const g = globalThis as any;
