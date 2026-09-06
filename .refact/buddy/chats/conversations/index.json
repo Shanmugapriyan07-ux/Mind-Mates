@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-09-06T05:04:11.507384900+00:00",
+  "updated_at": "2026-09-06T12:51:10.372354800+00:00",
   "entries": [
     {
       "id": "buddy-refact_error_detective-50434453-15af-475e-9b42-f195455f56a5",
@@ -6497,6 +6497,64 @@
       "waiting_for_card_ids": [],
       "file_len": 2587,
       "file_modified_unix_ms": 1788671051054
+    },
+    {
+      "id": "buddy-buddy_daily_digest-2047d38c-828c-49de-8b88-ee382d5070ae",
+      "file_name": "buddy-buddy_daily_digest-2047d38c-828c-49de-8b88-ee382d5070ae.json",
+      "source": {
+        "kind": "buddy"
+      },
+      "created_at": "2026-09-06T12:51:08.667026800+00:00",
+      "updated_at": "2026-09-06T12:51:09.466396900+00:00",
+      "title": "Daily Digest",
+      "model": "openai/gpt-5-pro",
+      "mode": "buddy",
+      "message_count": 3,
+      "root_chat_id": "buddy-buddy_daily_digest-2047d38c-828c-49de-8b88-ee382d5070ae",
+      "is_title_generated": false,
+      "total_lines_added": 0,
+      "total_lines_removed": 0,
+      "tasks_total": 0,
+      "tasks_done": 0,
+      "tasks_failed": 0,
+      "total_prompt_tokens": 0,
+      "total_completion_tokens": 0,
+      "total_tokens": 0,
+      "total_cache_read_tokens": 0,
+      "total_cache_creation_tokens": 0,
+      "displayable_chat": false,
+      "waiting_for_card_ids": [],
+      "file_len": 5946,
+      "file_modified_unix_ms": 1788699069466
+    },
+    {
+      "id": "buddy-buddy_pr_issue_matchmaker-873cbf61-ae6c-4228-8d0f-0cd23d9c73f7",
+      "file_name": "buddy-buddy_pr_issue_matchmaker-873cbf61-ae6c-4228-8d0f-0cd23d9c73f7.json",
+      "source": {
+        "kind": "buddy"
+      },
+      "created_at": "2026-09-06T12:51:09.793595400+00:00",
+      "updated_at": "2026-09-06T12:51:10.166272800+00:00",
+      "title": "PR/Issue Matchmaker",
+      "model": "openai/gpt-5-pro",
+      "mode": "buddy",
+      "message_count": 3,
+      "root_chat_id": "buddy-buddy_pr_issue_matchmaker-873cbf61-ae6c-4228-8d0f-0cd23d9c73f7",
+      "is_title_generated": false,
+      "total_lines_added": 0,
+      "total_lines_removed": 0,
+      "tasks_total": 0,
+      "tasks_done": 0,
+      "tasks_failed": 0,
+      "total_prompt_tokens": 0,
+      "total_completion_tokens": 0,
+      "total_tokens": 0,
+      "total_cache_read_tokens": 0,
+      "total_cache_creation_tokens": 0,
+      "displayable_chat": false,
+      "waiting_for_card_ids": [],
+      "file_len": 3223,
+      "file_modified_unix_ms": 1788699070167
     }
   ],
   "skipped_files": []

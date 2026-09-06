@@ -1,3 +1,4 @@
+// SwipeableRow.tsx
 import { ProfileAvatar } from '@/components/Profileavatar';
 import { useRenderCount } from '@/Count';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
@@ -40,17 +41,20 @@ export interface Friend {
   cleared_at_p1?:        string | null;
   cleared_at_p2?:        string | null;
 }
+
 const DELETE_W         = s(80);
 const CLEAR_W          = s(10);
 const DELETE_THRESHOLD = -(DELETE_W * 0.55);
 const CLEAR_THRESHOLD  = CLEAR_W * 0.1;
 const HINT_NUDGE       = -s(25);
 const HINT_STORAGE_KEY = 'swipe_hint_seen_v1';
+
 const C = {
   white:'#FFFFFF', purple:'#6D4AFF', blue:'#3B82F6',
   text:'#111827', muted:'#6B7280', border:'#F3F4F6',
   red:'#6D4AFF', yellow:'#FBC234', green:'#6D4AFF', skeleton:'#E9EAEC',
 };
+
 const formatPreview = (msg?: string | null): string => {
   if (msg == null) return 'Tap to say hello';
   if (msg === '')  return 'Tap to say hello';
@@ -60,6 +64,7 @@ const formatPreview = (msg?: string | null): string => {
   const f = msg.split('\n')[0];
   return f.length > 38 ? f.slice(0, 38) + '…' : f;
 };
+
 const timeAgo = (ts?: string | null): string => {
   if (!ts) return '';
   const diff = Date.now() - new Date(ts).getTime();
@@ -114,6 +119,7 @@ const SwipeHintManager = (() => {
   };
   return { tryRegister, markSeen };
 })();
+
 interface Props {
   item:             Friend;
   onDelete:         (f: Friend) => void;
@@ -121,9 +127,11 @@ interface Props {
   onSwipeLeftOpen:  (id: string) => void;
   onSwipeLeftClose: (id: string) => void;
   registerClose:    (id: string, fn: () => void) => void;
+  unregisterClose:  (id: string) => void;
   onAnyPress:       (id: string) => void;
   onMarkRead:       (chatId: string) => void;
 }
+
 const areRowPropsEqual = (prev: Props, next: Props) => {
   const a = prev.item, b = next.item;
   return (
@@ -143,6 +151,7 @@ const areRowPropsEqual = (prev: Props, next: Props) => {
     prev.onSwipeLeftOpen    === next.onSwipeLeftOpen &&
     prev.onSwipeLeftClose    === next.onSwipeLeftClose &&
     prev.registerClose         === next.registerClose &&
+    prev.unregisterClose        === next.unregisterClose &&
     prev.onAnyPress              === next.onAnyPress &&
     prev.onMarkRead                === next.onMarkRead
   );
@@ -150,7 +159,7 @@ const areRowPropsEqual = (prev: Props, next: Props) => {
 
 export const SwipeableRow = React.memo(({
   item, onDelete, onClear, onSwipeLeftOpen, onSwipeLeftClose,
-  registerClose, onAnyPress, onMarkRead,
+  registerClose, unregisterClose, onAnyPress, onMarkRead,
 }: Props) => {
   const cardX           = useSharedValue(0);
   const hintPeekOpacity = useSharedValue(0);
@@ -197,7 +206,8 @@ export const SwipeableRow = React.memo(({
   }, [item.connection_id, onSwipeLeftClose, spring]);
   useEffect(() => {
     registerClose(item.connection_id, close);
-  }, [close, item.connection_id, registerClose]);
+    return () => unregisterClose(item.connection_id);
+  }, [close, item.connection_id, registerClose, unregisterClose]);
   const playHint = useCallback(() => {
     if (hintPlaying.current) return;
     hintPlaying.current = true;
@@ -361,8 +371,6 @@ export const SwipeableRow = React.memo(({
   );
 }, areRowPropsEqual);
 
-
-
 const sw = StyleSheet.create({
   wrapper:    { position:'relative', backgroundColor:C.white },
   rightPanel: {
@@ -402,4 +410,5 @@ const sw = StyleSheet.create({
   },
   badgeTxt:           { fontSize:ms(11), fontWeight:'700', color:'#fff', lineHeight:vs(14) },
 });
+
 export default SwipeableRow;

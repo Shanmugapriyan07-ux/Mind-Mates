@@ -1,3 +1,4 @@
+// ChatListScreen.tsx
 import { ChatMenuSheet } from "@/components/blockSheet";
 import { CommunityGuidelinesSheet } from "@/components/communityGuidelinesSheet";
 import ConfirmModal from "@/components/confirmModel";
@@ -28,6 +29,7 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
+
 const cacheGet = async (k: string): Promise<string | null> => {
   try {
     if (Platform.OS === "web") return localStorage.getItem(k);
@@ -45,6 +47,7 @@ const cacheSet = async (k: string, v: string) => {
     await AsyncStorage.setItem(k, v);
   } catch {}
 };
+
 const C = {
   white: "#FFFFFF",
   purple: "#6D4AFF",
@@ -53,9 +56,12 @@ const C = {
   red: "#EF4444",
   skeleton: "#E9EAEC",
 };
+
 const CACHE_KEY = (uid: string) => `friends_v6_${uid}`;
 const CACHE_TTL = 60 * 1000;
+
 const toMs = (ts?: string | null) => (ts ? new Date(ts).getTime() : 0);
+
 const sortFriends = (list: Friend[]) =>
   [...list].sort((a, b) => {
     const ua = a.unread_count ?? 0,
@@ -67,6 +73,67 @@ const sortFriends = (list: Friend[]) =>
 const orderChanged = (a: Friend[], b: Friend[]) =>
   a.length !== b.length ||
   a.some((f, i) => f.connection_id !== b[i]?.connection_id);
+
+/**
+ * Single source of truth for deriving a friend/chat's display fields
+ * (unread count, preview text, hidden/cleared state) from a raw chat row.
+ * Used by BOTH the initial fetch (fetchFresh) and the realtime UPDATE
+ * handler, so the two paths can never silently drift out of sync with
+ * each other the way two independent copies of this logic previously did.
+ */
+function deriveFriendFields(uid: string, ch: any) {
+  const isHidden = ch ? (ch.hidden_for ?? []).includes(uid) : false;
+  const parts = (ch?.participants as string[]) ?? [];
+  const myIndex = parts.indexOf(uid);
+  const myClearedAt =
+    myIndex === 0
+      ? (ch?.cleared_at_p1 ?? null)
+      : myIndex === 1
+        ? (ch?.cleared_at_p2 ?? null)
+        : null;
+  const lastMsgAt = ch?.last_message_at ?? null;
+  const userHasCleared =
+    myClearedAt && lastMsgAt
+      ? new Date(myClearedAt) >= new Date(lastMsgAt)
+      : !!myClearedAt && !lastMsgAt;
+  const showEmptyPreview = isHidden || userHasCleared;
+
+  const unread_count = showEmptyPreview
+    ? 0
+    : myIndex === 0
+      ? (ch?.unread_p1 ?? 0)
+      : myIndex === 1
+        ? (ch?.unread_p2 ?? 0)
+        : 0;
+
+  const myPreview =
+    myIndex === 0
+      ? (ch?.last_message_p1 ?? null)
+      : (ch?.last_message_p2 ?? null);
+  const myPreviewAt =
+    myIndex === 0
+      ? (ch?.last_message_at_p1 ?? null)
+      : (ch?.last_message_at_p2 ?? null);
+  const myPreviewSdr =
+    myIndex === 0
+      ? (ch?.last_sender_id_p1 ?? null)
+      : (ch?.last_sender_id_p2 ?? null);
+
+  return {
+    isHidden,
+    showEmptyPreview,
+    unread_count,
+    last_message: showEmptyPreview ? null : (myPreview ?? null),
+    last_message_at: showEmptyPreview ? null : (myPreviewAt ?? null),
+    last_message_is_mine: showEmptyPreview ? false : myPreviewSdr === uid,
+    last_message_status: showEmptyPreview
+      ? ("sent" as const)
+      : ((ch?.last_message_status ?? "sent") as "sent" | "seen"),
+    cleared_at_p1: ch?.cleared_at_p1 ?? null,
+    cleared_at_p2: ch?.cleared_at_p2 ?? null,
+  };
+}
+
 const SkeletonRow = ({ opacity = 1 }: { opacity?: number }) => (
   <View style={[sk.row, { opacity }]}>
     <View
@@ -97,6 +164,7 @@ const SkeletonRow = ({ opacity = 1 }: { opacity?: number }) => (
     </View>
   </View>
 );
+
 const sk = StyleSheet.create({
   row: {
     flexDirection: "row",
@@ -107,57 +175,55 @@ const sk = StyleSheet.create({
     minHeight: vs(72),
   },
 });
-const BulkDeleteBar = React.memo(({
-  count,
-  onDeleteAll,
-}: {
-  count: number;
-  onDeleteAll: () => void;
-}) => {
-  const anim = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.spring(anim, {
-      toValue: count >= 2 ? 1 : 0,
-      useNativeDriver: true,
-      damping: 150,
-      stiffness: 350,
-    }).start();
-  }, [anim, count]);
-  if (count < 2) return null;
-  return (
-    <Animated.View
-      style={[
-        bk.bar,
-        {
-          opacity: anim,
-          transform: [
-            {
-              translateY: anim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [-vs(44), 0],
-              }),
-            },
-          ],
-        },
-      ]}
-    >
-      <View style={bk.left}>
-        <View style={bk.badge}>
-          <Text style={bk.num}>{count}</Text>
-        </View>
-        <Text style={bk.label}>chats selected</Text>
-      </View>
-      <TouchableOpacity
-        style={bk.btn}
-        onPress={onDeleteAll}
-        activeOpacity={0.85}
+
+const BulkDeleteBar = React.memo(
+  ({ count, onDeleteAll }: { count: number; onDeleteAll: () => void }) => {
+    const anim = useRef(new Animated.Value(0)).current;
+    useEffect(() => {
+      Animated.spring(anim, {
+        toValue: count >= 2 ? 1 : 0,
+        useNativeDriver: true,
+        damping: 150,
+        stiffness: 350,
+      }).start();
+    }, [anim, count]);
+    if (count < 2) return null;
+    return (
+      <Animated.View
+        style={[
+          bk.bar,
+          {
+            opacity: anim,
+            transform: [
+              {
+                translateY: anim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [-vs(44), 0],
+                }),
+              },
+            ],
+          },
+        ]}
       >
-        <Ionicons name="trash" size={s(14)} color="#ffffff" />
-        <Text style={bk.btnTxt}>Delete all</Text>
-      </TouchableOpacity>
-    </Animated.View>
-  );
-});
+        <View style={bk.left}>
+          <View style={bk.badge}>
+            <Text style={bk.num}>{count}</Text>
+          </View>
+          <Text style={bk.label}>chats selected</Text>
+        </View>
+        <TouchableOpacity
+          style={bk.btn}
+          onPress={onDeleteAll}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="trash" size={s(14)} color="#ffffff" />
+          <Text style={bk.btnTxt}>Delete all</Text>
+        </TouchableOpacity>
+      </Animated.View>
+    );
+  },
+);
+
 const bk = StyleSheet.create({
   bar: {
     flexDirection: "row",
@@ -197,29 +263,33 @@ const bk = StyleSheet.create({
   },
   btnTxt: { color: "#ffffff", fontWeight: "600", fontSize: ms(13) },
 });
-const Header = React.memo(({
-  onSearch,
-  onMenuPress,
-}: {
-  onSearch: () => void;
-  onMenuPress: () => void;
-}) => (
-  <View style={st.header}>
-    <Text style={st.headerTitle}>MindMates</Text>
-    <View style={{ flex: 1 }} />
-    <TouchableOpacity onPress={onSearch} style={st.headerIconBtn}>
-      <Ionicons name="search-outline" size={s(20)} color={C.text} />
-    </TouchableOpacity>
-    <TouchableOpacity onPress={onMenuPress} style={st.headerIconBtn}>
-      <Ionicons
-        name="ellipsis-vertical"
-        size={s(20)}
-        color={C.text}
-        style={{ marginLeft: 16, left: s(7) }}
-      />
-    </TouchableOpacity>
-  </View>
-));
+
+const Header = React.memo(
+  ({
+    onSearch,
+    onMenuPress,
+  }: {
+    onSearch: () => void;
+    onMenuPress: () => void;
+  }) => (
+    <View style={st.header}>
+      <Text style={st.headerTitle}>MindMates</Text>
+      <View style={{ flex: 1 }} />
+      <TouchableOpacity onPress={onSearch} style={st.headerIconBtn}>
+        <Ionicons name="search-outline" size={s(20)} color={C.text} />
+      </TouchableOpacity>
+      <TouchableOpacity onPress={onMenuPress} style={st.headerIconBtn}>
+        <Ionicons
+          name="ellipsis-vertical"
+          size={s(20)}
+          color={C.text}
+          style={{ marginLeft: 16, left: s(7) }}
+        />
+      </TouchableOpacity>
+    </View>
+  ),
+);
+
 export default function ChatListScreen() {
   useRenderCount("home");
   const { user } = useAuthh();
@@ -232,8 +302,6 @@ export default function ChatListScreen() {
   const [swipedIds, setSwipedIds] = useState<Set<string>>(new Set());
   const [deleteModal, setDeleteModal] = useState<Friend | null>(null);
   const [clearModal, setClearModal] = useState<Friend | null>(null);
-  const listKeyRef = useRef(0);
-  const friendsRef = useRef<Friend[]>([]);
   const allFriendsRef = useRef<Friend[]>([]);
   const isFirstFocus = useRef(true);
   const closeRegistry = useRef<Map<string, () => void>>(new Map());
@@ -242,6 +310,10 @@ export default function ChatListScreen() {
 
   const registerClose = useCallback((id: string, fn: () => void) => {
     closeRegistry.current.set(id, fn);
+  }, []);
+
+  const unregisterClose = useCallback((id: string) => {
+    closeRegistry.current.delete(id);
   }, []);
 
   const closeAllExcept = useCallback((exceptId?: string) => {
@@ -264,6 +336,7 @@ export default function ChatListScreen() {
       }),
     [],
   );
+
   const fetchFresh = useCallback(async (): Promise<Friend[]> => {
     if (!user?.id) return [];
     const uid = user.id;
@@ -330,49 +403,7 @@ export default function ChatListScreen() {
     const result: Friend[] = conns.map(({ connId, otherId }) => {
       const p = pm[otherId];
       const ch = cm[otherId];
-
-      const isHidden = ch ? (ch.hidden_for ?? []).includes(uid) : false;
-      const parts = (ch?.participants as string[]) ?? [];
-      const myIndex = parts.indexOf(uid);
-      const myClearedAt =
-        myIndex === 0
-          ? (ch?.cleared_at_p1 ?? null)
-          : myIndex === 1
-            ? (ch?.cleared_at_p2 ?? null)
-            : null;
-      const lastMsgAt = ch?.last_message_at ?? null;
-      const userHasCleared =
-        myClearedAt && lastMsgAt
-          ? new Date(myClearedAt) >= new Date(lastMsgAt)
-          : !!myClearedAt && !lastMsgAt;
-      const showEmptyPreview = isHidden || userHasCleared;
-
-      const unread_count = showEmptyPreview
-        ? 0
-        : myIndex === 0
-          ? (ch?.unread_p1 ?? 0)
-          : myIndex === 1
-            ? (ch?.unread_p2 ?? 0)
-            : 0;
-
-      if (__DEV__ && myClearedAt) {
-        console.log(
-          `[fetchFresh] ${otherId.slice(0, 8)} cleared_at=${myClearedAt} lastMsg=${lastMsgAt} showEmpty=${showEmptyPreview}`,
-        );
-      }
-
-      const myPreview =
-        myIndex === 0
-          ? (ch?.last_message_p1 ?? null)
-          : (ch?.last_message_p2 ?? null);
-      const myPreviewAt =
-        myIndex === 0
-          ? (ch?.last_message_at_p1 ?? null)
-          : (ch?.last_message_at_p2 ?? null);
-      const myPreviewSdr =
-        myIndex === 0
-          ? (ch?.last_sender_id_p1 ?? null)
-          : (ch?.last_sender_id_p2 ?? null);
+      const derived = deriveFriendFields(uid, ch);
 
       return {
         connection_id: connId,
@@ -383,16 +414,14 @@ export default function ChatListScreen() {
         skills: p?.skills ?? "",
         last_seen: p?.last_seen ?? null,
         chat_id: ch?.id ?? undefined,
-        last_message: showEmptyPreview ? null : (myPreview ?? null),
-        last_message_at: showEmptyPreview ? null : (myPreviewAt ?? null),
-        last_message_is_mine: showEmptyPreview ? false : myPreviewSdr === uid,
-        last_message_status: showEmptyPreview
-          ? "sent"
-          : ((ch?.last_message_status ?? "sent") as "sent" | "seen"),
-        is_hidden: isHidden,
-        unread_count,
-        cleared_at_p1: ch?.cleared_at_p1 ?? null,
-        cleared_at_p2: ch?.cleared_at_p2 ?? null,
+        is_hidden: derived.isHidden,
+        last_message: derived.last_message,
+        last_message_at: derived.last_message_at,
+        last_message_is_mine: derived.last_message_is_mine,
+        last_message_status: derived.last_message_status,
+        unread_count: derived.unread_count,
+        cleared_at_p1: derived.cleared_at_p1,
+        cleared_at_p2: derived.cleared_at_p2,
       };
     });
 
@@ -414,7 +443,6 @@ export default function ChatListScreen() {
               const visible = sorted.filter((f: any) => !f.is_hidden);
               allFriendsRef.current = sorted;
               setFriends(visible);
-              friendsRef.current = visible;
               setLoading(false);
             }
           } catch {}
@@ -425,11 +453,7 @@ export default function ChatListScreen() {
         const allFresh = sortFriends(await fetchFresh());
         const visible = allFresh.filter((f: any) => !f.is_hidden);
         allFriendsRef.current = allFresh;
-        setFriends((prev) => {
-          if (orderChanged(prev, visible)) listKeyRef.current += 1;
-          friendsRef.current = visible;
-          return visible;
-        });
+        setFriends(visible);
         cacheSet(
           CACHE_KEY(user.id),
           JSON.stringify({ data: allFresh, at: Date.now() }),
@@ -447,6 +471,7 @@ export default function ChatListScreen() {
   useEffect(() => {
     loadFriends();
   }, [loadFriends]);
+
   useFocusEffect(
     useCallback(() => {
       if (isFirstFocus.current) {
@@ -464,15 +489,12 @@ export default function ChatListScreen() {
           const allSorted = sortFriends(corrected);
           const visible = allSorted.filter((f) => !f.is_hidden);
           allFriendsRef.current = allSorted;
-          setFriends((prev) => {
-            if (orderChanged(prev, visible)) listKeyRef.current += 1;
-            friendsRef.current = visible;
-            return visible;
-          });
+          setFriends(visible);
         })
         .catch(() => {});
     }, [fetchFresh]),
   );
+
   useEffect(() => {
     if (!user?.id) return;
     const uid = user.id;
@@ -496,60 +518,30 @@ export default function ChatListScreen() {
             const otherId = parts.find((p: string) => p !== uid);
             if (!otherId) return;
 
-            const isHiddenForMe = (doc.hidden_for ?? []).includes(uid);
-            const myIndex = parts.indexOf(uid);
-            const myClearedAt =
-              myIndex === 0 ? doc.cleared_at_p1 : doc.cleared_at_p2;
-            const lastMsgAt = doc.last_message_at;
-            const userHasCleared =
-              myClearedAt && lastMsgAt
-                ? new Date(myClearedAt) >= new Date(lastMsgAt)
-                : !!myClearedAt && !lastMsgAt;
+            const derived = deriveFriendFields(uid, doc);
 
-            const unread_count =
-              isHiddenForMe || userHasCleared
-                ? 0
-                : myIndex === 0
-                  ? (doc.unread_p1 ?? 0)
-                  : (doc.unread_p2 ?? 0);
-
-            if (unread_count === 0 && doc.id)
+            if (derived.unread_count === 0 && doc.id) {
               localZeroedChats.current.delete(doc.id);
+            }
 
-            if (isHiddenForMe) {
-              setFriends((prev) => {
-                const next = prev.filter((f) => f.user_id !== otherId);
-                friendsRef.current = next;
-                listKeyRef.current += 1;
-                return next;
-              });
+            if (derived.isHidden) {
+              setFriends((prev) => prev.filter((f) => f.user_id !== otherId));
               allFriendsRef.current = allFriendsRef.current.map((f) =>
                 f.user_id === otherId ? { ...f, is_hidden: true } : f,
               );
               return;
             }
 
-            const myPreview =
-              myIndex === 0 ? doc.last_message_p1 : doc.last_message_p2;
-            const myPreviewAt =
-              myIndex === 0 ? doc.last_message_at_p1 : doc.last_message_at_p2;
-            const myPreviewSdr =
-              myIndex === 0 ? doc.last_sender_id_p1 : doc.last_sender_id_p2;
-
             const updatedFields = {
               chat_id: doc.id,
-              last_message: userHasCleared ? null : (myPreview ?? ""),
-              last_message_at: userHasCleared ? null : (myPreviewAt ?? null),
-              last_message_is_mine: userHasCleared
-                ? false
-                : myPreviewSdr === uid,
-              last_message_status: userHasCleared
-                ? "sent"
-                : ((doc.last_message_status ?? "sent") as "sent" | "seen"),
-              unread_count,
+              last_message: derived.last_message,
+              last_message_at: derived.last_message_at,
+              last_message_is_mine: derived.last_message_is_mine,
+              last_message_status: derived.last_message_status,
+              unread_count: derived.unread_count,
               is_hidden: false,
-              cleared_at_p1: doc.cleared_at_p1 ?? null,
-              cleared_at_p2: doc.cleared_at_p2 ?? null,
+              cleared_at_p1: derived.cleared_at_p1,
+              cleared_at_p2: derived.cleared_at_p2,
             };
 
             setFriends((prev) => {
@@ -564,7 +556,6 @@ export default function ChatListScreen() {
                 );
                 if (hiddenFriend) {
                   next = [{ ...hiddenFriend, ...updatedFields }, ...prev];
-                  listKeyRef.current += 1;
                 } else {
                   loadFriends();
                   return prev;
@@ -619,13 +610,9 @@ export default function ChatListScreen() {
 
   const markReadLocally = useCallback((chatId: string) => {
     localZeroedChats.current.add(chatId);
-    setFriends((prev) => {
-      const next = prev.map((f) =>
-        f.chat_id === chatId ? { ...f, unread_count: 0 } : f,
-      );
-      friendsRef.current = next;
-      return next;
-    });
+    setFriends((prev) =>
+      prev.map((f) => (f.chat_id === chatId ? { ...f, unread_count: 0 } : f)),
+    );
   }, []);
 
   const handleClear = useCallback((f: Friend) => {
@@ -642,13 +629,11 @@ export default function ChatListScreen() {
         unread_count: 0,
         is_hidden: false,
       };
-      setFriends((prev) => {
-        const next = prev.map((x) =>
+      setFriends((prev) =>
+        prev.map((x) =>
           x.connection_id === f.connection_id ? clearedFriend : x,
-        );
-        friendsRef.current = next;
-        return next;
-      });
+        ),
+      );
       allFriendsRef.current = allFriendsRef.current.map((x) =>
         x.connection_id === f.connection_id ? clearedFriend : x,
       );
@@ -666,34 +651,37 @@ export default function ChatListScreen() {
     setDeleteModal(f);
   }, []);
 
-  const doHideChat = useCallback(async (f: Friend) => {
-    setFriends((prev) => {
-      const next = prev.filter((x) => x.connection_id !== f.connection_id);
-      friendsRef.current = next;
-      listKeyRef.current += 1;
-      return next;
-    });
-    setSwipedIds((prev) => {
-      const n = new Set(prev);
-      n.delete(f.connection_id);
-      return n;
-    });
-    allFriendsRef.current = allFriendsRef.current.map((x) =>
-      x.connection_id === f.connection_id
-        ? { ...x, is_hidden: true, last_message: null, last_message_at: null }
-        : x,
-    );
-    if (!f.chat_id) return;
-    try {
-      await callFn({ action: "hide_chat", chatId: f.chat_id });
-    } catch {
-      setFriends((prev) => sortFriends([{ ...f, is_hidden: false }, ...prev]));
-     allFriendsRef.current = allFriendsRef.current.map((x) =>
-    x.connection_id === f.connection_id ? { ...x, is_hidden: false } : x,
+  const doHideChat = useCallback(
+    async (f: Friend) => {
+      unregisterClose(f.connection_id); // prevent closeRegistry leak
+
+      setFriends((prev) =>
+        prev.filter((x) => x.connection_id !== f.connection_id),
+      );
+      setSwipedIds((prev) => {
+        const n = new Set(prev);
+        n.delete(f.connection_id);
+        return n;
+      });
+      allFriendsRef.current = allFriendsRef.current.map((x) =>
+        x.connection_id === f.connection_id
+          ? { ...x, is_hidden: true, last_message: null, last_message_at: null }
+          : x,
+      );
+      if (!f.chat_id) return;
+      try {
+        await callFn({ action: "hide_chat", chatId: f.chat_id });
+      } catch {
+        setFriends((prev) =>
+          sortFriends([{ ...f, is_hidden: false }, ...prev]),
+        );
+        allFriendsRef.current = allFriendsRef.current.map((x) =>
+          x.connection_id === f.connection_id ? { ...x, is_hidden: false } : x,
+        );
+      }
+    },
+    [unregisterClose],
   );
-  listKeyRef.current += 1;
-    }
-  }, []);
 
   const handleBulkDelete = useCallback(async () => {
     const ids = Array.from(swipedIds);
@@ -701,11 +689,11 @@ export default function ChatListScreen() {
     setFriends((prev) => prev.filter((f) => !ids.includes(f.connection_id)));
     setSwipedIds(new Set());
     closeAllExcept();
-    listKeyRef.current += 1;
     await Promise.all(targets.map((f) => doHideChat(f)));
   }, [swipedIds, friends, doHideChat, closeAllExcept]);
 
   const keyExtractor = useCallback((item: Friend) => item.connection_id, []);
+
   const renderRow = useCallback(
     ({ item }: { item: Friend }) => (
       <SwipeableRow
@@ -715,6 +703,7 @@ export default function ChatListScreen() {
         onSwipeLeftOpen={onSwipeLeftOpen}
         onSwipeLeftClose={onSwipeLeftClose}
         registerClose={registerClose}
+        unregisterClose={unregisterClose}
         onAnyPress={closeAllExcept}
         onMarkRead={markReadLocally}
       />
@@ -725,6 +714,7 @@ export default function ChatListScreen() {
       onSwipeLeftOpen,
       onSwipeLeftClose,
       registerClose,
+      unregisterClose,
       closeAllExcept,
       markReadLocally,
     ],
@@ -755,7 +745,6 @@ export default function ChatListScreen() {
       <BulkDeleteBar count={swipedIds.size} onDeleteAll={handleBulkDelete} />
 
       <FlatList
-        // key={String(listKeyRef.current)}
         data={friends}
         renderItem={renderRow}
         keyExtractor={keyExtractor}
@@ -852,7 +841,9 @@ export default function ChatListScreen() {
     </SafeAreaView>
   );
 }
+
 ChatListScreen.whyDidYouRender = true;
+
 const st = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.white },
   listContent: {},
