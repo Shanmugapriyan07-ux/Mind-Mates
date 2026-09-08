@@ -10,8 +10,6 @@ export interface ConversationMeta {
   unreadCount:     number;
   isOnline:        boolean;
   lastSeen:        string | null;
-// activeChatId: string | null;
-// setActiveChatId: (chatId: string | null) => void;
 }
 
 interface ChatStore {

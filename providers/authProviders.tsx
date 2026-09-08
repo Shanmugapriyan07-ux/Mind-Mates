@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabase";
 import { flushPendingNavigation } from "@/services/deepLinkService";
 import { notificationService } from "@/services/notificationService";
 import { realtimeService } from "@/services/realtimeService";
+import { checkProfileComplete, mapUser } from "@/services/authServices";
 import { useAuthStore } from "@/stores/authStore";
 import React, { useCallback, useEffect } from "react";
 import { InteractionManager } from "react-native";
@@ -43,13 +44,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const {
         data: { session: initialSession },
       } = await supabase.auth.getSession();
-      // setSession(initialSession);
-      // setHydrated();
-      // if (initialSession?.user) {
-      //   await handleUserSetup(initialSession.user.id);
-      // }
-
-      setSession(initialSession);
+      const initialUser = initialSession?.user
+        ? mapUser(
+            initialSession.user,
+            await checkProfileComplete(initialSession.user.id),
+          )
+        : null;
+      setSession(initialUser, initialSession?.access_token ?? null);
       setHydrated();
 
       if (initialSession?.user) {
@@ -61,7 +62,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const {
         data: { subscription },
       } = supabase.auth.onAuthStateChange(async (event, session) => {
-        setSession(session);
+        const user = session?.user
+          ? mapUser(session.user, await checkProfileComplete(session.user.id))
+          : null;
+        setSession(user, session?.access_token ?? null);
         if (event === "SIGNED_IN" && session?.user) {
           await handleUserSetup(session.user.id);
         }

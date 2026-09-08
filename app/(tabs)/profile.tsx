@@ -1,3 +1,5 @@
+import { ProfileSkeleton } from "@/components/profile/profileSkeleton";
+import { ScrollablePills, SkillCard } from "@/components/profile/skillDisplay";
 import { useAuthh } from "@/Contexts/authContext";
 import { useProfile } from "@/Contexts/profileContext";
 import { useRenderCount } from "@/Count";
@@ -5,12 +7,10 @@ import { useConnectionCount } from "@/hooks/useConnectionCount";
 import { ms, s, vs } from "@/utils/scale";
 import { AntDesign } from "@expo/vector-icons";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { FlashList } from "@shopify/flash-list";
 import { Image } from "expo-image";
 import { router, useFocusEffect } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import {
-  Animated,
   Pressable,
   ScrollView,
   StatusBar,
@@ -30,239 +30,19 @@ const toPublicImageUrl = (url: string | null): string | null => {
   return url;
 };
 
-const SKILL_ICONS: Record<string, string> = {
-  Art: "color-palette-outline",
-  Painting: "brush-outline",
-  Photography: "camera-outline",
-  Videography: "videocam-outline",
-  Acting: "happy-outline",
-  Singing: "mic-outline",
-  Freefire: "game-controller-outline",
-  BGMI: "game-controller-outline",
-  Freelancing: "laptop-outline",
-  Gym: "barbell-outline",
-  Yoga: "body-outline",
-  Running: "walk-outline",
-  Cycling: "bicycle-outline",
-  Swimming: "water-outline",
-  Boxing: "fitness-outline",
-  Bulking: "fitness-outline",
-  "Weight Loss": "scale-outline",
-  PowerLifter: "barbell-outline",
-  Bodybuilding: "body-outline",
-  Programming: "code-slash-outline",
-  "App Development": "phone-portrait-outline",
-  "Web Development": "globe-outline",
-  "AI / ML": "hardware-chip-outline",
-  Cybersecurity: "shield-checkmark-outline",
-  "UI/UX Design": "color-wand-outline",
-  Python: "code-slash-outline",
-  Java: "code-slash-outline",
-  "Govt Prep": "book-outline",
-  Business: "briefcase-outline",
-  "Short Films": "film-outline",
-  Football: "football-outline",
-  Cricket: "baseball-outline",
-  Basketball: "basketball-outline",
-  Tennis: "tennisball-outline",
-  Kabaddi: "people-outline",
-  Athletics: "timer-outline",
-  Startups: "rocket-outline",
-  "Content Creator": "create-outline",
-  Music: "musical-notes-outline",
-  Dancing: "walk-outline",
-  Writing: "pencil-outline",
-  Sketching: "brush-outline",
-  Cooking: "restaurant-outline",
-  Travel: "airplane-outline",
-  Fashion: "shirt-outline",
-  Podcast: "mic-circle-outline",
-  Gardening: "leaf-outline",
-  "Pets & Animals": "paw-outline",
-  Chess: "grid-outline",
-  Badminton: "tennisball-outline",
-  Volleyball: "football-outline",
-  "Table Tennis": "tennisball-outline",
-  "Martial Arts": "fitness-outline",
-  Calisthenics: "body-outline",
-  Archery: "navigate-outline",
-  "Data Science": "analytics-outline",
-  "Cloud Computing": "cloud-outline",
-  Blockchain: "link-outline",
-  "React Native": "phone-portrait-outline",
-  DevOps: "server-outline",
-  "3D Printing": "cube-outline",
-  "Graphic Design": "color-wand-outline",
-  "Motion Design": "film-outline",
-  "3D Modeling": "cube-outline",
-  Illustration: "brush-outline",
-  "Brand Design": "ribbon-outline",
-  Marketing: "megaphone-outline",
-  Trading: "swap-horizontal-outline",
-  "E-Commerce": "storefront-outline",
-  Filmmaking: "videocam-outline",
-  "Music Production": "headset-outline",
-  Skincare: "sparkles-outline",
-};
-const DEFAULT_ICON = "flash-outline";
-const SkeletonBox = ({ width, height, borderRadius = s(8), style }: any) => {
-  const opacity = React.useRef(new Animated.Value(0.3)).current;
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(opacity, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacity, {
-          toValue: 0.3,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-      ]),
-    ).start();
-  }, [opacity]);
-  return (
-    <Animated.View
-      style={[
-        { width, height, borderRadius, backgroundColor: "#E5E7EB", opacity },
-        style,
-      ]}
-    />
-  );
-};
-
-const ProfileSkeleton = () => (
-  <ScrollView
-    contentContainerStyle={st.scroll}
-    showsVerticalScrollIndicator={false}
-  >
-    <View style={{ alignItems: "center", paddingTop: vs(32) }}>
-      <SkeletonBox
-        width={s(110)}
-        height={s(110)}
-        borderRadius={s(55)}
-        style={{ marginBottom: vs(14) }}
-      />
-      <SkeletonBox
-        width={s(160)}
-        height={vs(22)}
-        style={{ marginBottom: vs(10) }}
-      />
-      <SkeletonBox
-        width={s(120)}
-        height={vs(16)}
-        style={{ marginBottom: vs(8) }}
-      />
-      <SkeletonBox
-        width={s(100)}
-        height={vs(14)}
-        style={{ marginBottom: vs(24) }}
-      />
-      <View
-        style={{
-          flexDirection: "row",
-          gap: s(10),
-          marginBottom: vs(24),
-          paddingHorizontal: s(20),
-        }}
-      >
-        <SkeletonBox width={s(90)} height={vs(36)} borderRadius={s(20)} />
-        <SkeletonBox width={s(90)} height={vs(36)} borderRadius={s(20)} />
-        <SkeletonBox width={s(90)} height={vs(36)} borderRadius={s(20)} />
-      </View>
-    </View>
-    <View style={{ paddingHorizontal: s(20) }}>
-      <View style={{ flexDirection: "row", gap: s(10), marginBottom: vs(24) }}>
-        <SkeletonBox width={s(90)} height={vs(100)} borderRadius={s(14)} />
-        <SkeletonBox width={s(90)} height={vs(100)} borderRadius={s(14)} />
-        <SkeletonBox width={s(90)} height={vs(100)} borderRadius={s(14)} />
-      </View>
-      <SkeletonBox
-        width="100%"
-        height={vs(14)}
-        style={{ marginBottom: vs(8) }}
-      />
-      <SkeletonBox width="75%" height={vs(14)} />
-    </View>
-  </ScrollView>
-);
-const SkillPill = React.memo(
-  ({
-    skill,
-    active,
-    onPress,
-  }: {
-    skill: string;
-    active?: boolean;
-    onPress?: () => void;
-  }) => (
-    <TouchableOpacity
-      activeOpacity={0.7}
-      onPress={onPress}
-      style={[st.pill, active && st.pillActive]}
-    >
-      <Ionicons
-        name={(SKILL_ICONS[skill] ?? DEFAULT_ICON) as any}
-        size={s(13)}
-        color={active ? "#fff" : "#6D4AFF"}
-        style={{ marginRight: s(5) }}
-      />
-      <Text style={[st.pillText, active && st.pillTextActive]}>{skill}</Text>
-    </TouchableOpacity>
-  ),
-);
-
-const SkillCard = React.memo(({ skill }: { skill: string }) => (
-  <View style={st.skillCard}>
-    <View style={st.skillIconWrap}>
-      <Ionicons
-        name={(SKILL_ICONS[skill] ?? DEFAULT_ICON) as any}
-        size={s(28)}
-        color="#6D4AFF"
-      />
-    </View>
-    <Text style={st.skillName} numberOfLines={2}>
-      {skill}
-    </Text>
-  </View>
-));
-
-const ScrollablePills = ({ skills }: { skills: string[] }) => {
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(0);
-
-  return (
-    <View style={st.pillsWrapper}>
-      <FlashList
-        horizontal
-        data={skills}
-        keyExtractor={(item, index) => `${item}-${index}`}
-        extraData={selectedIndex}
-        showsHorizontalScrollIndicator={false}
-        nestedScrollEnabled
-        scrollEventThrottle={16}
-        contentContainerStyle={st.pillRow}
-        style={st.pillsScroll}
-        renderItem={({ item, index }) => (
-          <SkillPill
-            skill={item}
-            active={index === selectedIndex}
-            onPress={() => setSelectedIndex(index)}
-          />
-        )}
-      />
-    </View>
-  );
-};
 const ProfileScreen = () => {
-
   useRenderCount("profileScreen");
   const { profile, isLoading, reloadProfile, error } = useProfile();
+  const hasAttemptedReload = useRef(false);
   const { user } = useAuthh();
   const { count, refetch: reloadCount } = useConnectionCount(profile?.userId);
   useEffect(() => {
-    if (!isLoading && !profile && user?.id) reloadProfile();
+    if (isLoading) return;
+    if (profile) return;
+    if (!user?.id) return;
+    if (hasAttemptedReload.current) return;
+    hasAttemptedReload.current = true;
+    reloadProfile();
   }, [isLoading, profile, user?.id, reloadProfile]);
   useFocusEffect(
     useCallback(() => {
@@ -278,7 +58,7 @@ const ProfileScreen = () => {
           <Text style={st.headerTitle}>Profile</Text>
           <View style={{ width: s(32) }} />
         </View>
-        <ProfileSkeleton />
+        <ProfileSkeleton contentPaddingBottom={vs(300)} />
       </SafeAreaView>
     );
   if (!profile)
@@ -407,7 +187,6 @@ const ProfileScreen = () => {
     </SafeAreaView>
   );
 };
-
 
 ProfileScreen.whyDidYouRender = true;
 

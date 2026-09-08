@@ -12,6 +12,7 @@ class OnlineStatusCache {
   private channels     = new Map<string, any>();
   private ghostTimers  = new Map<string, ReturnType<typeof setTimeout>>();
   private watchPending = new Set<string>();
+    private reconnectPending = new Set<string>();
   subscribe(userId: string, listener: Listener): () => void {
     if (!this.listeners.has(userId)) {
       this.listeners.set(userId, new Set());
@@ -100,20 +101,23 @@ class OnlineStatusCache {
           }
         }
       )
-      .subscribe((status: string) => {
-        if (status === 'SUBSCRIBED') {
-          refetch();
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.warn('[OnlineCache] channel error for', userId.slice(0, 8), '— refetching');
-          refetch();
-          setTimeout(() => {
-            if (this.listeners.has(userId) && this.listeners.get(userId)!.size > 0) {
-              this.stopWatching(userId);
-              this.ensureWatching(userId);
-            }
-          }, 3000);
+        .subscribe((status: string) => {
+    if (status === 'SUBSCRIBED') {
+      refetch();
+    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+      console.warn('[OnlineCache] channel error for', userId.slice(0, 8), '— refetching');
+      refetch();
+      if (this.reconnectPending.has(userId)) return;
+      this.reconnectPending.add(userId);
+      setTimeout(() => {
+        this.reconnectPending.delete(userId);
+        if (this.listeners.has(userId) && this.listeners.get(userId)!.size > 0) {
+          this.stopWatching(userId);
+          this.ensureWatching(userId);
         }
-      });
+      }, 3000);
+    }
+  });
 
     this.channels.set(userId, channel);
   }

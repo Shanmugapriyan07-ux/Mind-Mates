@@ -1,8 +1,9 @@
-import { supabase }     from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { useChatStore } from '@/stores/chatStore';
 import { RealtimeChannel } from '@supabase/supabase-js';
 class RealtimeManager {
   private channels: Map<string, RealtimeChannel> = new Map();
+   private messageListeners: Map<string, Set<(msg: any) => void>> = new Map();
   private userId: string | null = null;
 
   init(userId: string) {
@@ -73,40 +74,45 @@ class RealtimeManager {
     .subscribe();
   this.channels.set(key, channel);
 }
-  subscribeToMessages(
-    chatId: string,
-    onMessage: (msg: any) => void
-  ): () => void {
+  subscribeToMessages(chatId: string, onMessage: (msg: any) => void): () => void {
     const key = `messages:${chatId}`;
-    if (this.channels.has(key)) {
-      return () => this.unsubscribeChat(chatId);
-    }
-    const channel = supabase
-      .channel(key)
-      .on(
-        'postgres_changes',
-        {
-          event:  'INSERT',
-          schema: 'public',
-          table:  'messages',
-          filter: `chat_id=eq.${chatId}`,
-        },
-        (payload) => onMessage(payload.new)
-      )
-      .subscribe();
 
-    this.channels.set(key, channel);
-    return () => this.unsubscribeChat(chatId);
+    if (!this.messageListeners.has(key)) {
+      this.messageListeners.set(key, new Set());
+    }
+    this.messageListeners.get(key)!.add(onMessage);
+
+    if (!this.channels.has(key)) {
+      const channel = supabase
+        .channel(key)
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'messages', filter: `chat_id=eq.${chatId}` },
+          (payload) => {
+            this.messageListeners.get(key)?.forEach((cb) => cb(payload.new));
+          },
+        )
+        .subscribe();
+      this.channels.set(key, channel);
+    }
+
+    return () => {
+      const listeners = this.messageListeners.get(key);
+      listeners?.delete(onMessage);
+      if (!listeners || listeners.size === 0) {
+        this.unsubscribeChat(chatId);
+        this.messageListeners.delete(key);
+      }
+    };
   }
 
   unsubscribeChat(chatId: string) {
     const key = `messages:${chatId}`;
-    const ch  = this.channels.get(key);
+    const ch = this.channels.get(key);
     if (ch) {
       supabase.removeChannel(ch);
       this.channels.delete(key);
     }
   }
 }
-
 export const realtimeManager = new RealtimeManager();

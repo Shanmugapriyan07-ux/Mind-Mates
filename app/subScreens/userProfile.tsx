@@ -1,24 +1,29 @@
+import { ProfileSkeleton } from "@/components/profile/profileSkeleton";
+import { ScrollablePills, SkillCard } from "@/components/profile/skillDisplay";
 import { useAuthh } from "@/Contexts/authContext";
 import { useRenderCount } from "@/Count";
-import { useConnection } from "@/hooks/useConnection";
+import {
+  useConnection,
+  useConnectionLoading,
+  useConnectionStatus,
+} from "@/hooks/useConnection";
 import { useConnectionCount } from "@/hooks/useConnectionCount";
 import { supabase, TABLES } from "@/lib/supabase";
 import { ms, s, vs } from "@/utils/scale";
+import { parseSkills } from "@/utils/skill";
 import { Ionicons } from "@expo/vector-icons";
-import { FlashList } from "@shopify/flash-list";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Pressable,
-    Animated as RNAnimated,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 interface UserProfile {
@@ -30,252 +35,6 @@ interface UserProfile {
   profile_image: string | null;
   skills: string | null;
 }
-
-const SKILL_ICONS: Record<string, string> = {
-  Art: "color-palette-outline",
-  Painting: "brush-outline",
-  Photography: "camera-outline",
-  Videography: "videocam-outline",
-  Acting: "happy-outline",
-  Singing: "mic-outline",
-  Freefire: "game-controller-outline",
-  BGMI: "game-controller-outline",
-  Freelancing: "laptop-outline",
-  Gym: "barbell-outline",
-  Yoga: "body-outline",
-  Running: "walk-outline",
-  Cycling: "bicycle-outline",
-  Swimming: "water-outline",
-  Boxing: "fitness-outline",
-  Bulking: "fitness-outline",
-  "Weight Loss": "scale-outline",
-  PowerLifter: "barbell-outline",
-  Bodybuilding: "body-outline",
-  Programming: "code-slash-outline",
-  "App Development": "phone-portrait-outline",
-  "Web Development": "globe-outline",
-  "AI / ML": "hardware-chip-outline",
-  Cybersecurity: "shield-checkmark-outline",
-  "UI/UX Design": "color-wand-outline",
-  Python: "code-slash-outline",
-  Java: "code-slash-outline",
-  "Govt Prep": "book-outline",
-  Business: "briefcase-outline",
-  "Short Films": "film-outline",
-  Football: "football-outline",
-  Cricket: "baseball-outline",
-  Basketball: "basketball-outline",
-  Tennis: "tennisball-outline",
-  Kabaddi: "people-outline",
-  Athletics: "timer-outline",
-  Startups: "rocket-outline",
-  "Content Creator": "create-outline",
-  Music: "musical-notes-outline",
-  Dancing: "walk-outline",
-  Writing: "pencil-outline",
-  Sketching: "brush-outline",
-  Cooking: "restaurant-outline",
-  Travel: "airplane-outline",
-  Fashion: "shirt-outline",
-  Podcast: "mic-circle-outline",
-  Gardening: "leaf-outline",
-  "Pets & Animals": "paw-outline",
-  Chess: "grid-outline",
-  Badminton: "tennisball-outline",
-  Volleyball: "football-outline",
-  "Table Tennis": "tennisball-outline",
-  "Martial Arts": "fitness-outline",
-  Calisthenics: "body-outline",
-  Archery: "navigate-outline",
-  "Data Science": "analytics-outline",
-  "Cloud Computing": "cloud-outline",
-  Blockchain: "link-outline",
-  "React Native": "phone-portrait-outline",
-  DevOps: "server-outline",
-  "3D Printing": "cube-outline",
-  "Graphic Design": "color-wand-outline",
-  "Motion Design": "film-outline",
-  "3D Modeling": "cube-outline",
-  Illustration: "brush-outline",
-  "Brand Design": "ribbon-outline",
-  Marketing: "megaphone-outline",
-  Trading: "swap-horizontal-outline",
-  "E-Commerce": "storefront-outline",
-  Filmmaking: "videocam-outline",
-  "Music Production": "headset-outline",
-  Skincare: "sparkles-outline",
-};
-const DEFAULT_ICON = "flash-outline";
-
-const parseSkills = (sk: string | null): string[] =>
-  sk
-    ? sk
-        .split(",")
-        .map((x) => x.trim())
-        .filter(Boolean)
-    : [];
-
-const SkeletonBox = ({
-  width,
-  height,
-  borderRadius = s(8),
-  style,
-}: {
-  width: any;
-  height: any;
-  borderRadius?: number;
-  style?: any;
-}) => {
-  const opacity = React.useRef(new RNAnimated.Value(0.3)).current;
-  useEffect(() => {
-    RNAnimated.loop(
-      RNAnimated.sequence([
-        RNAnimated.timing(opacity, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-        RNAnimated.timing(opacity, {
-          toValue: 0.3,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-      ]),
-    ).start();
-  }, [opacity]);
-  return (
-    <RNAnimated.View
-      style={[
-        { width, height, borderRadius, backgroundColor: "#E5E7EB", opacity },
-        style,
-      ]}
-    />
-  );
-};
-
-const ProfileSkeleton = () => (
-  <ScrollView
-    contentContainerStyle={st.scroll}
-    showsVerticalScrollIndicator={false}
-  >
-    <View style={{ alignItems: "center", paddingTop: vs(32) }}>
-      <SkeletonBox
-        width={s(110)}
-        height={s(110)}
-        borderRadius={s(55)}
-        style={{ marginBottom: vs(14) }}
-      />
-      <SkeletonBox
-        width={s(160)}
-        height={vs(22)}
-        style={{ marginBottom: vs(10) }}
-      />
-      <SkeletonBox
-        width={s(120)}
-        height={vs(16)}
-        style={{ marginBottom: vs(8) }}
-      />
-      <SkeletonBox
-        width={s(100)}
-        height={vs(14)}
-        style={{ marginBottom: vs(24) }}
-      />
-      <View
-        style={{
-          flexDirection: "row",
-          gap: s(10),
-          marginBottom: vs(24),
-          paddingHorizontal: s(20),
-        }}
-      >
-        <SkeletonBox width={s(90)} height={vs(36)} borderRadius={s(20)} />
-        <SkeletonBox width={s(90)} height={vs(36)} borderRadius={s(20)} />
-        <SkeletonBox width={s(90)} height={vs(36)} borderRadius={s(20)} />
-      </View>
-    </View>
-    <View style={{ paddingHorizontal: s(20) }}>
-      <View style={{ flexDirection: "row", gap: s(10), marginBottom: vs(24) }}>
-        <SkeletonBox width={s(90)} height={vs(100)} borderRadius={s(14)} />
-        <SkeletonBox width={s(90)} height={vs(100)} borderRadius={s(14)} />
-        <SkeletonBox width={s(90)} height={vs(100)} borderRadius={s(14)} />
-      </View>
-      <SkeletonBox
-        width="100%"
-        height={vs(14)}
-        style={{ marginBottom: vs(8) }}
-      />
-      <SkeletonBox width="75%" height={vs(14)} />
-    </View>
-  </ScrollView>
-);
-const SkillPill = React.memo(
-  ({
-    skill,
-    active,
-    onPress,
-  }: {
-    skill: string;
-    active?: boolean;
-    onPress?: () => void;
-  }) => (
-    <TouchableOpacity
-      activeOpacity={0.7}
-      onPress={onPress}
-      style={[st.pill, active && st.pillActive]}
-    >
-      <Ionicons
-        name={(SKILL_ICONS[skill] ?? DEFAULT_ICON) as any}
-        size={s(13)}
-        color={active ? "#fff" : "#6D4AFF"}
-        style={{ marginRight: s(5) }}
-      />
-      <Text style={[st.pillText, active && st.pillTextActive]}>{skill}</Text>
-    </TouchableOpacity>
-  ),
-);
-
-const SkillCard = React.memo(({ skill }: { skill: string }) => (
-  <View style={st.skillCard}>
-    <View style={st.skillIconWrap}>
-      <Ionicons
-        name={(SKILL_ICONS[skill] ?? DEFAULT_ICON) as any}
-        size={s(28)}
-        color="#6D4AFF"
-      />
-    </View>
-    <Text style={st.skillName} numberOfLines={2}>
-      {skill}
-    </Text>
-  </View>
-));
-
-const ScrollablePills = ({ skills }: { skills: string[] }) => {
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(0);
-
-  return (
-    <View style={st.pillsWrapper}>
-      <FlashList
-        horizontal
-        data={skills}
-        keyExtractor={(item, index) => `${item}-${index}`}
-        extraData={selectedIndex}
-        showsHorizontalScrollIndicator={false}
-        nestedScrollEnabled
-        scrollEventThrottle={16}
-        contentContainerStyle={st.pillRow}
-        style={st.pillsScroll}
-        renderItem={({ item, index }) => (
-          <SkillPill
-            skill={item}
-            active={index === selectedIndex}
-            onPress={() => setSelectedIndex(index)}
-          />
-        )}
-      />
-    </View>
-  );
-};
-
 const ConnectBtn = ({
   targetUserId,
   fullName,
@@ -287,9 +46,9 @@ const ConnectBtn = ({
   profileImage: string | null;
   skills: string;
 }) => {
-  const { getStatus, isLoading, sendRequest, cancelRequest } = useConnection();
-  const status = getStatus(targetUserId);
-  const loading = isLoading(targetUserId);
+  const status = useConnectionStatus(targetUserId);
+  const loading = useConnectionLoading(targetUserId);
+  const { sendRequest, cancelRequest } = useConnection();
   const cfg = {
     none: { label: "Connect", bg: "#6D4AFF", fg: "#fff", border: "#6D4AFF" },
     pending: {
@@ -577,9 +336,7 @@ export default function UserProfileScreen() {
   );
 }
 
-
 UserProfileScreen.whyDidYouRender = true;
-
 
 const st = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#FFFFFF" },

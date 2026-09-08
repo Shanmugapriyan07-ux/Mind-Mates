@@ -70,17 +70,6 @@ const sortFriends = (list: Friend[]) =>
     return toMs(b.last_message_at) - toMs(a.last_message_at);
   });
 
-const orderChanged = (a: Friend[], b: Friend[]) =>
-  a.length !== b.length ||
-  a.some((f, i) => f.connection_id !== b[i]?.connection_id);
-
-/**
- * Single source of truth for deriving a friend/chat's display fields
- * (unread count, preview text, hidden/cleared state) from a raw chat row.
- * Used by BOTH the initial fetch (fetchFresh) and the realtime UPDATE
- * handler, so the two paths can never silently drift out of sync with
- * each other the way two independent copies of this logic previously did.
- */
 function deriveFriendFields(uid: string, ch: any) {
   const isHidden = ch ? (ch.hidden_for ?? []).includes(uid) : false;
   const parts = (ch?.participants as string[]) ?? [];

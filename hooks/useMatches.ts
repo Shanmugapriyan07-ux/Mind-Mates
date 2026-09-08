@@ -89,7 +89,8 @@ export const useMatches = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error,      setError]      = useState<string | null>(null);
   const running = useRef(false);
-
+ const matchesRef = useRef<MatchUser[]>([]);
+  matchesRef.current = matches;
   const fetchAndRank = useCallback(async (): Promise<MatchUser[]> => {
     if (!user?.id) return [];
 
@@ -168,8 +169,8 @@ export const useMatches = () => {
         setError('No MindMates yet');
       }
         } catch (error: any) {
-      console.warn('❌ useMatches:', error?.message);
-      if (matches.length === 0) {
+      console.warn('useMatches:', error?.message);
+       if (matchesRef.current.length === 0) {   // reads the ref, not reactive state
         setError(error?.message ?? 'Could not load matches. Try again.');
       }
     } finally {
@@ -177,7 +178,7 @@ export const useMatches = () => {
       setFetching(false);
       running.current = false;
     }
-  }, [fetchAndRank, matches.length, user?.id]);
+  }, [fetchAndRank, user?.id]);
 
   const refresh = useCallback(async () => {
     if (running.current) return;

@@ -1,15 +1,20 @@
 import { ProfileAvatar } from "@/components/Profileavatar";
 import images from "@/constants/images";
 import { useAuthh } from "@/Contexts/authContext";
-import { useConnection } from "@/hooks/useConnection";
+import { useRenderCount } from "@/Count";
+import {
+  useConnection,
+  useConnectionLoading,
+  useConnectionStatus,
+} from "@/hooks/useConnection";
 import { MatchUser, useMatches } from "@/hooks/useMatches";
 import { TYPOGRAPHY } from "@/theme";
 import { ms, s, vs } from "@/utils/scale";
 import { Ionicons } from "@expo/vector-icons";
 import { FlashList } from "@shopify/flash-list";
+import { Image } from "expo-image";
 import { router } from "expo-router";
 import React, { useCallback, useEffect, useMemo } from "react";
-import { Image } from "expo-image";
 import {
   ActivityIndicator,
   RefreshControl,
@@ -20,7 +25,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRenderCount } from "@/Count";
 const C = {
   bg: "#F7F8FA",
   white: "#FFFFFF",
@@ -35,7 +39,6 @@ const C = {
   orange: "#6D4AFF",
   skeleton: "#F0F0F3",
 };
-
 
 const CARD_H = vs(75);
 
@@ -100,9 +103,10 @@ const ConnectButton = React.memo(function ConnectButton({
   skills: string;
   location: string;
 }) {
-  const { getStatus, isLoading, sendRequest, cancelRequest } = useConnection();
-  const status = getStatus(userId);
-  const loading = isLoading(userId);
+  //   const { getStatus, isLoading, sendRequest, cancelRequest } = useConnection();
+  const status = useConnectionStatus(userId); // narrow — only re-renders if THIS user's status changes
+  const loading = useConnectionLoading(userId); // narrow — same benefit
+  const { sendRequest, cancelRequest } = useConnection();
   const cfg = {
     none: { label: "Connect", bg: C.purple, fg: "#fff", border: C.purple },
     pending: {
@@ -217,7 +221,6 @@ const MatchCard = React.memo(({ item }: { item: MatchUser }) => {
   );
 });
 export default function DiscoverScreen() {
-
   useRenderCount("searchScreen");
   useAuthh();
   const { loadStatuses, getStatus } = useConnection();
