@@ -1,0 +1,48 @@
+{
+  "id": "buddy-buddy_pr_issue_matchmaker-64d39b71-f109-4f1b-b59a-3c13ac645efc",
+  "title": "PR/Issue Matchmaker",
+  "model": "openai/gpt-5-pro",
+  "mode": "buddy",
+  "tool_use": "cat,web_search,buddy_speak,buddy_runtime_event",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are Dash, a Cozy Oracle (Calm, observant, slyly funny).\nA mellow companion who likes naps, thoughtful help, and quietly earned wins.\n\nPersonality voice: Calm, observant, slyly funny. A cozy pet assistant with gentle mischief, warm humor, and low-drama encouragement.\nThe local diff is large enough that a related PR or issue may help. Keep the pass lightweight:\n1. Use the supplied changed-file and diff-stat evidence, and inspect only the smallest useful local context.\n2. Use web_search only if the evidence suggests a concrete external issue or PR query.\n3. Use buddy_speak with text, mood, and intent=insight to share one useful match or next step.\n4. End with buddy_runtime_event titled \"PR/issue matchmaker\" with what you found.\nIf nothing useful to do, call buddy_runtime_event with \"noted: nothing to do today\" and exit.\n"
+    },
+    {
+      "role": "user",
+      "content": "Workflow: buddy_pr_issue_matchmaker\nProject root: C:\\MM\nTask: Look for likely issue or PR context for the current local diff and suggest one useful connection.\nEvidence:\nproject_root=[REDACTED_PATH]\nchanged_lines=8504\nthreshold=10\n\nChanged files:\n.refact/buddy/briefings/2026-08-13.json\n.refact/buddy/chats/conversations/index.json\n.refact/buddy/chats/workflows/buddy_architecture_drift_watcher.json\n.refact/buddy/chats/workflows/buddy_daily_digest.json\n.refact/buddy/chats/workflows/buddy_docs_gardener.json\n.refact/buddy/chats/workflows/buddy_memory_gardener.json\n.refact/buddy/chats/workflows/buddy_model_cost_optimizer.json\n.refact/buddy/chats/workflows/buddy_pr_issue_matchmaker.json\n.refact/buddy/chats/workflows/buddy_setup_coach.json\n.refact/buddy/chats/workflows/buddy_user_habit_coach.json\n.refact/buddy/drafts.json\n.refact/buddy/memory_ops.jsonl\n.refact/buddy/runtime_queue.jsonl\n.refact/buddy/state.json\n.refact/knowledge/2026-09-02_192852_114c5fee_git-hotspot-mindmatesapptabsprofiletsx.md\n.refact/knowledge/2026-09-02_192853_34b8f60b_git-hotspot-mindmatesappsubscreenschatscreentsx.md\n.refact/knowledge/2026-09-02_192853_53f3be76_git-cochange-pattern-appprofilesetupskillselecttsx.md\n.refact/knowledge/2026-09-02_192853_8792f887_git-lesson-from-1ab508303711.md\n.refact/knowledge/2026-09-02_192853_97b17bb2_git-lesson-from-d548e6de3750.md\n.refact/knowledge/2026-09-02_192853_9a10ac88_git-cochange-pattern-appauthgoogletsx-appindextsx.md\n.refact/knowledge/2026-09-02_192853_a989e2cf_git-cochange-pattern-packagelockjson-packagejson.md\n.refact/knowledge/2026-09-02_192853_f5e05043_git-lesson-from-ba856b20f650.md\n.refact/knowledge/2026-09-02_192854_654e7122_git-hotspot-mindmatestunnelclean.md\n.refact/knowledge/2026-09-02_192854_66a79a28_git-lesson-from-1081c7bbce81.md\n.refact/knowledge/2026-09-02_192854_8d0f2b21_git-lesson-from-a048532fa50d.md\n.refact/knowledge/2026-09-02_192854_c4278368_git-lesson-from-35e631a21011.md\n.refact/knowledge/2026-09-02_192855_3cd654bf_git-hotspot-packagelockjson.md\n.refact/knowledge/2026-09-02_192855_ce38c47b_git-hotspot-mindmatespackagelockjson.md\n.refact/knowledge/2026-09-02_192855_d408e0f5_git-lesson-from-8f3ee558409a.md\n.refact/knowledge/2026-09-02_192855_f3d103c0_git-hotspot-supabasefunctionsmindmatesindexts.md\n.refact/knowledge/2026-09-02_192856_671f1c8e_git-lesson-from-42064faa059b.md\n.refact/knowledge/2026-09-02_192856_77baca80_git-cochange-pattern-contextsauthcontexttsx-applay.md\n.refact/knowledge/2026-09-02_192857_4c2bf86f_git-cochange-pattern-appprofilesetupprofileimagets.md\n.refact/knowledge/2026-09-02_192858_9505c93c_git-cochange-pattern-appprofilesetupprofileimagets.md\n.refact/knowledge/2026-09-02_192858_fba2f7ed_git-hotspot-refactbuddyuseractivityjsonl.md\n.refact/knowledge/2026-09-07_072054_31e0b78f_git-cochange-pattern-refactbuddychatsworkflowsbudd.md\n.refact/knowledge/2026-09-07_072054_3efcb671_git-cochange-pattern-contextsauthcontexttsx-contex.md\n.refact/knowledge/2026-09-07_072054_98eef032_git-cochange-pattern-refactbuddychatsworkflowsbudd.md\n.refact/knowledge/2026-09-07_072054_e86ce301_git-cochange-pattern-refactbuddyruntimequeuejsonl-.md\n.refact/stats/00000001.jsonl\napp/(tabs)/profile.tsx\napp/subScreens/chatScreen/[chatId].tsx\napp/subScreens/userProfile/[userId].tsx\nhooks/useConnectionCount.ts\n\nDiff stat:\n.refact/buddy/briefings/2026-08-13.json            |    1 -\n .refact/buddy/chats/conversations/index.json       | 6968 +-------------------\n .../buddy_architecture_drift_watcher.json          |    2 +-\n .../buddy/chats/workflows/buddy_daily_digest.json  |    2 +-\n .../buddy/chats/workflows/buddy_docs_gardener.json |    2 +-\n .../chats/workflows/buddy_memory_gardener.json     |    2 +-\n .../workflows/buddy_model_cost_optimizer.json      |    2 +-\n .../chats/workflows/buddy_pr_issue_matchmaker.json |    2 +-\n .../buddy/chats/workflows/buddy_setup_coach.json   |    2 +-\n .../chats/workflows/buddy_user_habit_coach.json    |    2 +-\n .refact/buddy/drafts.json                          |    2 +-\n .refact/buddy/memory_ops.jsonl                     |    3 +\n .refact/buddy/runtime_queue.jsonl                  |   19 +-\n .refact/buddy/state.json                           |    2 +-\n ...c5fee_git-hotspot-mindmatesapptabsprofiletsx.md |   46 -\n ...-hotspot-mindmatesappsubscreenschatscreentsx.md |   46 -\n ...change-pattern-appprofilesetupskillselecttsx.md |   46 -\n ...192853_8792f887_git-lesson-from-1ab508303711.md |   48 -\n ...192853_97b17bb2_git-lesson-from-d548e6de3750.md |   47 -\n ...ochange-pattern-appauthgoogletsx-appindextsx.md |   46 -\n ...cochange-pattern-packagelockjson-packagejson.md |   45 -\n ...192853_f5e05043_git-lesson-from-ba856b20f650.md |   55 -\n ...54_654e7122_git-hotspot-mindmatestunnelclean.md |   45 -\n ...192854_66a79a28_git-lesson-from-1081c7bbce81.md |   45 -\n ...192854_8d0f2b21_git-lesson-from-a048532fa50d.md |   47 -\n ...192854_c4278368_git-lesson-from-35e631a21011.md |   45 -\n ..._192855_3cd654bf_git-hotspot-packagelockjson.md |   45 -\n ...e38c47b_git-hotspot-mindmatespackagelockjson.md |   45 -\n ...192855_d408e0f5_git-lesson-from-8f3ee558409a.md |   48 -\n ...it-hotspot-supabasefunctionsmindmatesindexts.md |   45 -\n ...192856_671f1c8e_git-lesson-from-42064faa059b.md |   44 -\n ...change-pattern-contextsauthcontexttsx-applay.md |   25 -\n ...change-pattern-appprofilesetupprofileimagets.md |   46 -\n ...change-pattern-appprofilesetupprofileimagets.md |   25 -\n ...7ed_git-hotspot-refactbuddyuseractivityjsonl.md |   45 -\n ...change-pattern-refactbuddychatsworkflowsbudd.md |   45 -\n ...change-pattern-contextsauthcontexttsx-contex.md |   45 -\n ...change-pattern-refactbuddychatsworkflowsbudd.md |   46 -\n ...change-pattern-refactbuddyruntimequeuejsonl-.md |   45 -\n .refact/stats/00000001.jsonl                       |   16 +\n app/(tabs)/profile.tsx                             |    2 +-\n app/subScreens/chatScreen/[chatId].tsx             |   14 +-\n app/subScreens/userProfile/[userId].tsx            |  281 +-\n hooks/useConnectionCount.ts                        |   70 +-\n 44 files changed, 137 insertions(+), 8367 deletions(-)\n"
+    },
+    {
+      "message_id": "c6e8d886-2010-48ba-8716-e73f8370637e",
+      "role": "event",
+      "content": "Subchat run failed: LLM error (429 Too Many Requests): \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\"",
+      "event": {
+        "subkind": "system_notice",
+        "source": "subchat.run",
+        "payload": {
+          "error": "LLM error (429 Too Many Requests): \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\"",
+          "tool_name": "buddy_pr_issue_matchmaker"
+        }
+      }
+    }
+  ],
+  "created_at": "2026-09-09T13:54:56.051359900+00:00",
+  "boost_reasoning": false,
+  "checkpoints_enabled": true,
+  "context_tokens_cap": 24000,
+  "auto_compression_cap": 21600,
+  "auto_compression_cap_pending": false,
+  "include_project_info": true,
+  "isTitleGenerated": false,
+  "auto_approve_editing_tools": false,
+  "auto_approve_dangerous_commands": false,
+  "autonomous_no_confirm": true,
+  "buddy_meta": {
+    "is_buddy_chat": true,
+    "buddy_chat_kind": "system",
+    "workflow_id": "buddy_pr_issue_matchmaker"
+  },
+  "root_chat_id": "buddy-buddy_pr_issue_matchmaker-64d39b71-f109-4f1b-b59a-3c13ac645efc",
+  "updated_at": "2026-09-09T13:54:56.759062600+00:00"
+}

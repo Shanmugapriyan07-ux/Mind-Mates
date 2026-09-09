@@ -520,7 +520,7 @@ const sl = StyleSheet.create({
     backgroundColor: "#EF4444",
     justifyContent: "center",
     alignItems: "center",
-    gap: vs(4),
+    gap: vs(1),
   },
 
   card: {
@@ -551,7 +551,7 @@ const sl = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     width: s(80),
-    gap: vs(4),
+    gap: vs(1),
     minHeight: vs(64),
   },
   removeAction: {
@@ -559,7 +559,7 @@ const sl = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     width: s(80),
-    gap: vs(4),
+    gap: vs(1),
     minHeight: vs(64),
   },
   actionText: { color: "#fff", fontSize: ms(12), fontWeight: "600" },

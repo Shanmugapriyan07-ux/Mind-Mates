@@ -118,7 +118,6 @@ class OnlineStatusCache {
       }, 3000);
     }
   });
-
     this.channels.set(userId, channel);
   }
   private stopWatching(userId: string) {

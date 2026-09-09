@@ -254,7 +254,7 @@ const st = StyleSheet.create({
     color: "#6B7280",
     marginBottom: vs(4),
   },
-  locationRow: { flexDirection: "row", alignItems: "center", gap: s(4) },
+  locationRow: { flexDirection: "row", alignItems: "center", gap: s(4), marginRight: vs(5) },
   locationText: { fontSize: ms(12), color: "#6B7280", fontWeight: "500" },
   statsRow: {
     alignSelf: "flex-start",

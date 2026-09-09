@@ -215,17 +215,15 @@ export const useMessages = (chatId: string) => {
     }
   }, [chatId, loadingOld, user?.id]);
 
-  useEffect(() => {
-    if (!chatId || !user?.id) return;
-    const uid = user.id;
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
 
-    loadMessages();
+useEffect(() => {
+  if (!chatId || !user?.id) return;
+  const uid = user.id;
+  let cancelled = false;
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
-    const handlePayload = (payload: any) => {
+  
+  const handlePayload = (payload: any) => {
       const { eventType, new: n, old: o } = payload;
 
       if (eventType === 'INSERT') {
@@ -332,40 +330,52 @@ export const useMessages = (chatId: string) => {
         }
       }
     };
-
+  const createChannel = () => {
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
     const channelName = `msg_${chatId}_${Date.now()}`;
     const channel = supabase
       .channel(channelName)
       .on(
         'postgres_changes',
-        {
-          event:  '*',
-          schema: 'public',
-          table:  TABLES.messages,
-          filter: `chat_id=eq.${chatId}`,
-        },
-        handlePayload
+        { event: '*', schema: 'public', table: TABLES.messages, filter: `chat_id=eq.${chatId}` },
+        handlePayload,
       )
       .subscribe((status: string) => {
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          setTimeout(() => {
-            if (channelRef.current === channel) loadMessages();
+        if (cancelled) return;
+        if (status === 'SUBSCRIBED') {
+          loadMessages();
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          if (reconnectTimer) clearTimeout(reconnectTimer);
+          reconnectTimer = setTimeout(() => {
+            if (!cancelled) createChannel(); 
           }, 2_000);
         }
       });
 
     channelRef.current = channel;
+  };
 
-    return () => {
-      if (syncTimerRef.current) {
-        clearTimeout(syncTimerRef.current);
-        syncTimerRef.current = null;
-      }
-      supabase.removeChannel(channel);
+  loadMessages();
+  createChannel();
+
+  return () => {
+    cancelled = true;
+    if (reconnectTimer) clearTimeout(reconnectTimer);
+    if (syncTimerRef.current) {
+      clearTimeout(syncTimerRef.current);
+      syncTimerRef.current = null;
+    }
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
       channelRef.current = null;
-    };
-  }, [chatId, loadMessages, scheduleSyncMutableFields, user?.id]);
-  const sendMessage = useCallback(async (
+    }
+  };
+}, [chatId, loadMessages, scheduleSyncMutableFields, user?.id]);
+
+const sendMessage = useCallback(async (
     text: string,
     opts?: {
       replyToId?:     string | null;
@@ -444,7 +454,6 @@ export const useMessages = (chatId: string) => {
       m.$id === tempId ? { ...m, _pending: false, _failed: true } : m
     ));
   }, []);
-
   return {
     messages, setMessages, loading, loadingOld, hasMore,
     sendMessage, retryMessage, loadOlderMessages,

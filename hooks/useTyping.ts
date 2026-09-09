@@ -46,14 +46,6 @@ export function useTyping(
     channelRef.current = ch;
 
     return () => {
-      // --- Issue 21 fix ---------------------------------------------------
-      // If the user was actively "typing" (debounce still pending) when
-      // this hook unmounts — e.g. they navigated away from the chat mid-
-      // sentence — we previously tore the channel down without ever
-      // broadcasting 'stopped'. The peer's client would then show
-      // "typing..." for up to TYPING_EXPIRE_MS after we'd already left.
-      // Send one final 'stopped' broadcast before removing the channel so
-      // the peer's indicator clears immediately instead of via timeout.
       if (isSendingRef.current && channelRef.current) {
         try {
           channelRef.current.send({
@@ -62,11 +54,9 @@ export function useTyping(
             payload: { userId: myUserId },
           });
         } catch {
-          // Best-effort — channel may already be in a closing state.
         }
       }
-      // ---------------------------------------------------------------------
-
+      isSendingRef.current = false;
       supabase.removeChannel(ch);
       channelRef.current = null;
       clearTimeout(debounceRef.current!);

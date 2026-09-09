@@ -37,7 +37,7 @@ import React, {
   useEffect,
   useMemo,
   useRef,
-  useState
+  useState,
 } from "react";
 import {
   ActivityIndicator,
@@ -54,7 +54,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 const IMG_PREFIX = "__IMG__";
@@ -576,7 +576,6 @@ const MessageBubble = React.memo(
         },
         onPanResponderRelease: (_, g) => {
           if (isMe ? g.dx < -THRESH : g.dx > THRESH) {
-            // onReply(item);
             onReplyRef.current(itemRef.current);
             RNAnimated.spring(swipeX, {
               toValue: 0,
@@ -1320,7 +1319,10 @@ export default function ChatScreen() {
       created_at: msg.createdAt,
     });
   }, []);
-
+  const handleMediaSend = useCallback(
+    (uri: string, type: "image" | "video") => setPendingMedia({ uri, type }),
+    [],
+  );
   const renderItem = useCallback(
     ({ item, index }: { item: ChatMessage; index: number }) => {
       if (user?.id && item.deletedFor?.includes(user.id)) return null;
@@ -1517,13 +1519,12 @@ export default function ChatScreen() {
           iBlockedThem={iBlockedThem}
           onUnblock={handleUnblock}
           blockedName={resolvedName}
-          onMediaSend={(uri, type) => setPendingMedia({ uri, type })}
+          onMediaSend={handleMediaSend}
           onVoiceOptimistic={handleVoiceOptimistic}
           onVoiceSuccess={handleVoiceSuccess}
           onVoiceFailed={handleVoiceFailed}
         />
       </KeyboardAvoidingView>
-
       <MediaViewer
         uri={viewerMedia?.uri ?? null}
         type={viewerMedia?.type ?? "video"}
@@ -1537,7 +1538,6 @@ export default function ChatScreen() {
         sending={sendingMedia}
         otherName={resolvedName ?? "them"}
       />
-
       <MessageActionSheet
         visible={!!actionMsg}
         message={actionMsg}
