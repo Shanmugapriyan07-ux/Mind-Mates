@@ -5,7 +5,7 @@ import { AuthProvider } from "@/Contexts/authContext";
 import { ProfileProvider } from "@/Contexts/profileContext";
 import { useAuthBoot } from "@/hooks/useAuthBoot";
 import { usePresence } from "@/hooks/usePresence";
-import { useRealtimeManager } from "@/hooks/useRealtimeManager";
+// import { useRealtimeManager } from "@/hooks/useRealtimeManager";
 import { GlobalProvider } from "@/lib/GlobalProvider";
 import { NotificationProvider } from "@/providers/notificationProvider";
 import {
@@ -105,7 +105,7 @@ function RootLayoutNav({
   preloadData,
 }: RootLayoutNavProps) {
   usePresence();
-  useRealtimeManager();
+  // useRealtimeManager();
   useAuthBoot(preloadData?.session);
 
   const router = useRouter();
@@ -283,7 +283,6 @@ useEffect(() => {
       const def = errorUtils.getGlobalHandler();
       errorUtils.setGlobalHandler((err: any, fatal: boolean) => {
         SplashScreen.hideAsync().catch(() => {});
-        // Sentry.captureException(err, { level: fatal ? 'fatal' : 'error' }); // or Crashlytics.recordError(err)
         def(err, fatal);
       });
     }
@@ -307,7 +306,7 @@ useEffect(() => {
                           startupPhase={phase}
                           onAnimationComplete={onSplashAnimationComplete}
                           onContentReady={handleContentReady}
-                          preloadData={preloadData} // Pass preloadData to RootLayoutNav
+                          preloadData={preloadData} 
                         />
                       </NotificationProvider>
                     </Animated.View>

@@ -796,7 +796,7 @@ export const ChatInput = React.memo(
                     {sending ? (
                       <ActivityIndicator size="small" color="#000" />
                     ) : (
-                      <Ionicons name="send" size={18} color={T.purple} />
+                      <Ionicons name="send" size={24} color={T.purple} />
                     )}
                   </TouchableOpacity>
                 </Animated.View>
@@ -909,7 +909,6 @@ const st = StyleSheet.create({
     width: s(33),
     height: s(33),
     borderRadius: s(17),
-    backgroundColor: T.white,
     alignItems: "center",
     justifyContent: "center",
     right: 1,

@@ -545,7 +545,6 @@ const sl = StyleSheet.create({
   },
   locText: { fontSize: ms(11), color: C.muted },
   skills: { fontSize: ms(12), color: C.purple, fontWeight: "500" },
-
   profileAction: {
     backgroundColor: "#6D4AFF",
     justifyContent: "center",

@@ -3,6 +3,7 @@ import { useAuthh } from "@/Contexts/authContext";
 import { useRenderCount } from "@/Count";
 import { useConnection } from "@/hooks/useConnection";
 import { supabase, TABLES } from "@/lib/supabase";
+import { parseSkills } from "@/utils/skill";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { FlashList } from "@shopify/flash-list";
@@ -131,13 +132,13 @@ const timeAgo = (ts: string | number): string => {
   return `${Math.floor(d / 30)}mo ago`;
 };
 
-const parseSkills = (s: string) =>
-  s
-    ? s
-        .split(",")
-        .map((x) => x.trim())
-        .filter(Boolean)
-    : [];
+// const parseSkills = (s: string) =>
+//   s
+//     ? s
+//         .split(",")
+//         .map((x) => x.trim())
+//         .filter(Boolean)
+//     : [];
 
 const dedup = (items: NotifItem[]) => {
   const seen = new Set<string>();
@@ -372,10 +373,13 @@ const SwipeableNotifCard = React.memo(
       isOpen.current = false;
       onSwipeClose(item.id);
     };
+    const hintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
     const playHint = useCallback(() => {
       if (hintPlaying.current) return;
       hintPlaying.current = true;
-      setTimeout(() => {
+      hintTimerRef.current = setTimeout(() => {
+        hintTimerRef.current = null;
         Animated.sequence([
           Animated.spring(translateX, {
             toValue: HINT_NUDGE,
@@ -398,8 +402,16 @@ const SwipeableNotifCard = React.memo(
         });
       }, 2000);
     }, [translateX]);
+
     useEffect(() => {
       if (isFirstCard) SwipeHintManager.tryRegister(playHint);
+      return () => {
+        if (hintTimerRef.current) {
+          clearTimeout(hintTimerRef.current);
+          hintTimerRef.current = null;
+          hintPlaying.current = false;
+        }
+      };
     }, [isFirstCard, playHint]);
 
     const panResponder = useRef(
@@ -743,35 +755,57 @@ export default function NotificationsScreen() {
   useEffect(() => {
     loadNotifs();
   }, [loadNotifs]);
-
   useEffect(() => {
     if (!user?.id) return;
-    const ch = supabase
-      .channel(`notifs-${user.id}-${Date.now()}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: TABLES.notifications,
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload: any) => {
-          const doc = payload.new as NotifItem;
-          if (payload.eventType === "INSERT") safeSet((p: any) => [doc, ...p]);
-          if (payload.eventType === "DELETE")
-            setNotifs((p: any) =>
-              p.filter((n: any) => n.id !== (payload.old as any).id),
-            );
-          if (payload.eventType === "UPDATE")
-            setNotifs((p: any) =>
-              p.map((n: any) => (n.id === doc.id ? { ...n, ...doc } : n)),
-            );
-        },
-      )
-      .subscribe();
+    const uid = user.id;
+    let cancelled = false;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let channel: any = null;
+
+    const createChannel = () => {
+      if (channel) supabase.removeChannel(channel);
+
+      channel = supabase
+        .channel(`notifs-${uid}-${Date.now()}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: TABLES.notifications,
+            filter: `user_id=eq.${uid}`,
+          },
+          (payload: any) => {
+            const doc = payload.new as NotifItem;
+            if (payload.eventType === "INSERT")
+              safeSet((p: any) => [doc, ...p]);
+            if (payload.eventType === "DELETE")
+              setNotifs((p: any) =>
+                p.filter((n: any) => n.id !== (payload.old as any).id),
+              );
+            if (payload.eventType === "UPDATE")
+              setNotifs((p: any) =>
+                p.map((n: any) => (n.id === doc.id ? { ...n, ...doc } : n)),
+              );
+          },
+        )
+        .subscribe((status: string) => {
+          if (cancelled) return;
+          if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+            if (reconnectTimer) clearTimeout(reconnectTimer);
+            reconnectTimer = setTimeout(() => {
+              if (!cancelled) createChannel();
+            }, 2_000);
+          }
+        });
+    };
+
+    createChannel();
+
     return () => {
-      supabase.removeChannel(ch);
+      cancelled = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (channel) supabase.removeChannel(channel);
     };
   }, [user?.id, safeSet]);
 
