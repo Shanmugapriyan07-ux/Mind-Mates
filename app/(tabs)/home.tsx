@@ -483,7 +483,6 @@ export default function ChatListScreen() {
         .catch(() => {});
     }, [fetchFresh]),
   );
-
   useEffect(() => {
     if (!user?.id) return;
     const uid = user.id;
@@ -494,69 +493,93 @@ export default function ChatListScreen() {
     }
 
     const timer = setTimeout(() => {
+      const handleChatUpdate = (payload: any) => {
+        const doc = payload.new as any;
+        const parts = (doc.participants ?? []) as string[];
+        if (!parts.includes(uid)) return; // now a redundant safety net, not the only defense — Realtime itself won't deliver unrelated rows anymore
+
+        const otherId = parts.find((p: string) => p !== uid);
+        if (!otherId) return;
+
+        const derived = deriveFriendFields(uid, doc);
+
+        if (derived.unread_count === 0 && doc.id) {
+          localZeroedChats.current.delete(doc.id);
+        }
+
+        if (derived.isHidden) {
+          setFriends((prev) => prev.filter((f) => f.user_id !== otherId));
+          allFriendsRef.current = allFriendsRef.current.map((f) =>
+            f.user_id === otherId ? { ...f, is_hidden: true } : f,
+          );
+          return;
+        }
+
+        const updatedFields = {
+          chat_id: doc.id,
+          last_message: derived.last_message,
+          last_message_at: derived.last_message_at,
+          last_message_is_mine: derived.last_message_is_mine,
+          last_message_status: derived.last_message_status,
+          unread_count: derived.unread_count,
+          is_hidden: false,
+          cleared_at_p1: derived.cleared_at_p1,
+          cleared_at_p2: derived.cleared_at_p2,
+        };
+
+        setFriends((prev) => {
+          const idx = prev.findIndex((f) => f.user_id === otherId);
+          let next: Friend[];
+          if (idx !== -1) {
+            next = [...prev];
+            next[idx] = { ...next[idx], ...updatedFields };
+          } else {
+            const hiddenFriend = allFriendsRef.current.find(
+              (f) => f.user_id === otherId,
+            );
+            if (hiddenFriend) {
+              next = [{ ...hiddenFriend, ...updatedFields }, ...prev];
+            } else {
+              loadFriends();
+              return prev;
+            }
+          }
+          return sortFriends(next);
+        });
+
+        allFriendsRef.current = allFriendsRef.current.map((f) =>
+          f.user_id === otherId ? { ...f, ...updatedFields } : f,
+        );
+      };
+
       const channel = supabase
         .channel(`home_${uid}_${Date.now()}`)
+        // Two filtered subscriptions instead of one unfiltered — Postgres
+        // Realtime only supports a single equality filter per registration,
+        // and a chat's target user can be in either participant slot, so we
+        // register the same handler against both possible slots. Each one
+        // now only ever receives rows where THIS user is actually a
+        // participant, eliminating the app-wide unfiltered broadcast this
+        // channel previously received.
         .on(
           "postgres_changes",
-          { event: "UPDATE", schema: "public", table: "chats" },
-          (payload: any) => {
-            const doc = payload.new as any;
-            const parts = (doc.participants ?? []) as string[];
-            if (!parts.includes(uid)) return;
-
-            const otherId = parts.find((p: string) => p !== uid);
-            if (!otherId) return;
-
-            const derived = deriveFriendFields(uid, doc);
-
-            if (derived.unread_count === 0 && doc.id) {
-              localZeroedChats.current.delete(doc.id);
-            }
-
-            if (derived.isHidden) {
-              setFriends((prev) => prev.filter((f) => f.user_id !== otherId));
-              allFriendsRef.current = allFriendsRef.current.map((f) =>
-                f.user_id === otherId ? { ...f, is_hidden: true } : f,
-              );
-              return;
-            }
-
-            const updatedFields = {
-              chat_id: doc.id,
-              last_message: derived.last_message,
-              last_message_at: derived.last_message_at,
-              last_message_is_mine: derived.last_message_is_mine,
-              last_message_status: derived.last_message_status,
-              unread_count: derived.unread_count,
-              is_hidden: false,
-              cleared_at_p1: derived.cleared_at_p1,
-              cleared_at_p2: derived.cleared_at_p2,
-            };
-
-            setFriends((prev) => {
-              const idx = prev.findIndex((f) => f.user_id === otherId);
-              let next: Friend[];
-              if (idx !== -1) {
-                next = [...prev];
-                next[idx] = { ...next[idx], ...updatedFields };
-              } else {
-                const hiddenFriend = allFriendsRef.current.find(
-                  (f) => f.user_id === otherId,
-                );
-                if (hiddenFriend) {
-                  next = [{ ...hiddenFriend, ...updatedFields }, ...prev];
-                } else {
-                  loadFriends();
-                  return prev;
-                }
-              }
-              return sortFriends(next);
-            });
-
-            allFriendsRef.current = allFriendsRef.current.map((f) =>
-              f.user_id === otherId ? { ...f, ...updatedFields } : f,
-            );
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "chats",
+            filter: `participant_1=eq.${uid}`,
           },
+          handleChatUpdate,
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "chats",
+            filter: `participant_2=eq.${uid}`,
+          },
+          handleChatUpdate,
         )
         .on(
           "postgres_changes",
@@ -596,19 +619,16 @@ export default function ChatListScreen() {
       }
     };
   }, [user?.id, loadFriends]);
-
   const markReadLocally = useCallback((chatId: string) => {
     localZeroedChats.current.add(chatId);
     setFriends((prev) =>
       prev.map((f) => (f.chat_id === chatId ? { ...f, unread_count: 0 } : f)),
     );
   }, []);
-
   const handleClear = useCallback((f: Friend) => {
     if (!f.chat_id) return;
     setClearModal(f);
   }, []);
-
   const doClearChat = useCallback(
     async (f: Friend) => {
       const clearedFriend: Friend = {

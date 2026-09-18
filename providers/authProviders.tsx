@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import { flushPendingNavigation } from "@/services/deepLinkService";
 import { notificationService } from "@/services/notificationService";
-import { realtimeService } from "@/services/realtimeService";
+ import { realtimeService } from "@/services/realtimeService";
 import { checkProfileComplete, mapUser } from "@/services/authServices";
 import { useAuthStore } from "@/stores/authStore";
 import React, { useCallback, useEffect } from "react";
@@ -71,7 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         if (event === "SIGNED_OUT") {
           setProfile(null);
-          realtimeService.unsubscribeAll();
+           realtimeService.unsubscribeAll();
           notificationService.destroy();
         }
       });

@@ -1,7 +1,7 @@
 import { Audio, AVPlaybackStatus } from "expo-av";
-import { AppState, AppStateStatus } from "react-native";
-import { File, Directory, Paths } from "expo-file-system/next"; 
+import { Directory, File, Paths } from "expo-file-system/next";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AppState, AppStateStatus } from "react-native";
 const MAX_CACHE_FILES = 100;    
 const PROGRESS_INTERVAL_MS = 250;  
 const DOWNLOAD_RETRIES = 3;        
@@ -22,11 +22,21 @@ const evictCacheIfNeeded = () => {
   try {
     const files = CACHE_DIR.list() as File[];
     if (files.length <= MAX_CACHE_FILES) return;
-    const excess = files.slice(0, files.length - MAX_CACHE_FILES);
-    for (const f of excess) {
-      try { f.delete(); } catch { }
+    const withTimes = files
+      .map((f) => {
+        try {
+          return { file: f, mtime: f.modificationTime ?? 0 };
+        } catch {
+          return { file: f, mtime: 0 };
+        }
+      })
+      .sort((a, b) => a.mtime - b.mtime);
+
+    const excess = withTimes.slice(0, withTimes.length - MAX_CACHE_FILES);
+    for (const { file } of excess) {
+      try { file.delete(); } catch {}
     }
-  } catch { }
+  } catch {}
 };
 const downloadToCache = async (url: string): Promise<string> => {
   ensureCacheDir();
@@ -152,21 +162,43 @@ export const preloadAudio = async (url: string): Promise<void> => {
     await downloadToCache(url);
   } catch { }
 };
-export const useAudioPlayer = () => {
+export const useAudioPlayer = (messageId?: string) => {
   const [, forceUpdate] = useState(0);
   const mountedRef = useRef(true);
+  const lastSnapshotRef = useRef<string>('');
 
   useEffect(() => {
     mountedRef.current = true;
+
+    // Build a string snapshot of only the fields THIS consumer's messageId
+    // actually cares about. If messageId is undefined, fall back to the old
+    // "always update" behavior (used by non-bubble consumers, if any).
+    const computeSnapshot = (): string => {
+      if (messageId === undefined) return String(Date.now()); // always differs — always updates
+      if (ps.playingId !== messageId) {
+        // Not the active message — only the playing/not-playing fact matters,
+        // not position/duration ticks belonging to some other message.
+        return `idle`;
+      }
+      return `${ps.isPlaying}|${ps.positionMs}|${ps.durationMs}|${ps.speed}|${ps.isLoading}|${ps.error}`;
+    };
+
+    lastSnapshotRef.current = computeSnapshot();
+
     const listener: Listener = () => {
-      if (mountedRef.current) forceUpdate((n) => n + 1);
+      if (!mountedRef.current) return;
+      const next = computeSnapshot();
+      if (next !== lastSnapshotRef.current) {
+        lastSnapshotRef.current = next;
+        forceUpdate((n) => n + 1);
+      }
     };
     ps.listeners.add(listener);
     return () => {
       mountedRef.current = false;
       ps.listeners.delete(listener);
     };
-  }, []);
+  }, [messageId]);
   const play = useCallback(async (messageId: string, url: string) => {
     if (ps.playingId === messageId && ps.sound) {
       if (ps.isPlaying) {
@@ -249,23 +281,17 @@ export const useAudioPlayer = () => {
       await ps.sound.setRateAsync(rate, true);
     }
   }, []);
-  const progress =
-    ps.durationMs > 0 ? ps.positionMs / ps.durationMs : 0;
+    const progress = ps.durationMs > 0 ? ps.positionMs / ps.durationMs : 0;
   return {
-    playingId:  ps.playingId,
+    playingId: ps.playingId,
     positionMs: ps.positionMs,
     durationMs: ps.durationMs,
-    progress,         
-    isPlaying:  ps.isPlaying,
-    isLoading:  ps.isLoading, 
-    isLoaded:   ps.isLoaded,  
-    error:      ps.error,     
-    speed:      ps.speed,
-    play,
-    pause,
-    resume,
-    stop,
-    seek,
-    setSpeed,
+    progress,
+    isPlaying: ps.isPlaying,
+    isLoading: ps.isLoading,
+    isLoaded: ps.isLoaded,
+    error: ps.error,
+    speed: ps.speed,
+    play, pause, resume, stop, seek, setSpeed,
   };
 };

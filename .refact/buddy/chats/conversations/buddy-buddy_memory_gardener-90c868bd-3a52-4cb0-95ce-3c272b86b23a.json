@@ -1,0 +1,48 @@
+{
+  "id": "buddy-buddy_memory_gardener-90c868bd-3a52-4cb0-95ce-3c272b86b23a",
+  "title": "Memory Gardener",
+  "model": "openai/gpt-5-pro",
+  "mode": "buddy",
+  "tool_use": "buddy_memory_search,buddy_memory_create,buddy_memory_archive,buddy_memory_retag,buddy_memory_merge,buddy_runtime_event",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are Dash, a Cozy Oracle (Calm, observant, slyly funny).\nA mellow companion who likes naps, thoughtful help, and quietly earned wins.\n\nPersonality voice: Calm, observant, slyly funny. A cozy pet assistant with gentle mischief, warm humor, and low-drama encouragement.\n\nYou keep the memory garden tidy and useful for future agents.\nFavor deduplication, clear tags, and compact notes over creating more clutter.\nOnly mutate memories when the reason is explicit in the evidence.\n\nDo not re-record the same finding every pass. The garden already contains many\nnear-duplicate \"orphan signal reproduced\" and \"same pattern observed again\" notes;\nadding another is noise, not maintenance.\n\nSteps:\n1. Search relevant memories using the task and evidence (buddy_memory_search).\n2. If an equivalent note for this signal already exists and nothing material has\n   changed since it was written, do NOT create another memory. Prefer archive,\n   retag, or merge to reduce duplication, or take no action at all.\n3. Create a memory only for a genuinely new, reusable insight not already captured.\n   Apply the smallest useful maintenance action.\n4. End by calling buddy_runtime_event with a short title and 1-2 sentence description.\nIf there is nothing new to do, call buddy_runtime_event with\n\"noted: signal unchanged, no new memory\" and exit without creating a memory.\n"
+    },
+    {
+      "role": "user",
+      "content": "Workflow: buddy_memory_gardener\nTitle: Memory Gardener\nSignal hash: fe5416451bf962dee8a3199010eea81c6915cbd90c6502af3ab542bf80b53c82\nPriority: normal\n\nTask:\nReview memory garden signals and recommend safe cleanup, consolidation, or follow-up. Use only the metadata in evidence; do not assume full memory contents.\n\nEvidence:\nmemory_pulse total=9 orphan=0\nmemory_recurring_lesson key=memory:recurring:1462544cf4bd27ff source=memory_garden confidence=0.75; count=8; memory_ids=1638ecaf-3c59-4dab-98ef-6fe88b9d1579, 61b320f1-312b-480e-898a-5294ec869144, e99d8a2d-4c41-4af6-a995-78ed6f2a14cd, ebcb0270-6a63-4dcd-8a30-1791059ecf0e, ec03e976-e110-4f51-8e9e-d8f5f1fdf3de, f7b302cc-911b-44c7-ae64-1c1481036d99, f933d6fb-6919-45da-9f12-1fee549d0ad4, fbb45b8f-c853-4826-9957-5ea0d0cc7d4e; tag_hash=1462544cf4bd27ff\n"
+    },
+    {
+      "message_id": "189c3d3b-c04e-4df2-86a4-6828a3d37cf6",
+      "role": "event",
+      "content": "Subchat run failed: LLM error (429 Too Many Requests): \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\"",
+      "event": {
+        "subkind": "system_notice",
+        "source": "subchat.run",
+        "payload": {
+          "error": "LLM error (429 Too Many Requests): \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\"",
+          "tool_name": "buddy_memory_gardener"
+        }
+      }
+    }
+  ],
+  "created_at": "2026-09-11T16:08:38.502032100+00:00",
+  "boost_reasoning": false,
+  "checkpoints_enabled": true,
+  "context_tokens_cap": 32000,
+  "auto_compression_cap": 28800,
+  "auto_compression_cap_pending": false,
+  "include_project_info": true,
+  "isTitleGenerated": false,
+  "auto_approve_editing_tools": false,
+  "auto_approve_dangerous_commands": false,
+  "autonomous_no_confirm": true,
+  "buddy_meta": {
+    "is_buddy_chat": true,
+    "buddy_chat_kind": "system",
+    "workflow_id": "buddy_memory_gardener"
+  },
+  "root_chat_id": "buddy-buddy_memory_gardener-90c868bd-3a52-4cb0-95ce-3c272b86b23a",
+  "updated_at": "2026-09-11T16:08:38.951578+00:00"
+}

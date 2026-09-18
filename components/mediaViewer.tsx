@@ -1,40 +1,40 @@
 import {
-    cdnFullUrl,
-    cdnVideoStreamUrl,
-    cdnVideoThumbUrl,
-    cdnVideoUrl,
+  cdnFullUrl,
+  cdnVideoStreamUrl,
+  cdnVideoThumbUrl,
+  cdnVideoUrl,
 } from "@/lib/cloudinaryUpload";
 import { ms, s, vs } from "@/utils/scale";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React, {
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from "react";
 import {
-    Dimensions,
-    Modal,
-    Platform,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  Dimensions,
+  Modal,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native";
 import ImageView from "react-native-image-viewing";
 import Animated, {
-    FadeIn,
-    FadeOut,
-    useAnimatedStyle,
-    useSharedValue,
-    withDelay,
-    withRepeat,
-    withSequence,
-    withSpring,
-    withTiming,
+  FadeIn,
+  FadeOut,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withSpring,
+  withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 let ExpoVideo: any = null;
@@ -132,27 +132,17 @@ const VideoPlayerInner = ({
     if (!player) return;
 
     const statusSub = player.addListener("statusChange", (status: any) => {
-      if (status.status === "readyToPlay") {
-        setVideoReady(true);
-        setIsBuffering(false);
-        setVideoError(false);
-        setDurationMs((player.duration ?? 0) * 1000);
-      }
-      if (status.status === "error") {
-        setVideoError(true);
-        setIsBuffering(false);
-      }
-      if (status.status === "loading") {
-        setIsBuffering(true);
-      }
+      /* unchanged */
     });
 
     const playingSub = player.addListener("playingChange", (payload: any) => {
       setIsPlaying(payload.isPlaying);
-      if (isPlaying) {
+      if (payload.isPlaying) {
+        // ← use the fresh value from the event itself
         resetControlsTimer();
       }
     });
+
     const poller = setInterval(() => {
       if (!player) return;
       const pos = (player.currentTime ?? 0) * 1000;
@@ -168,7 +158,7 @@ const VideoPlayerInner = ({
       clearInterval(poller);
       if (controlsTimer.current) clearTimeout(controlsTimer.current);
     };
-  }, [isPlaying, player, resetControlsTimer]);
+  }, [player, resetControlsTimer]);
 
   const handleTapMedia = useCallback(() => {
     if (showControls) {
@@ -233,7 +223,7 @@ const VideoPlayerInner = ({
             player={player}
             style={vw.media}
             contentFit="contain"
-            nativeControls={false} 
+            nativeControls={false}
             allowsFullscreen={false}
             allowsPictureInPicture={false}
           />
@@ -477,7 +467,6 @@ export const MediaViewer = ({ uri, type, onClose }: Props) => {
   );
 };
 
-
 MediaViewer.whyDidYouRender = true;
 
 export default MediaViewer;
@@ -500,15 +489,24 @@ const vw = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  dotsRow: { flexDirection: "row", alignItems: "center", gap: s(8)},
-  dot: { width: s(10), height: s(10), borderRadius: s(5), backgroundColor: "#fff" },
+  dotsRow: { flexDirection: "row", alignItems: "center", gap: s(8) },
+  dot: {
+    width: s(10),
+    height: s(10),
+    borderRadius: s(5),
+    backgroundColor: "#fff",
+  },
   errorOverlay: {
     ...StyleSheet.absoluteFillObject,
     alignItems: "center",
     justifyContent: "center",
     gap: s(12),
   },
-  errorTxt: { color: "rgba(255,255,255,0.6)", fontSize: ms(15), fontWeight: "600" },
+  errorTxt: {
+    color: "rgba(255,255,255,0.6)",
+    fontSize: ms(15),
+    fontWeight: "600",
+  },
   retryBtn: {
     marginTop: vs(8),
     paddingHorizontal: vs(24),
@@ -583,7 +581,11 @@ const vw = StyleSheet.create({
     borderRadius: s(2),
     justifyContent: "center",
   },
-  progressFill: { height: "100%", backgroundColor: "#6D4AFF", borderRadius: s(2) },
+  progressFill: {
+    height: "100%",
+    backgroundColor: "#6D4AFF",
+    borderRadius: s(2),
+  },
   progressThumb: {
     position: "absolute",
     width: s(13),

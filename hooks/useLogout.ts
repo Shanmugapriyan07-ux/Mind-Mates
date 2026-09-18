@@ -6,7 +6,7 @@ export function useLogout() {
   const { logout } = useAuthStore();
   const { setPendingNavigation } = useNotificationStore();
   const performLogout = async () => {
-    realtimeService.unsubscribeAll();
+     realtimeService.unsubscribeAll();
     notificationService.destroy();
     setPendingNavigation(null);
     await logout();

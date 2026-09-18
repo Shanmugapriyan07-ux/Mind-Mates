@@ -31,7 +31,7 @@ export function useAppState(chatId?: string) {
       appState.current = nextState;
       if (prev.match(/inactive|background/) && nextState === 'active') {
         if (chatId) {
-          realtimeService.unsubscribe(`chat:${chatId}`);
+           realtimeService.unsubscribe(`chat:${chatId}`);
         }
       }
       if (nextState === 'background') {

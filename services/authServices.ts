@@ -5,13 +5,9 @@ import { useAuthStore } from '@/stores/authStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { notificationService } from './notificationService';
-
-// Keys this module owns in AsyncStorage. Used for targeted removal on
-// logout so we never wipe unrelated app data (e.g. onboarding-seen flag).
 const AUTH_STORAGE_KEYS = [
-  'mm-auth-v4', // zustand persist key from authStore.ts
+  'mm-auth-v4',
 ];
-
 export function mapUser(raw: any, isProfileComplete: boolean): AuthUser {
   return {
     id: raw.id,
@@ -21,7 +17,6 @@ export function mapUser(raw: any, isProfileComplete: boolean): AuthUser {
     is_profileComplete: isProfileComplete,
   };
 }
-
 export async function checkProfileComplete(userId: string): Promise<boolean> {
   try {
     const { data } = await supabase
@@ -32,7 +27,6 @@ export async function checkProfileComplete(userId: string): Promise<boolean> {
     return data?.is_profile_complete === true;
   } catch { return false; }
 }
-
 export async function restoreSession(): Promise<void> {
   const store = useAuthStore.getState();
   if (store.isSigningIn) return;
@@ -72,7 +66,6 @@ export async function restoreSession(): Promise<void> {
     store.setPhase('unauthenticated');
   }
 }
-
 export async function signInWithGoogle(): Promise<void> {
   const store = useAuthStore.getState();
   if (store.isSigningIn) return;
@@ -115,13 +108,11 @@ export async function signInWithGoogle(): Promise<void> {
     if (!cancelled) store.setError('Sign-in failed. Please try again.');
   }
 }
-
 export async function logout(): Promise<void> {
   const store = useAuthStore.getState();
   if (store.phase !== 'logging_out') {
     store.beginLogout();
   }
-
   try {
     await Promise.allSettled([
       isGoogleReady() ? GoogleSignin.signOut() : Promise.resolve(),
@@ -134,37 +125,48 @@ export async function logout(): Promise<void> {
     store.finalizeSignOut();
   }
 }
-
 export async function deleteAccount(): Promise<void> {
   const store = useAuthStore.getState();
   const user = store.user;
   if (!user?.id) return;
-  if (
-    store.phase === 'unauthenticated' ||
-    store.phase === 'logging_out'
-  ) return;
+  if (store.phase === 'unauthenticated' || store.phase === 'logging_out') return;
 
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) return;
 
-    const { data, error: fnError } = await supabase.functions.invoke('mindmates', {
-      body: { action: 'delete_account', userId: user.id },
-      headers: { Authorization: `Bearer ${session.access_token}` },
-    });
+    const invokeDelete = () =>
+      supabase.functions.invoke('mindmates', {
+        body: { action: 'delete_account', userId: user.id },
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
+    let { data, error: fnError } = await invokeDelete();
+
     if (fnError || data?.error) {
-      console.warn('[deleteAccount] failed:', fnError?.message ?? data?.error);
+      console.warn('[deleteAccount] first attempt failed, retrying once:', fnError?.message ?? data?.error);
+      ({ data, error: fnError } = await invokeDelete());
+    }
+
+    if (fnError || data?.error) {
+      const { data: { user: stillExists }, error: getUserErr } = await supabase.auth.getUser();
+      if (getUserErr || !stillExists) {
+        console.warn('[deleteAccount] account appears gone despite error response — finalizing locally');
+        if (store.phase !== 'deleting') store.beginDelete();
+        await Promise.allSettled([
+          isGoogleReady() ? GoogleSignin.signOut() : Promise.resolve(),
+          supabase.auth.signOut(),
+          AsyncStorage.clear(),
+        ]);
+        store.finalizeSignOut();
+        return;
+      }
+      console.warn('[deleteAccount] failed after retry:', fnError?.message ?? data?.error);
+      store.setError('Could not delete your account. Please check your connection and try again.');
       return;
     }
 
-    if (store.phase !== 'deleting') {
-      store.beginDelete();
-    }
-
-    // Account deletion intentionally clears everything, not just auth keys —
-    // a deleted account should leave no local trace, including onboarding
-    // state. This is the one place a full wipe is the correct product
-    // behavior (unlike logout, which should be narrow).
+    if (store.phase !== 'deleting') store.beginDelete();
     await Promise.allSettled([
       notificationService.deleteTokenForUser(user.id).catch(() => {}),
       isGoogleReady() ? GoogleSignin.signOut() : Promise.resolve(),
@@ -174,6 +176,7 @@ export async function deleteAccount(): Promise<void> {
     store.finalizeSignOut();
   } catch (e: any) {
     console.warn('[deleteAccount] unexpected error:', e?.message);
+    store.setError('Something went wrong. Please try again.');
   }
 }
 

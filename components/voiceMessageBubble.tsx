@@ -138,17 +138,7 @@ export const VoiceMessageBubble = memo(
     onRetry,
     onLongPress,
   }: VoiceMessageBubbleProps) => {
-    const {
-      playingId,
-      positionMs,
-      durationMs,
-      isPlaying,
-      speed,
-      play,
-      seek,
-      setSpeed,
-    } = useAudioPlayer();
-
+   const { playingId, positionMs, durationMs, isPlaying, speed, play, seek, setSpeed } = useAudioPlayer(messageId);
     const isThisPlaying = playingId === messageId;
     const progressFrac =
       isThisPlaying && durationMs > 0
