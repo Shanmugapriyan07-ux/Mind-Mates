@@ -1,5 +1,5 @@
 import { FETCH_CONFIG, STATIC_LINKS } from "../config/appLinks";
-import { isSupabaseAvailable, supabase } from "../config/supabase";
+import { supabase } from "@/lib/supabase";
 import { log as logger } from "../utils/logger";
 async function fetchWithTimeout(queryFn, timeoutMs = FETCH_CONFIG.TIMEOUT_MS) {
   const controller = new AbortController();
@@ -12,9 +12,9 @@ async function fetchWithTimeout(queryFn, timeoutMs = FETCH_CONFIG.TIMEOUT_MS) {
   }
 }
 async function fetchFromSupabase() {
-  if (!isSupabaseAvailable) {
-    return null;
-  }
+  // if (!isSupabaseAvailable) {
+  //   return null;
+  // }
   const { data, error, status } = await fetchWithTimeout((signal) =>
     supabase
       .from("app_links")

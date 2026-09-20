@@ -3,20 +3,20 @@ import { ms, s, vs } from "@/utils/scale";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import {
-    Modal,
-    Pressable,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Animated, {
-    Easing,
-    runOnJS,
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
-    withTiming,
+  Easing,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
 } from "react-native-reanimated";
 interface MenuItem {
   icon: string;
@@ -124,7 +124,6 @@ export const ChatMenuSheet = ({ visible, onClose, items }: Props) => {
   );
 };
 
-
 ChatMenuSheet.whyDidYouRender = true;
 
 export default ChatMenuSheet;
@@ -169,5 +168,6 @@ const m = StyleSheet.create({
   divider: {
     height: StyleSheet.hairlineWidth,
     marginHorizontal: 0,
+    backgroundColor: "#E5E7EB",
   },
 });

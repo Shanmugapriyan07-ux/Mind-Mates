@@ -1,4 +1,3 @@
-import { useAppLinks } from "@/Contexts/AppLinksContexts";
 import { useAuthh } from "@/Contexts/authContext";
 import { useProfile } from "@/Contexts/profileContext";
 import { useRenderCount } from "@/Count";
@@ -106,8 +105,17 @@ const HelpModal = ({
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             style={h.closeBtn}
           >
-            <View style={{ alignItems: "center", justifyContent: "center" ,height:25,width:25, borderRadius:25,backgroundColor:"#F5F5F7"}}>
-            <Ionicons name="close" size={s(19)} color="#6D4AFF" />
+            <View
+              style={{
+                alignItems: "center",
+                justifyContent: "center",
+                height: 25,
+                width: 25,
+                borderRadius: 25,
+                backgroundColor: "#F5F5F7",
+              }}
+            >
+              <Ionicons name="close" size={s(19)} color="#6D4AFF" />
             </View>
           </TouchableOpacity>
         </View>
@@ -179,7 +187,7 @@ const h = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: vs(3),
-    bottom:vs(2)
+    bottom: vs(2),
   },
   title: {
     fontSize: ms(20),
@@ -242,7 +250,7 @@ const h = StyleSheet.create({
   },
   emailRow: {
     flexDirection: "row",
-    alignItems: "center",         
+    alignItems: "center",
     justifyContent: "center",
     gap: s(6),
   },
@@ -263,54 +271,57 @@ export default function SettingsScreen() {
   const [confirmText, setConfirmText] = useState("");
   const [helpVisible, setHelpVisible] = useState(false);
   const { openByKey } = useOpenLink();
-  useAppLinks();
+  // useAppLinks();
   const tap = useCallback(
     (key: any, name: any) => () => openByKey(key, name),
     [openByKey],
   );
   const T = { text: "#111827", sub: "#6B7280", icon: "#6D4AFF" };
-const handleLogout = useCallback(async () => {
-  setShowLogout(false);
-  useAuthStore.getState().beginLogout();
-  const uid = user?.id;
-  if (uid) clearCache(uid).catch(() => {});
-  clearAppIconBadge().catch(() => {});
-  clearProfile();
-  try {
-    await logout();
-  } catch (e: any) {
-    console.warn('logout failed:', e);
-    useAuthStore.getState().setPhase('unauthenticated');
-  } finally {
-    setLogoutLoading(false);
-  }
-}, [user?.id, clearProfile]);
-const handleDelete = useCallback(async () => {
-  if (confirmText.toLowerCase() !== 'delete') {
-    Toast.show({ type: 'error', text1: 'Type DELETE to confirm' });
-    return;
-  }
-  setShowDelete(false);
-  useAuthStore.getState().beginDelete();
-  const uid = user?.id;
-  if (uid) clearCache(uid).catch(() => {});
-  clearAppIconBadge().catch(() => {});
-  clearProfile();
-  try {
-    await deleteAccount();
-  } catch (e: any) {
-    console.error('[handleDelete] error:', e?.message);
-    useAuthStore.getState().setPhase('unauthenticated');
-    Toast.show({
-      type: 'error',
-      text1: 'Something went wrong',
-      text2: 'Please try again',
-    });
-  } finally {
-    setDeleteLoading(false);
-    setConfirmText('');
-  }
-}, [confirmText, clearProfile, user?.id]);
+  const handleLogout = useCallback(async () => {
+    setShowLogout(false);
+    setLogoutLoading(true); // ← added
+    useAuthStore.getState().beginLogout();
+    const uid = user?.id;
+    if (uid) clearCache(uid).catch(() => {});
+    clearAppIconBadge().catch(() => {});
+    clearProfile();
+    try {
+      await logout();
+    } catch (e: any) {
+      console.warn("logout failed:", e);
+      useAuthStore.getState().setPhase("unauthenticated");
+    } finally {
+      setLogoutLoading(false);
+    }
+  }, [user?.id, clearProfile]);
+
+  const handleDelete = useCallback(async () => {
+    if (confirmText.toLowerCase() !== "delete") {
+      Toast.show({ type: "error", text1: "Type DELETE to confirm" });
+      return;
+    }
+    setShowDelete(false);
+    setDeleteLoading(true);
+    useAuthStore.getState().beginDelete();
+    const uid = user?.id;
+    if (uid) clearCache(uid).catch(() => {});
+    clearAppIconBadge().catch(() => {});
+    clearProfile();
+    try {
+      await deleteAccount();
+    } catch (e: any) {
+      console.error("[handleDelete] error:", e?.message);
+      useAuthStore.getState().setPhase("unauthenticated");
+      Toast.show({
+        type: "error",
+        text1: "Something went wrong",
+        text2: "Please try again",
+      });
+    } finally {
+      setDeleteLoading(false);
+      setConfirmText("");
+    }
+  }, [confirmText, clearProfile, user?.id]);
   const rows = [
     {
       icon: <Ionicons name="person-outline" size={s(24)} color={T.icon} />,
@@ -507,7 +518,6 @@ const handleDelete = useCallback(async () => {
   );
 }
 
-
 SettingsScreen.whyDidYouRender = true;
 
 const st = StyleSheet.create({
@@ -517,7 +527,7 @@ const st = StyleSheet.create({
   },
   header: {
     flexDirection: "row",
-    alignItems: "center",          
+    alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: s(16),
     paddingVertical: vs(14),
@@ -546,7 +556,7 @@ const st = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: s(20),
     paddingVertical: vs(16),
-    minHeight: vs(64),             
+    minHeight: vs(64),
   },
   iconWrap: {
     width: s(38),

@@ -1,6 +1,6 @@
 import * as Haptics from "expo-haptics";
 import * as WebBrowser from "expo-web-browser";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, useEffect } from "react";
 import { Alert, Linking, Platform } from "react-native";
 import { useAppLinks } from "@/Contexts/AppLinksContexts";
 import { STATIC_LINKS } from "@/config/appLinks";
@@ -57,6 +57,13 @@ export function useOpenLink() {
   const [isLoading, setIsLoading] = useState(false);
   const { getLink } = useAppLinks();
   const isMounted = useRef(true);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
   const safeSetLoading = useCallback((val) => {
     if (isMounted.current) setIsLoading(val);
   }, []);

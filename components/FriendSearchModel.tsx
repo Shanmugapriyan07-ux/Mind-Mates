@@ -3,23 +3,23 @@ import { ms, s } from "@/utils/scale";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, {
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from "react";
 import {
-    Animated,
-    FlatList,
-    Keyboard,
-    Modal,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Animated,
+  FlatList,
+  Keyboard,
+  Modal,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 export interface SearchFriend {
@@ -77,7 +77,7 @@ export const FriendsSearchModal: React.FC<Props> = ({
         }),
         Animated.timing(fadeAnim, {
           toValue: 1,
-          duration: 10,
+          duration: 180,
           useNativeDriver: true,
         }),
       ]).start(() => {
@@ -87,13 +87,13 @@ export const FriendsSearchModal: React.FC<Props> = ({
       Keyboard.dismiss();
       Animated.parallel([
         Animated.timing(slideAnim, {
-          toValue: 1,
-          duration: 10,
+          toValue: 0,
+          duration: 150,
           useNativeDriver: true,
         }),
         Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 10,
+          toValue: 0,
+          duration: 150,
           useNativeDriver: true,
         }),
       ]).start();

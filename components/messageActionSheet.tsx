@@ -4,15 +4,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { FlashList } from "@shopify/flash-list";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    Animated,
-    Dimensions,
-    FlatList,
-    Modal,
-    Pressable,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Animated,
+  Dimensions,
+  FlatList,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 const { width: SW } = Dimensions.get("window");
 export interface ActionMessage {
@@ -269,7 +269,7 @@ const EMOJI_CATEGORIES = [
       "💡",
       "🎵",
       "🎶",
-      "film-outline",
+      "🎬",
     ],
   },
   {
@@ -428,13 +428,17 @@ export const MessageActionSheet = ({
   onEdit,
   onDelete,
 }: Props) => {
-  const fadeAnim = useRef(new Animated.Value(1)).current;
-  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
   const [showPicker, setShowPicker] = useState(false);
   const [activeCategory, setCategory] = useState(1);
-    useRenderCount("Message");
+  const [shouldRender, setShouldRender] = useState(visible);
+
+  useRenderCount("Message");
+
   useEffect(() => {
     if (visible) {
+      setShouldRender(true);
       setShowPicker(false);
       setCategory(0);
       Animated.parallel([
@@ -453,19 +457,20 @@ export const MessageActionSheet = ({
     } else {
       Animated.parallel([
         Animated.timing(fadeAnim, {
-          toValue: 1,
+          toValue: 0,
           duration: 140,
           useNativeDriver: true,
         }),
         Animated.timing(scaleAnim, {
-          toValue: 1,
+          toValue: 0.9,
           duration: 120,
           useNativeDriver: true,
         }),
-      ]).start();
+      ]).start(() => setShouldRender(false));
     }
   }, [fadeAnim, scaleAnim, visible]);
-  if (!visible || !message) return null;
+
+  if (!shouldRender || !message) return null;
   const createdMs =
     message.created_at < 10_000_000_000
       ? message.created_at * 1000
@@ -658,9 +663,7 @@ const Row = ({
   </TouchableOpacity>
 );
 
-
 MessageActionSheet.whyDidYouRender = true;
-
 
 export default MessageActionSheet;
 const sh = StyleSheet.create({

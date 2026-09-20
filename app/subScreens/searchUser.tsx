@@ -1,38 +1,42 @@
 import { ProfileAvatar } from "@/components/Profileavatar";
 import { useAuthh } from "@/Contexts/authContext";
 import { useRenderCount } from "@/Count";
-import { useConnection } from "@/hooks/useConnection";
+import {
+  useConnection,
+  useConnectionLoading,
+  useConnectionStatus,
+} from "@/hooks/useConnection";
 import { supabase } from "@/lib/supabase";
 import { ms, s, vs } from "@/utils/scale";
 import { Ionicons } from "@expo/vector-icons";
 import { FlashList } from "@shopify/flash-list";
 import { router } from "expo-router";
 import React, {
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from "react";
 import {
-    ActivityIndicator,
-    FlatList,
-    NativeScrollEvent,
-    NativeSyntheticEvent,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  FlatList,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Animated, {
-    Easing,
-    interpolate,
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
-    withTiming,
+  Easing,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -166,10 +170,9 @@ const ConnectButton = React.memo(
     profile_image: string | null;
     skills: string;
   }) => {
-    const { getStatus, isLoading, sendRequest, cancelRequest } =
-      useConnection();
-    const status = getStatus(user_id);
-    const loading = isLoading(user_id);
+    const status = useConnectionStatus(user_id);
+    const loading = useConnectionLoading(user_id);
+    const { sendRequest, cancelRequest } = useConnection();
     const cfg = {
       none: { label: "Connect", bg: C.purple, fg: "#fff", border: C.purple },
       pending: {
@@ -408,13 +411,16 @@ export default function SearchScreen() {
     },
     [showTabs, hideTabs],
   );
+  const latestRequestId = useRef(0);
 
   const fetchUsers = useCallback(
     async (q: string, tab: FilterTab, pageOffset: number) => {
-      if (!user?.id || running.current) return;
+      if (!user?.id) return;
       const trimmed = q.trim();
       if (trimmed.length < 2) return;
-      running.current = true;
+
+      const requestId = ++latestRequestId.current;
+
       if (pageOffset === 0) {
         setLoading(true);
         setError(null);
@@ -429,7 +435,13 @@ export default function SearchScreen() {
         if (tab === "people") qb = qb.ilike("full_name", `%${trimmed}%`);
         if (tab === "skills") qb = qb.ilike("skills", `%${trimmed}%`);
         if (tab === "location") qb = qb.ilike("location", `%${trimmed}%`);
+
         const { data, error: qErr } = await qb;
+
+        // Bail out if a newer request has started since this one began —
+        // this response is stale and must not overwrite fresher results.
+        if (requestId !== latestRequestId.current) return;
+
         if (qErr) {
           setError(qErr.message);
           return;
@@ -450,10 +462,13 @@ export default function SearchScreen() {
         if (results.length > 0)
           loadStatuses(results.map((u: any) => u.user_id)).catch(() => {});
       } catch {
-        setError("Could not load users. Try again.");
+        if (requestId === latestRequestId.current) {
+          setError("Could not load users. Try again.");
+        }
       } finally {
-        setLoading(false);
-        running.current = false;
+        if (requestId === latestRequestId.current) {
+          setLoading(false);
+        }
       }
     },
     [user?.id, loadStatuses],

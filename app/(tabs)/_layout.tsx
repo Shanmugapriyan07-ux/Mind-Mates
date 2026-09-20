@@ -79,6 +79,10 @@ const useUnreadCount = (myUserId: string | undefined) => {
         clearInterval(pollingRef.current);
         pollingRef.current = null;
       }
+      if (markTimerRef.current) {
+        clearTimeout(markTimerRef.current);
+        markTimerRef.current = null;
+      }
       supabase.removeChannel(channel);
     };
   }, [myUserId, fetchCount]);
@@ -141,12 +145,12 @@ const FloatingBlurTabBar = React.memo(({ state, navigation }: any) => {
       ]}
     >
       <BlurView intensity={80} tint="light" style={t.blurContainer}>
-         <View
-      style={{
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: "rgba(255,255,255,0.12)",
-      }}
-    />
+        <View
+          style={{
+            ...StyleSheet.absoluteFillObject,
+            backgroundColor: "rgba(255,255,255,0.12)",
+          }}
+        />
         <View
           style={[t.tabRow, { paddingBottom: Platform.OS === "ios" ? 0 : 0 }]}
         >
@@ -240,27 +244,27 @@ export default function TabsLayout() {
 }
 
 const t = StyleSheet.create({
-outerWrapper: {
-  position: "absolute",
-  backgroundColor: "rgba(255,255,255,0.85)",
-  borderRadius: 32,
-  borderWidth: 0,
-  borderColor: "rgba(255,255,255,0.4)",
-  shadowColor: "#000",
-  shadowOffset: {
-    width: 0,
-    height: 3,
+  outerWrapper: {
+    position: "absolute",
+    backgroundColor: "rgba(255,255,255,0.85)",
+    borderRadius: 32,
+    borderWidth: 0,
+    borderColor: "rgba(255,255,255,0.4)",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.03,
+    shadowRadius: 12,
+    elevation: 10,
   },
-  shadowOpacity: 0.03,
-  shadowRadius: 12,
-  elevation: 10,
-},
-blurContainer: {
-  borderRadius: 32,
-  overflow: "hidden",
-  borderWidth: 0.5,
-  borderColor: "rgba(255,255,255,0.25)",
-},
+  blurContainer: {
+    borderRadius: 32,
+    overflow: "hidden",
+    borderWidth: 0.5,
+    borderColor: "rgba(255,255,255,0.25)",
+  },
   tabRow: {
     flexDirection: "row",
     height: BAR_HEIGHT,
