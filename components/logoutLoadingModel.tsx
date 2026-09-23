@@ -12,7 +12,6 @@ export function waitForModalPaint(): Promise<void> {
 function SpinnerRing({ active }: { active: boolean }) {
   const rotation = useRef(new Animated.Value(0)).current;
   const loopRef  = useRef<Animated.CompositeAnimation | null>(null);
-
   useEffect(() => {
     if (active) {
       rotation.setValue(0);
@@ -35,12 +34,10 @@ function SpinnerRing({ active }: { active: boolean }) {
     inputRange:  [0, 1],
     outputRange: ['0deg', '360deg'],
   });
-
   return (
     <Animated.View style={[styles.ring, { transform: [{ rotate: spin }] }]} />
   );
 }
-
 export function LogoutLoadingModal() {
   const phase    = useAuthStore(selPhase);
   const isActive = phase === 'logging_out' || phase === 'deleting';

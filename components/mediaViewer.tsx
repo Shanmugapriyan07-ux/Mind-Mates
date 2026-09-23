@@ -132,13 +132,23 @@ const VideoPlayerInner = ({
     if (!player) return;
 
     const statusSub = player.addListener("statusChange", (status: any) => {
-      /* unchanged */
+      if (status.status === "readyToPlay") {
+        setVideoReady(true);
+        setIsBuffering(false);
+        setVideoError(false);
+        setDurationMs((player.duration ?? 0) * 1000);
+      }
+      if (status.status === "error") {
+        setVideoError(true);
+        setIsBuffering(false);
+      }
+      if (status.status === "loading") {
+        setIsBuffering(true);
+      }
     });
-
     const playingSub = player.addListener("playingChange", (payload: any) => {
       setIsPlaying(payload.isPlaying);
       if (payload.isPlaying) {
-        // ← use the fresh value from the event itself
         resetControlsTimer();
       }
     });

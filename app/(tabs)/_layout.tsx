@@ -283,7 +283,7 @@ const t = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     zIndex: 1,
-    minWidth: 44, // minimum tap target (Apple HIG / Material)
+    minWidth: 44,
     minHeight: 44,
   },
   activePill: {

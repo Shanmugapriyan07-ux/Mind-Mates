@@ -3,7 +3,6 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
-
 import { useAuthh } from '@/Contexts/authContext';
 Notifications.setNotificationHandler({
   handleNotification: async () => ({

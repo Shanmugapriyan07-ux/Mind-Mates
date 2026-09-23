@@ -10,7 +10,6 @@ import { useAuthStore } from "@/stores/authStore";
 import * as Notifications from "expo-notifications";
 import React, { useEffect, useRef } from "react";
 import { AppState, InteractionManager } from "react-native";
-
 let _foregroundListenerSub: Notifications.Subscription | null = null;
 let _registrationInFlight = false;
 export function NotificationProvider({
@@ -28,13 +27,11 @@ export function NotificationProvider({
 
   _foregroundListenerSub = Notifications.addNotificationReceivedListener((notification) => {
     const data = notification.request.content.data as any;
-    if (isNotificationSuppressed(data)) return; // same rule as the OS handler — single source of truth
-
+    if (isNotificationSuppressed(data)) return;
     Notifications.getBadgeCountAsync().then((current) => {
       updateAppIconBadge(current + 1);
     });
   });
-
   return () => {
     _foregroundListenerSub?.remove();
     _foregroundListenerSub = null;
@@ -77,6 +74,5 @@ InteractionManager.runAfterInteractions(() => {
   useEffect(() => {
     if (hydrated) flushPendingNavigation();
   }, [hydrated]);
-
   return <>{children}</>;
 }

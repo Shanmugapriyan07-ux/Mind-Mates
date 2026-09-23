@@ -40,29 +40,28 @@ export const compressForUpload = async (
         width >= height ? { resize: { width: maxDim } } : { resize: { height: maxDim } },
       );
     }
+   let quality: number = cfg.quality;
+const resized = actions.length
+  ? await ImageManipulator.manipulateAsync(probe.uri, actions, { format: cfg.format })
+  : probe;
 
-    let quality: number = cfg.quality;
-    let result = await ImageManipulator.manipulateAsync(probe.uri, actions, {
-      compress: quality,
-      format: cfg.format,
-    });
-
-    for (let attempt = 0; attempt < 4; attempt += 1) {
-      const file = new ExpoFile(result.uri);
-      const size = file.exists ? (file.info().size ?? 0) : 0;
-      if (!size || size <= (cfg.targetBytes ?? 300_000)) break;
-
-      const nextQuality = Math.max(0.55, quality - 0.1);
-      if (Math.abs(nextQuality - quality) < 0.001) break;
-
-      quality = nextQuality;
-      result = await ImageManipulator.manipulateAsync(result.uri, [], {
-        compress: quality,
-        format: cfg.format,
-      });
-    }
-
-    return result.uri;
+let result = await ImageManipulator.manipulateAsync(resized.uri, [], {
+  compress: quality,
+  format: cfg.format,
+});
+for (let attempt = 0; attempt < 4; attempt += 1) {
+  const file = new ExpoFile(result.uri);
+  const size = file.exists ? (file.info().size ?? 0) : 0;
+  if (!size || size <= (cfg.targetBytes ?? 300_000)) break;
+  const nextQuality = Math.max(0.55, quality - 0.1);
+  if (Math.abs(nextQuality - quality) < 0.001) break;
+  quality = nextQuality;
+  result = await ImageManipulator.manipulateAsync(resized.uri, [], {
+    compress: quality,
+    format: cfg.format,
+  });
+}
+return result.uri;
   } catch (e) {
     console.warn('[compress] failed, using original:', e);
     return uri;

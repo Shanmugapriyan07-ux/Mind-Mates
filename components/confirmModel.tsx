@@ -168,9 +168,6 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
     </Modal>
   );
 };
-
-
-
 const st = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,

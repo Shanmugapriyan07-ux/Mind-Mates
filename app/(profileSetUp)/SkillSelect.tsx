@@ -276,57 +276,6 @@ export default function SkillSelection() {
       ? sk.name.toLowerCase().includes(searchQuery.toLowerCase())
       : sk.category === activeCategory,
   );
-
-  // const handleContinue = useCallback(async () => {
-  //   if (!user?.id || saving) return;
-
-  //   const names = Array.from(selectedIds)
-  //     .map((id) => SKILLS.find((s) => s.id === id)?.name ?? "")
-  //     .filter(Boolean);
-
-  //   if (!names.length) return;
-
-  //   setSaving(true);
-  //   await new Promise<void>((resolve) =>
-  //     requestAnimationFrame(() => resolve()),
-  //   );
-
-  //   try {
-  //     const { error } = await supabase
-  //       .from(TABLES.users)
-  //       .update({
-  //         skills: names.join(","),
-  //         is_profile_complete: true,
-  //         profile_image: profile?.profileImage ?? null,
-  //       })
-  //       .eq("user_id", user.id);
-
-  //     if (error) {
-  //       console.warn("[SkillSelection] DB write failed:", error.message);
-  //       Toast.show({
-  //         type: "error",
-  //         text1: "Something went wrong. Please try again.",
-  //       }); // see next finding
-  //       setSaving(false);
-  //       return;
-  //     }
-  //     updateProfile({
-  //       skills:            names.join(','),
-  //       skillsArray:       names,
-  //       isProfileComplete: true,
-  //     });
-  //     setProfileCompleting(true);
-  //     useAuthStore.getState().markProfileComplete();
-  //       router.dismissAll();
-  //       router.replace("/home");
-  //     setTimeout(() => setProfileCompleting(false), 500);
-
-  //   } catch (e: any) {
-  //     console.warn("[SkillSelection] unexpected error:", e?.message);
-  //     setSaving(false);
-  //   }
-  // }, [user?.id, saving, selectedIds, profile?.profileImage, updateProfile]);
-
   const handleContinue = useCallback(async () => {
     if (!user?.id || saving) return;
 
@@ -361,7 +310,7 @@ export default function SkillSelection() {
         return;
       }
 
-      await reloadProfile(); // sync local state from the write we just confirmed — no second write
+      await reloadProfile();
       setProfileCompleting(true);
       useAuthStore.getState().markProfileComplete();
       router.dismissAll();

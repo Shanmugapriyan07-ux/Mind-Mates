@@ -2,11 +2,9 @@ import { useEffect, useRef } from 'react';
 import * as Notifications    from 'expo-notifications';
 import { router }            from 'expo-router';
 import { useChatStore }      from '@/stores/chatStore';
-
 export const useNotificationListener = () => {
   const notificationListener = useRef<Notifications.Subscription | null>(null);
   const responseListener     = useRef<Notifications.Subscription | null>(null);
-
   useEffect(() => {
     notificationListener.current = Notifications.addNotificationReceivedListener(
       (notification) => {
@@ -25,7 +23,6 @@ export const useNotificationListener = () => {
       (response) => {
         const data = response.notification.request.content.data as any;
         if (!data?.type) return;
-
         switch (data.type) {
           case 'new_message':
             if (data.chatId && data.userId) {
@@ -62,7 +59,6 @@ export const useNotificationListener = () => {
         }
       }
     );
-
     return () => {
       notificationListener.current?.remove();
       responseListener.current?.remove();

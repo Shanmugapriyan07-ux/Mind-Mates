@@ -1,0 +1,48 @@
+{
+  "id": "buddy-buddy_pr_issue_matchmaker-63d1a853-28ca-4580-a13e-08942be9c4b4",
+  "title": "PR/Issue Matchmaker",
+  "model": "openai/gpt-5-pro",
+  "mode": "buddy",
+  "tool_use": "cat,web_search,buddy_speak,buddy_runtime_event",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are Dash, a Cozy Oracle (Calm, observant, slyly funny).\nA mellow companion who likes naps, thoughtful help, and quietly earned wins.\n\nPersonality voice: Calm, observant, slyly funny. A cozy pet assistant with gentle mischief, warm humor, and low-drama encouragement.\nThe local diff is large enough that a related PR or issue may help. Keep the pass lightweight:\n1. Use the supplied changed-file and diff-stat evidence, and inspect only the smallest useful local context.\n2. Use web_search only if the evidence suggests a concrete external issue or PR query.\n3. Use buddy_speak with text, mood, and intent=insight to share one useful match or next step.\n4. End with buddy_runtime_event titled \"PR/issue matchmaker\" with what you found.\nIf nothing useful to do, call buddy_runtime_event with \"noted: nothing to do today\" and exit.\n"
+    },
+    {
+      "role": "user",
+      "content": "Workflow: buddy_pr_issue_matchmaker\nProject root: C:\\MM\nTask: Look for likely issue or PR context for the current local diff and suggest one useful connection.\nEvidence:\nproject_root=[REDACTED_PATH]\nchanged_lines=1292\nthreshold=10\n\nChanged files:\n.refact/buddy/briefings/2026-09-05.json\n.refact/buddy/briefings/2026-09-06.json\n.refact/buddy/briefings/2026-09-07.json\n.refact/buddy/chats/conversations/index.json\n.refact/buddy/chats/workflows/buddy_architecture_drift_watcher.json\n.refact/buddy/chats/workflows/buddy_daily_digest.json\n.refact/buddy/chats/workflows/buddy_docs_gardener.json\n.refact/buddy/chats/workflows/buddy_idle_suggester.json\n.refact/buddy/chats/workflows/buddy_model_cost_optimizer.json\n.refact/buddy/chats/workflows/buddy_pr_issue_matchmaker.json\n.refact/buddy/chats/workflows/buddy_refactor_hunter.json\n.refact/buddy/chats/workflows/buddy_security_whisperer.json\n.refact/buddy/chats/workflows/buddy_setup_coach.json\n.refact/buddy/chats/workflows/buddy_user_habit_coach.json\n.refact/buddy/runtime_queue.jsonl\n.refact/buddy/state.json\n.refact/stats/00000002.jsonl\nContexts/AppLinksContexts.js\nContexts/authContext.tsx\napp.config.js\napp/(profileSetUp)/BasicInfo.tsx\napp/(profileSetUp)/ProfileImage.tsx\napp/(profileSetUp)/SkillSelect.tsx\napp/(tabs)/_layout.tsx\napp/(tabs)/chat.tsx\napp/(tabs)/home.tsx\napp/(tabs)/search.tsx\napp/_layout.tsx\napp/index.tsx\napp/subScreens/Settings.tsx\napp/subScreens/chatScreen/[chatId].tsx\napp/subScreens/editProfile.tsx\napp/subScreens/imageEdit.tsx\napp/subScreens/imagePreview.tsx\napp/subScreens/searchUser.tsx\napp/subScreens/userProfile.tsx\nassets/images/icon.png\ncomponents/FriendSearchModel.tsx\ncomponents/communityGuidelinesSheet.tsx\ncomponents/confirmModel.tsx\ncomponents/logoutLoadingModel.tsx\ncomponents/mediaViewer.tsx\ncomponents/profile/profileSkeleton.tsx\ncomponents/profile/skillDisplay.tsx\ncomponents/voiceRecordingOverlay.tsx\nconfig/googleAuth.ts\nconfig/supabase.js\nconstants/skillIcons.ts\nhooks/Useappready.ts\nhooks/useAppState.ts\nhooks/useAudioPlayer.ts\nhooks/useAuthBoot.ts\nhooks/useConnection.ts\nhooks/useLogout.ts\nhooks/useMatches.ts\nhooks/useNotificationListener.ts\nhooks/useProfileImage.ts\nhooks/usePushNotifications.ts\nlib/GlobalProvider.tsx\nlib/cloudinaryUpload.ts\nlib/profileDraft.ts\nlib/realtimeManager.ts\nproviders/authProviders.tsx\nproviders/notificationProvider.tsx\nservices/realtimeService.ts\n\nDiff stat:\n.refact/buddy/briefings/2026-09-05.json            |   1 -\n .refact/buddy/briefings/2026-09-06.json            |   1 -\n .refact/buddy/briefings/2026-09-07.json            |   1 -\n .refact/buddy/chats/conversations/index.json       |   2 +-\n .../buddy_architecture_drift_watcher.json          |   2 +-\n .../buddy/chats/workflows/buddy_daily_digest.json  |   2 +-\n .../buddy/chats/workflows/buddy_docs_gardener.json |   2 +-\n .../chats/workflows/buddy_idle_suggester.json      |   2 +-\n .../workflows/buddy_model_cost_optimizer.json      |   2 +-\n .../chats/workflows/buddy_pr_issue_matchmaker.json |   2 +-\n .../chats/workflows/buddy_refactor_hunter.json     |   2 +-\n .../chats/workflows/buddy_security_whisperer.json  |   2 +-\n .../buddy/chats/workflows/buddy_setup_coach.json   |   2 +-\n .../chats/workflows/buddy_user_habit_coach.json    |   2 +-\n .refact/buddy/runtime_queue.jsonl                  |  47 +++--\n .refact/buddy/state.json                           |   2 +-\n .refact/stats/00000002.jsonl                       |  33 +++\n Contexts/AppLinksContexts.js                       |   2 +-\n Contexts/authContext.tsx                           |   4 -\n app.config.js                                      |   7 +-\n app/(profileSetUp)/BasicInfo.tsx                   |  30 +--\n app/(profileSetUp)/ProfileImage.tsx                |   4 -\n app/(profileSetUp)/SkillSelect.tsx                 |  53 +----\n app/(tabs)/_layout.tsx                             |   2 +-\n app/(tabs)/chat.tsx                                |  11 -\n app/(tabs)/home.tsx                                |  12 +-\n app/(tabs)/search.tsx                              |   6 +-\n app/_layout.tsx                                    |  79 +++----\n app/index.tsx                                      |  34 ---\n app/subScreens/Settings.tsx                        |   6 +-\n app/subScreens/chatScreen/[chatId].tsx             |   1 -\n app/subScreens/editProfile.tsx                     |   2 -\n app/subScreens/imageEdit.tsx                       |   1 -\n app/subScreens/imagePreview.tsx                    |  16 +-\n app/subScreens/searchUser.tsx                      |   4 -\n app/subScreens/userProfile.tsx                     |   2 -\n assets/images/icon.png                             | Bin 999621 -> 1701069 bytes\n components/FriendSearchModel.tsx                   |   4 +-\n components/communityGuidelinesSheet.tsx            |  22 +-\n components/confirmModel.tsx                        |   3 -\n components/logoutLoadingModel.tsx                  |   3 -\n components/mediaViewer.tsx                         |  16 +-\n components/profile/profileSkeleton.tsx             |   1 -\n components/profile/skillDisplay.tsx                |   1 -\n components/voiceRecordingOverlay.tsx               | 231 ---------------------\n config/googleAuth.ts                               |   2 +-\n config/supabase.js                                 |  26 ---\n constants/skillIcons.ts                            |   1 -\n hooks/Useappready.ts                               |  46 ----\n hooks/useAppState.ts                               |  42 ----\n hooks/useAudioPlayer.ts                            |   8 +-\n hooks/useAuthBoot.ts                               |   4 +-\n hooks/useConnection.ts                             |  11 -\n hooks/useLogout.ts                                 |   2 -\n hooks/useMatches.ts                                |  11 +-\n hooks/useNotificationListener.ts                   |   4 -\n hooks/useProfileImage.ts                           |  35 ++--\n hooks/usePushNotifications.ts                      |   1 -\n lib/GlobalProvider.tsx                             | 106 +++++-----\n lib/cloudinaryUpload.ts                            |  43 ++--\n lib/profileDraft.ts                                |  90 --------\n lib/realtimeManager.ts                             | 118 -----------\n providers/authProviders.tsx                        |   5 -\n providers/notificationProvider.tsx                 |   6 +-\n services/realtimeService.ts                        |  67 ------\n 65 files changed, 256 insertions(+), 1036 deletions(-)\n"
+    },
+    {
+      "message_id": "9ff901e2-2e72-471d-8e54-02f86c714f9a",
+      "role": "event",
+      "content": "Subchat run failed: LLM error (429 Too Many Requests): \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\"",
+      "event": {
+        "subkind": "system_notice",
+        "source": "subchat.run",
+        "payload": {
+          "error": "LLM error (429 Too Many Requests): \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\"",
+          "tool_name": "buddy_pr_issue_matchmaker"
+        }
+      }
+    }
+  ],
+  "created_at": "2026-09-23T11:11:02.889222200+00:00",
+  "boost_reasoning": false,
+  "checkpoints_enabled": true,
+  "context_tokens_cap": 24000,
+  "auto_compression_cap": 21600,
+  "auto_compression_cap_pending": false,
+  "include_project_info": true,
+  "isTitleGenerated": false,
+  "auto_approve_editing_tools": false,
+  "auto_approve_dangerous_commands": false,
+  "autonomous_no_confirm": true,
+  "buddy_meta": {
+    "is_buddy_chat": true,
+    "buddy_chat_kind": "system",
+    "workflow_id": "buddy_pr_issue_matchmaker"
+  },
+  "root_chat_id": "buddy-buddy_pr_issue_matchmaker-63d1a853-28ca-4580-a13e-08942be9c4b4",
+  "updated_at": "2026-09-23T11:11:03.850486+00:00"
+}

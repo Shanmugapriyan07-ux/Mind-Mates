@@ -28,7 +28,7 @@ export function configureGoogleSignIn(): void {
     _isConfigured = true;
     console.info('[GoogleAuth] ✅ Configured:', webClientId.slice(0, 30) + '...');
   } catch (err: any) {
-    console.warn('[GoogleAuth] ❌ Configure failed:', err?.message);
+    console.warn('[GoogleAuth] Configure failed:', err?.message);
   }
 }
 export const isGoogleReady  = () => !!_GoogleSignin && _isConfigured;

@@ -335,9 +335,7 @@ export default function UserProfileScreen() {
     </SafeAreaView>
   );
 }
-
 UserProfileScreen.whyDidYouRender = true;
-
 const st = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#FFFFFF" },
   header: {

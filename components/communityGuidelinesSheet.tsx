@@ -5,15 +5,15 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Image } from "expo-image";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    Animated,
-    Dimensions,
-    Modal,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Animated,
+  Dimensions,
+  Modal,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 const AGREED_KEY = "mindmates_community_agreed_v1";
@@ -308,7 +308,6 @@ const sh = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: BRAND.overlay,
   },
-
   centerer: {
     flex: 1,
     alignItems: "center",
@@ -317,7 +316,7 @@ const sh = StyleSheet.create({
   },
   popup: {
     backgroundColor: BRAND.white,
-    borderRadius: s(24),
+    borderRadius: s(23),
     width: POPUP_W,
     maxHeight: POPUP_MAX_H,
     paddingTop: vs(20),
@@ -445,5 +444,4 @@ const sh = StyleSheet.create({
     letterSpacing: 0.1,
   },
 });
-
 export default CommunityGuidelinesSheet;

@@ -252,7 +252,7 @@ const sr = StyleSheet.create({
     alignSelf: "center",
     backgroundColor: C.white,
     paddingHorizontal: s(14),
-    paddingVertical: s(10),
+    paddingVertical: s(8),
     gap: s(10),
     shadowColor: "#000",
     shadowOpacity: 0.08,
@@ -267,7 +267,7 @@ const sr = StyleSheet.create({
     alignItems: "center",
     backgroundColor: C.bg,
     borderRadius: s(22),
-    height: s(40),
+    height: s(42),
     gap: s(6),
   },
   input: {

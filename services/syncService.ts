@@ -1,3 +1,4 @@
+import { callFn } from '@/lib/callFn';
 import { supabase } from '@/lib/supabase';
 import { useUnreadStore } from '@/stores/useUnreadStore';
 import { AppState, AppStateStatus } from 'react-native';
@@ -57,33 +58,35 @@ const fetchAndApplyCounts = async (userId: string): Promise<void> => {
     isSyncing = false;
   }
 };
+
 const fetchUnreadCounts = async (userId: string): Promise<UnreadCounts> => {
-  const [chatResult, notifResult, perChatResult] = await Promise.all([
+  const [chatsResult, notifResult] = await Promise.all([
     supabase
-      .from('messages')
-      .select('*', { count: 'exact', head: true })
-      .eq('receiver_id', userId)
-      .eq('is_read', false),
+      .from('chats')
+      .select('id, participants, unread_p1, unread_p2')
+      .contains('participants', [userId]),
     supabase
       .from('notifications')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .eq('is_read', false),
-    supabase
-      .from('messages')
-      .select('chat_id')
-      .eq('receiver_id', userId)
-      .eq('is_read', false)
-      .limit(200),
   ]);
+
+  let chatUnread = 0;
   const perChatUnread: Record<string, number> = {};
-  if (perChatResult.data) {
-    for (const row of perChatResult.data) {
-      perChatUnread[row.chat_id] = (perChatUnread[row.chat_id] ?? 0) + 1;
+
+  for (const row of chatsResult.data ?? []) {
+    const parts = (row.participants as string[]) ?? [];
+    const myIndex = parts.indexOf(userId);
+    const count = myIndex === 0 ? (row.unread_p1 ?? 0) : myIndex === 1 ? (row.unread_p2 ?? 0) : 0;
+    if (count > 0) {
+      chatUnread += count;
+      perChatUnread[row.id] = count;
     }
   }
+
   return {
-    chatUnread:  chatResult.count  ?? 0,
+    chatUnread,
     notifUnread: notifResult.count ?? 0,
     perChatUnread,
   };
@@ -96,32 +99,25 @@ const applyCountsToStore = (counts: UnreadCounts): void => {
   );
 };
 const subscribeToMessages = (userId: string): void => {
-  const topic = `messages:${userId}:${Date.now()}`;
+  const topic = `sync_chats:${userId}:${Date.now()}`;
   messageChannel = supabase
     .channel(topic)
     .on(
       'postgres_changes',
-      {
-        event:  '*',               
-        schema: 'public',
-        table:  'messages',
-        filter: `receiver_id=eq.${userId}`,
-      },
-      (_payload) => {
-        if (activeUserId === userId) {
-          fetchAndApplyCounts(userId);
-        }
-      }
+      { event: 'UPDATE', schema: 'public', table: 'chats', filter: `participant_1=eq.${userId}` },
+      () => { if (activeUserId === userId) fetchAndApplyCounts(userId); },
+    )
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'chats', filter: `participant_2=eq.${userId}` },
+      () => { if (activeUserId === userId) fetchAndApplyCounts(userId); },
     )
     .subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-      }
       if (status === 'CHANNEL_ERROR') {
         console.warn('[SyncService] Message channel error — will retry');
       }
     });
-};
-const subscribeToNotifications = (userId: string): void => {
+};const subscribeToNotifications = (userId: string): void => {
   const topic = `notifications:${userId}:${Date.now()}`;
   notifChannel = supabase
     .channel(topic)
@@ -161,12 +157,7 @@ const setupAppStateListener = (userId: string): void => {
 };
 export const onChatOpened = async (chatId: string, userId: string): Promise<void> => {
   useUnreadStore.getState().clearChatBadge(chatId);
-  await supabase
-    .from('messages')
-    .update({ is_read: true })
-    .eq('chat_id', chatId)
-    .eq('receiver_id', userId)
-    .eq('is_read', false);
+  await callFn({ action: 'mark_chat_read', chatId });
   await fetchAndApplyCounts(userId);
   const total = useUnreadStore.getState().totalUnread;
   await updateAppIconBadgeImmediate(total);

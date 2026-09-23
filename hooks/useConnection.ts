@@ -69,9 +69,6 @@ const callFn = async (body: Record<string, any>): Promise<any> => {
   return data;
 };
 
-// ── Shared store — single source of truth for connection status across
-// every consumer (DiscoverScreen, every ConnectButton, any future screen),
-// replacing what used to be independent per-component-instance useState.
 interface ConnectionStoreState {
   statusMap: Record<string, ConnectStatus>;
   loadingMap: Record<string, boolean>;
@@ -109,9 +106,6 @@ const useConnectionStore = create<ConnectionStoreState>((set, get) => ({
   },
 
   hydrate: async (uid) => {
-    // Only ever read the cache once per user per app session — every
-    // consumer calling hydrate() again for the same uid is a safe no-op,
-    // eliminating the N-redundant-reads problem from N rendered buttons.
     if (get().hydratedFor === uid) return;
     const raw = await cacheGet(CACHE_KEY(uid));
     if (raw) {
@@ -125,11 +119,6 @@ const useConnectionStore = create<ConnectionStoreState>((set, get) => ({
 
   reset: () => set({ statusMap: {}, loadingMap: {}, hydratedFor: null }),
 }));
-
-// Narrow selector hooks — a component that only cares about ONE user's
-// status/loading state should use these instead of useConnection()'s
-// getStatus()/isLoading(), so it only re-renders when THAT specific
-// value changes, not on every unrelated status update anywhere on screen.
 export const useConnectionStatus = (userId: string): ConnectStatus =>
   useConnectionStore((s) => s.statusMap[userId] ?? 'none');
 

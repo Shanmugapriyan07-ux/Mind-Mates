@@ -496,7 +496,7 @@ export default function ChatListScreen() {
       const handleChatUpdate = (payload: any) => {
         const doc = payload.new as any;
         const parts = (doc.participants ?? []) as string[];
-        if (!parts.includes(uid)) return; // now a redundant safety net, not the only defense — Realtime itself won't deliver unrelated rows anymore
+        if (!parts.includes(uid)) return;
 
         const otherId = parts.find((p: string) => p !== uid);
         if (!otherId) return;
@@ -554,13 +554,6 @@ export default function ChatListScreen() {
 
       const channel = supabase
         .channel(`home_${uid}_${Date.now()}`)
-        // Two filtered subscriptions instead of one unfiltered — Postgres
-        // Realtime only supports a single equality filter per registration,
-        // and a chat's target user can be in either participant slot, so we
-        // register the same handler against both possible slots. Each one
-        // now only ever receives rows where THIS user is actually a
-        // participant, eliminating the app-wide unfiltered broadcast this
-        // channel previously received.
         .on(
           "postgres_changes",
           {
@@ -607,7 +600,6 @@ export default function ChatListScreen() {
           if (status === "CHANNEL_ERROR" || status === "TIMED_OUT")
             loadFriends();
         });
-
       channelRef.current = channel;
     }, 100);
 
@@ -662,7 +654,7 @@ export default function ChatListScreen() {
 
   const doHideChat = useCallback(
     async (f: Friend) => {
-      unregisterClose(f.connection_id); // prevent closeRegistry leak
+      unregisterClose(f.connection_id);
 
       setFriends((prev) =>
         prev.filter((x) => x.connection_id !== f.connection_id),

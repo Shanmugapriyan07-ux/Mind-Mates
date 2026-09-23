@@ -31,10 +31,6 @@ export interface AuthUser {
 
 interface AuthContextType {
   user: AuthUser | null;
-  // Raw Supabase Session is intentionally NOT duplicated into this context.
-  // If a consumer ever needs the real access/refresh token, call
-  // supabase.auth.getSession() directly at the point of use — do not
-  // reintroduce a stored copy here.
   session: null;
   isLoggedIn: boolean;
   loading: boolean;

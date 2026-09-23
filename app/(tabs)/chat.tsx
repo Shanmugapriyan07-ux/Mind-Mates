@@ -131,15 +131,6 @@ const timeAgo = (ts: string | number): string => {
   if (d < 30) return `${Math.floor(d / 7)}w `;
   return `${Math.floor(d / 30)}mo ago`;
 };
-
-// const parseSkills = (s: string) =>
-//   s
-//     ? s
-//         .split(",")
-//         .map((x) => x.trim())
-//         .filter(Boolean)
-//     : [];
-
 const dedup = (items: NotifItem[]) => {
   const seen = new Set<string>();
   return items.filter((n) => {
@@ -148,7 +139,6 @@ const dedup = (items: NotifItem[]) => {
     return true;
   });
 };
-
 const ActionSheet = ({
   item,
   onClose,
@@ -214,7 +204,6 @@ const ActionSheet = ({
     </Modal>
   );
 };
-
 const sh = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: "flex-end" },
   card: {

@@ -1,0 +1,48 @@
+{
+  "id": "buddy-buddy_pr_issue_matchmaker-0ea2015e-f47a-4a56-901b-1be48cfdad27",
+  "title": "PR/Issue Matchmaker",
+  "model": "openai/gpt-5-pro",
+  "mode": "buddy",
+  "tool_use": "cat,web_search,buddy_speak,buddy_runtime_event",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are Dash, a Cozy Oracle (Calm, observant, slyly funny).\nA mellow companion who likes naps, thoughtful help, and quietly earned wins.\n\nPersonality voice: Calm, observant, slyly funny. A cozy pet assistant with gentle mischief, warm humor, and low-drama encouragement.\nThe local diff is large enough that a related PR or issue may help. Keep the pass lightweight:\n1. Use the supplied changed-file and diff-stat evidence, and inspect only the smallest useful local context.\n2. Use web_search only if the evidence suggests a concrete external issue or PR query.\n3. Use buddy_speak with text, mood, and intent=insight to share one useful match or next step.\n4. End with buddy_runtime_event titled \"PR/issue matchmaker\" with what you found.\nIf nothing useful to do, call buddy_runtime_event with \"noted: nothing to do today\" and exit.\n"
+    },
+    {
+      "role": "user",
+      "content": "Workflow: buddy_pr_issue_matchmaker\nProject root: C:\\MM\nTask: Look for likely issue or PR context for the current local diff and suggest one useful connection.\nEvidence:\nproject_root=[REDACTED_PATH]\nchanged_lines=602\nthreshold=10\n\nChanged files:\n.refact/buddy/briefings/2026-09-05.json\n.refact/buddy/chats/conversations/index.json\n.refact/buddy/chats/workflows/buddy_architecture_drift_watcher.json\n.refact/buddy/chats/workflows/buddy_docs_gardener.json\n.refact/buddy/chats/workflows/buddy_idle_suggester.json\n.refact/buddy/chats/workflows/buddy_model_cost_optimizer.json\n.refact/buddy/chats/workflows/buddy_pr_issue_matchmaker.json\n.refact/buddy/chats/workflows/buddy_refactor_hunter.json\n.refact/buddy/chats/workflows/buddy_setup_coach.json\n.refact/buddy/chats/workflows/buddy_user_habit_coach.json\n.refact/buddy/runtime_queue.jsonl\n.refact/buddy/state.json\n.refact/stats/00000002.jsonl\napp/(profileSetUp)/BasicInfo.tsx\napp/(profileSetUp)/ProfileImage.tsx\napp/_layout.tsx\napp/subScreens/imagePreview.tsx\nconfig/supabase.js\nhooks/Useappready.ts\nhooks/useAppState.ts\nhooks/useProfileImage.ts\nlib/profileDraft.ts\nlib/realtimeManager.ts\nservices/realtimeService.ts\n\nDiff stat:\n.refact/buddy/briefings/2026-09-05.json            |   1 -\n .refact/buddy/chats/conversations/index.json       |   2 +-\n .../buddy_architecture_drift_watcher.json          |   2 +-\n .../buddy/chats/workflows/buddy_docs_gardener.json |   2 +-\n .../chats/workflows/buddy_idle_suggester.json      |   2 +-\n .../workflows/buddy_model_cost_optimizer.json      |   2 +-\n .../chats/workflows/buddy_pr_issue_matchmaker.json |   2 +-\n .../chats/workflows/buddy_refactor_hunter.json     |   2 +-\n .../buddy/chats/workflows/buddy_setup_coach.json   |   2 +-\n .../chats/workflows/buddy_user_habit_coach.json    |   2 +-\n .refact/buddy/runtime_queue.jsonl                  |  15 ++-\n .refact/buddy/state.json                           |   2 +-\n .refact/stats/00000002.jsonl                       |   9 ++\n app/(profileSetUp)/BasicInfo.tsx                   |  26 +----\n app/(profileSetUp)/ProfileImage.tsx                |   4 -\n app/_layout.tsx                                    |   1 -\n app/subScreens/imagePreview.tsx                    |  16 +--\n config/supabase.js                                 |  26 -----\n hooks/Useappready.ts                               |  90 ++++++++--------\n hooks/useAppState.ts                               |  84 +++++++--------\n hooks/useProfileImage.ts                           |  35 +++---\n lib/profileDraft.ts                                |  90 ----------------\n lib/realtimeManager.ts                             | 118 ---------------------\n services/realtimeService.ts                        |  67 ------------\n 24 files changed, 149 insertions(+), 453 deletions(-)\n"
+    },
+    {
+      "message_id": "8baef465-aa0b-44ca-a0f2-2d78fc611d99",
+      "role": "event",
+      "content": "Subchat run failed: LLM error (429 Too Many Requests): \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\"",
+      "event": {
+        "subkind": "system_notice",
+        "source": "subchat.run",
+        "payload": {
+          "error": "LLM error (429 Too Many Requests): \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\"",
+          "tool_name": "buddy_pr_issue_matchmaker"
+        }
+      }
+    }
+  ],
+  "created_at": "2026-09-21T09:20:18.332575700+00:00",
+  "boost_reasoning": false,
+  "checkpoints_enabled": true,
+  "context_tokens_cap": 24000,
+  "auto_compression_cap": 21600,
+  "auto_compression_cap_pending": false,
+  "include_project_info": true,
+  "isTitleGenerated": false,
+  "auto_approve_editing_tools": false,
+  "auto_approve_dangerous_commands": false,
+  "autonomous_no_confirm": true,
+  "buddy_meta": {
+    "is_buddy_chat": true,
+    "buddy_chat_kind": "system",
+    "workflow_id": "buddy_pr_issue_matchmaker"
+  },
+  "root_chat_id": "buddy-buddy_pr_issue_matchmaker-0ea2015e-f47a-4a56-901b-1be48cfdad27",
+  "updated_at": "2026-09-21T09:20:19.239404700+00:00"
+}

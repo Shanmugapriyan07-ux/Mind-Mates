@@ -10,7 +10,6 @@ export const initBadgeService = async (): Promise<void> => {
     await setupAndroidChannels();
   }
 };
-// badgeService.ts
 export const flushPendingBadgeWrite = async (): Promise<void> => {
   if (debounceTimer) {
     clearTimeout(debounceTimer);

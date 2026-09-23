@@ -1,4 +1,3 @@
-// constants/skillIcons.ts
 export const SKILL_ICONS: Record<string, string> = {
   Art: "color-palette-outline",
   Painting: "brush-outline",

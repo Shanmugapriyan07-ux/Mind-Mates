@@ -2,7 +2,6 @@ import { SCREEN, getDeviceTier } from '../theme/breakPoints';
 
 const tier = getDeviceTier(SCREEN.width);
 
-// Base unit scales with device size
 const BASE: Record<typeof tier, number> = {
   smallPhone:  14,
   mediumPhone: 16,

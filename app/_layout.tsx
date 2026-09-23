@@ -5,8 +5,6 @@ import { AuthProvider } from "@/Contexts/authContext";
 import { ProfileProvider } from "@/Contexts/profileContext";
 import { useAuthBoot } from "@/hooks/useAuthBoot";
 import { usePresence } from "@/hooks/usePresence";
-// import { useRealtimeManager } from "@/hooks/useRealtimeManager";
-import { GlobalProvider } from "@/lib/GlobalProvider";
 import { NotificationProvider } from "@/providers/notificationProvider";
 import {
   flushPendingNavigation,
@@ -105,9 +103,7 @@ function RootLayoutNav({
   preloadData,
 }: RootLayoutNavProps) {
   usePresence();
-  // useRealtimeManager();
   useAuthBoot(preloadData?.session);
-
   const router = useRouter();
   const segments = useSegments();
   const phase = useAuthStore(selPhase);
@@ -131,14 +127,12 @@ function RootLayoutNav({
     },
     [],
   );
-
   useEffect(() => {
     const isHome = segments[0] === "(tabs)";
     if (phase === "booting" || (phase === "authenticated" && isHome)) {
       lastTarget.current = "";
     }
   }, [phase, segments]);
-
   useEffect(() => {
     if (_profileCompleting) return;
     const seg = segments[0] as string | undefined;
@@ -147,14 +141,12 @@ function RootLayoutNav({
     if (target === lastTarget.current) return;
     lastTarget.current = target;
     log.nav(`[Layout] "${phase}" → "${target}"`);
-
     const isLoggingIn =
       phase === "authenticated" || phase === "profile_incomplete";
     const isLoggingOut =
       phase === "unauthenticated" ||
       phase === "logging_out" ||
       phase === "deleting";
-
     const doNavigate = () => {
       try {
         if (isLoggingOut) {
@@ -214,14 +206,12 @@ function RootLayoutNav({
     </>
   );
 }
-
 export default function RootLayout() {
   const { phase, preloadData, onSplashAnimationComplete, onContentReady } =
     useStartup();
   console.count("RootLayout");
   const navRef = useNavigationContainerRef();
   const contentOpacity = useSharedValue(0);
-
   useEffect(() => {
     Linking.getInitialURL().then(() => {});
   }, []);
@@ -233,18 +223,15 @@ export default function RootLayout() {
       });
     }
   }, [contentOpacity, phase]);
-
   const contentStyle = useAnimatedStyle(() => ({
     flex: 1,
     opacity: contentOpacity.value,
     pointerEvents: (contentOpacity.value < 0.05 ? "none" : "auto") as any,
   }));
-
   const handleContentReady = useCallback(
     () => onContentReady(),
     [onContentReady],
   );
-
   useEffect(() => {
     if (!__DEV__) return;
     const task = InteractionManager.runAfterInteractions(() => {
@@ -258,24 +245,24 @@ export default function RootLayout() {
     });
     return () => task.cancel();
   }, []);
-
   useEffect(() => {
     if (phase !== "done") return;
     configureGoogleSignIn();
   }, [navRef, phase]);
-
-useEffect(() => {
-  registerNavRef(navRef);
-  if (phase !== "done") return;
-  handleColdStartNotification().then(() => flushPendingNavigation());
-  const sub = Notifications.addNotificationResponseReceivedListener((response) => {
-    const data = response.notification.request.content.data as unknown as NotificationData;
-    if (!data?.url || data?.type === "badge_sync") return;
-    navigateFromNotification(data);
-  });
-  return () => sub.remove();
-}, [navRef, phase]);
-
+  useEffect(() => {
+    registerNavRef(navRef);
+    if (phase !== "done") return;
+    handleColdStartNotification().then(() => flushPendingNavigation());
+    const sub = Notifications.addNotificationResponseReceivedListener(
+      (response) => {
+        const data = response.notification.request.content
+          .data as unknown as NotificationData;
+        if (!data?.url || data?.type === "badge_sync") return;
+        navigateFromNotification(data);
+      },
+    );
+    return () => sub.remove();
+  }, [navRef, phase]);
   useEffect(() => {
     const g = globalThis as any;
     const errorUtils = g.ErrorUtils || g.global?.ErrorUtils;
@@ -287,32 +274,30 @@ useEffect(() => {
       });
     }
   }, []);
-
   return (
     <View style={{ flex: 1, backgroundColor: SPLASH_BG }}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <AppLinksProvider>
           <SafeAreaProvider>
             <PaperProvider>
-              <GlobalProvider>
-                <AuthProvider initialSession={(preloadData as any)?.sessionData ?? null}
-                >
-                  <ProfileProvider>
-                    <Animated.View
-                      style={[StyleSheet.absoluteFill, contentStyle]}
-                    >
-                      <NotificationProvider>
-                        <RootLayoutNav
-                          startupPhase={phase}
-                          onAnimationComplete={onSplashAnimationComplete}
-                          onContentReady={handleContentReady}
-                          preloadData={preloadData} 
-                        />
-                      </NotificationProvider>
-                    </Animated.View>
-                  </ProfileProvider>
-                </AuthProvider>
-              </GlobalProvider>
+              <AuthProvider
+                initialSession={(preloadData as any)?.sessionData ?? null}
+              >
+                <ProfileProvider>
+                  <Animated.View
+                    style={[StyleSheet.absoluteFill, contentStyle]}
+                  >
+                    <NotificationProvider>
+                      <RootLayoutNav
+                        startupPhase={phase}
+                        onAnimationComplete={onSplashAnimationComplete}
+                        onContentReady={handleContentReady}
+                        preloadData={preloadData}
+                      />
+                    </NotificationProvider>
+                  </Animated.View>
+                </ProfileProvider>
+              </AuthProvider>
             </PaperProvider>
           </SafeAreaProvider>
         </AppLinksProvider>

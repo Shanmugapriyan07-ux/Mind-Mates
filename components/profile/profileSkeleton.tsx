@@ -1,4 +1,3 @@
-// components/profile/ProfileSkeleton.tsx
 import { s, vs } from "@/utils/scale";
 import React, { useEffect } from "react";
 import { Animated, ScrollView, StyleSheet, View } from "react-native";

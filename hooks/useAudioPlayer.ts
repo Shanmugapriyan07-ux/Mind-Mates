@@ -169,15 +169,9 @@ export const useAudioPlayer = (messageId?: string) => {
 
   useEffect(() => {
     mountedRef.current = true;
-
-    // Build a string snapshot of only the fields THIS consumer's messageId
-    // actually cares about. If messageId is undefined, fall back to the old
-    // "always update" behavior (used by non-bubble consumers, if any).
     const computeSnapshot = (): string => {
-      if (messageId === undefined) return String(Date.now()); // always differs — always updates
+      if (messageId === undefined) return String(Date.now());
       if (ps.playingId !== messageId) {
-        // Not the active message — only the playing/not-playing fact matters,
-        // not position/duration ticks belonging to some other message.
         return `idle`;
       }
       return `${ps.isPlaying}|${ps.positionMs}|${ps.durationMs}|${ps.speed}|${ps.isLoading}|${ps.error}`;

@@ -7,7 +7,7 @@ import { AppState, AppStateStatus } from "react-native";
 export function useAuthBoot(session: any): void {
   const booted = useRef(false);
   const sessionRef = useRef(session);
-  sessionRef.current = session; // always keep latest, but don't react to it
+  sessionRef.current = session; 
 
   useEffect(() => {
     if (booted.current) return;
@@ -86,5 +86,5 @@ export function useAuthBoot(session: any): void {
       appSub.remove();
       log.auth("[AuthBoot] UNMOUNT");
     };
-  }, []); // ← run once per mount, intentionally. Reads sessionRef.current, not the reactive prop.
+  }, []); 
 }

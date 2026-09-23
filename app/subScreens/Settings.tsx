@@ -30,7 +30,7 @@ import Toast from "react-native-toast-message";
 const SUPPORT = {
   phone: "+917812874383",
   whatsappId: "917812874383",
-  email: "shanmugapriyancse582@gmail.com",
+  email: "shanmugapriyan.career@gmail.com",
 };
 
 const clearCache = async (userId: string) => {
@@ -271,7 +271,6 @@ export default function SettingsScreen() {
   const [confirmText, setConfirmText] = useState("");
   const [helpVisible, setHelpVisible] = useState(false);
   const { openByKey } = useOpenLink();
-  // useAppLinks();
   const tap = useCallback(
     (key: any, name: any) => () => openByKey(key, name),
     [openByKey],
@@ -279,7 +278,7 @@ export default function SettingsScreen() {
   const T = { text: "#111827", sub: "#6B7280", icon: "#6D4AFF" };
   const handleLogout = useCallback(async () => {
     setShowLogout(false);
-    setLogoutLoading(true); // ← added
+    setLogoutLoading(true);
     useAuthStore.getState().beginLogout();
     const uid = user?.id;
     if (uid) clearCache(uid).catch(() => {});
@@ -357,7 +356,6 @@ export default function SettingsScreen() {
       <StatusBar barStyle="dark-content" />
       <View style={st.header}>
         <Pressable onPress={() => router.back()} style={st.headerBack}>
-          {/* CHANGE: removed `top: vs(1)` — alignItems:"center" on header handles it */}
           <Ionicons name="chevron-back" size={s(18)} color={T.text} />
         </Pressable>
         <Text style={st.headerTitle}>Settings</Text>

@@ -313,7 +313,6 @@ const st = StyleSheet.create({
     color: "#1F2937",
     paddingVertical: 0,
   },
-
   textAreaWrapper: {
     backgroundColor: "#F9FAFB",
     borderRadius: s(12),
@@ -332,7 +331,6 @@ const st = StyleSheet.create({
     textAlign: "right",
     marginTop: vs(3),
   },
-
   buttonContainer: {
     backgroundColor: "#FFFFFF",
     paddingHorizontal: s(22),

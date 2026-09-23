@@ -41,7 +41,7 @@ export function AppLinksProvider({ children }) {
         setLinks({ ...STATIC_LINKS, ...cached.data });
         setIsStale(cached.isStale);
         if (!cached.isStale && !forceRefresh) {
-          lastFetchAt.current = Date.now(); // mark this as a satisfied fetch cycle so the                     // calls within FETCH_CONFIG.TTL_MS
+          lastFetchAt.current = Date.now();
           return;
         }
       }

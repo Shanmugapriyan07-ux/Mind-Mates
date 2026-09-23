@@ -435,11 +435,7 @@ export default function SearchScreen() {
         if (tab === "people") qb = qb.ilike("full_name", `%${trimmed}%`);
         if (tab === "skills") qb = qb.ilike("skills", `%${trimmed}%`);
         if (tab === "location") qb = qb.ilike("location", `%${trimmed}%`);
-
         const { data, error: qErr } = await qb;
-
-        // Bail out if a newer request has started since this one began —
-        // this response is stale and must not overwrite fresher results.
         if (requestId !== latestRequestId.current) return;
 
         if (qErr) {

@@ -148,7 +148,6 @@ const formatLastSeen = (seen: string | null) => {
     return `last seen yesterday at ${tt}`;
   return `last seen ${d.toLocaleDateString([], { day: "numeric", month: "short" })} at ${tt}`;
 };
-
 const useRemoteImageSize = (uri: string | null) => {
   const [size, setSize] = useState<{
     width: number;

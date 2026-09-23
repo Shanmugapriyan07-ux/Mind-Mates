@@ -304,7 +304,6 @@ const st = StyleSheet.create({
     borderWidth: s(3),
     borderColor: "rgba(255,255,255,0.2)",
   },
-  // original: fontSize IMAGE_SIZE * 0.32 — ratio kept
   initials: { fontSize: IMAGE_SIZE * 0.32, fontWeight: "700", color: "#fff" },
 
   uploadOverlay: {

@@ -1,14 +1,11 @@
 import { supabase } from "@/lib/supabase";
 import { flushPendingNavigation } from "@/services/deepLinkService";
 import { notificationService } from "@/services/notificationService";
- import { realtimeService } from "@/services/realtimeService";
 import { checkProfileComplete, mapUser } from "@/services/authServices";
 import { useAuthStore } from "@/stores/authStore";
 import React, { useCallback, useEffect } from "react";
 import { InteractionManager } from "react-native";
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  // const { setSession, setProfile, setHydrated } = useAuthStore();
-
   const setSession = useAuthStore((s) => s.setSession);
   const setProfile = useAuthStore((s) => s.setProfile);
   const setHydrated = useAuthStore((s) => s.setHydrated);
@@ -30,7 +27,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (userId: string) => {
       await loadProfile(userId);
       InteractionManager.runAfterInteractions(async () => {
-        // await notificationService.registerForPushNotifications(userId);
       });
     },
     [loadProfile],
@@ -71,7 +67,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         if (event === "SIGNED_OUT") {
           setProfile(null);
-           realtimeService.unsubscribeAll();
           notificationService.destroy();
         }
       });

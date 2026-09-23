@@ -82,7 +82,6 @@ const rankMatches = (
 export const useMatches = () => {
   const { user }    = useAuthh();
   const { profile } = useProfile();
-
   const [matches,    setMatches]    = useState<MatchUser[]>([]);
   const [loading,    setLoading]    = useState(true);
   const [fetching,   setFetching]   = useState(false);
@@ -121,8 +120,8 @@ export const useMatches = () => {
       .from('users')
       .select('user_id, full_name, bio, location, profile_image, skills')
       .eq('is_profile_complete', true)
-      .not('user_id', 'in', `(${excludedArr.join(',')})`)  // ← DB-level exclusion
-      .or(mySkills.map(s => `skills.ilike.%${s}%`).join(',')) // ← only skill-matched
+      .not('user_id', 'in', `(${excludedArr.join(',')})`)  
+      .or(mySkills.map(s => `skills.ilike.%${s}%`).join(',')) 
       .limit(500);
 
     if (dbErr) throw new Error(dbErr.message);
@@ -133,24 +132,20 @@ export const useMatches = () => {
     if (!user?.id || running.current) return;
     running.current = true;
     setError(null);
-
     try {
       const raw = await cacheGet(CACHE_KEY(user.id));
       let servedFromCache = false;
-
       if (raw) {
         try {
           const { data, at } = JSON.parse(raw);
           const isFresh = Date.now() - at < CACHE_TTL;
           const isValid = Array.isArray(data) && typeof data[0]?.tier === 'number';
-
           if (isValid && isFresh) {
             setMatches(data);
             setLoading(false);
             running.current = false;
             return; 
           }
-
           if (isValid && !isFresh) {
             setMatches(data);
             setLoading(false);
@@ -170,7 +165,7 @@ export const useMatches = () => {
       }
         } catch (error: any) {
       console.warn('useMatches:', error?.message);
-       if (matchesRef.current.length === 0) {   // reads the ref, not reactive state
+       if (matchesRef.current.length === 0) {  
         setError(error?.message ?? 'Could not load matches. Try again.');
       }
     } finally {

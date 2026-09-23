@@ -1,9 +1,7 @@
 import LocationPicker from "@/components/LocationPicker";
-import { useAuthh } from "@/Contexts/authContext";
 import { useProfile } from "@/Contexts/profileContext";
 import { useRenderCount } from "@/Count";
 import { useResponsive } from "@/hooks/useResponsive";
-import { readDraft, saveDraft } from "@/lib/profileDraft";
 import { RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -27,7 +25,6 @@ import Toast from "react-native-toast-message";
 const BasicInfo = () => {
   useRenderCount("Basicinfo");
   const { profile, updateProfile } = useProfile();
-  const { user } = useAuthh();
   const { isSmallPhone, contentMaxWidth } = useResponsive();
   const insets = useSafeAreaInsets();
   const [formData, setFormData] = useState({
@@ -72,22 +69,10 @@ const BasicInfo = () => {
       isMounted.current = false;
     };
   }, []);
-  useEffect(() => {
-    if (!user?.id) return;
-    readDraft(user.id).then((draft) => {
-      if (!draft) return;
-      setFormData({
-        fullName: draft.full_Name ?? "",
-        InterestedSkills: draft.InterestedSkills ?? "",
-        location: draft.location ?? "",
-        bio: draft.bio ?? "",
-      });
-    });
-  }, [user?.id]);
 
   useEffect(() => {
-  if (hasHydratedFromProfile.current) return; // only sync once — don't fight the user's typing after that
-  if (!profile) return; // wait until profile has actually loaded
+  if (hasHydratedFromProfile.current) return; 
+  if (!profile) return;  
   hasHydratedFromProfile.current = true;
   setFormData((prev) => ({
     fullName: prev.fullName || profile.fullName || "",
@@ -114,19 +99,10 @@ const BasicInfo = () => {
       InterestedSkills: formData.InterestedSkills,
     };
     updateProfile(payload);
-   if (user?.id) {
-  saveDraft(user.id, {
-    full_Name: formData.fullName.trim(),
-    bio: formData.bio.trim(),
-    location: formData.location.trim(),
-    InterestedSkills: formData.InterestedSkills,
-    currentStep: 1,
-  }).catch((e: any) => console.warn("Draft save failed:", e));
-}
     setSaving(false);
     setFormData({ fullName: "", InterestedSkills: "", location: "", bio: "" });
     router.push("/(profileSetUp)/ProfileImage");
-  }, [formData, updateProfile, user?.id]);
+  }, [formData, updateProfile]);
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
       <KeyboardAvoidingView

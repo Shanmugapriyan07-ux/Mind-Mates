@@ -50,7 +50,7 @@ const getStorage = () => {
   return AsyncStorage;
 };
 const authOptions: any = {
-  storage: undefined,
+  storage: getStorage(),
   autoRefreshToken: true,
   persistSession: true,
   detectSessionInUrl: false,

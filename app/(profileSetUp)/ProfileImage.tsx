@@ -6,7 +6,6 @@ import {
     compressForUpload,
     uploadToCloudinary,
 } from "@/lib/cloudinaryUpload";
-import { saveDraft } from "@/lib/profileDraft";
 import { ms, s, vs } from "@/utils/scale";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -212,9 +211,6 @@ useEffect(() => {
         return;
       }
       updateProfile({ profileImage: uploadedUrl });
-      saveDraft(user.id, { profileImage: uploadedUrl, currentStep: 2 }).catch(
-        () => {},
-      );
       setSaving(false);
       router.push("/(profileSetUp)/SkillSelect");
     } catch {

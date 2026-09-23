@@ -1,4 +1,3 @@
-// components/profile/SkillDisplay.tsx
 import { SKILL_ICONS, DEFAULT_SKILL_ICON } from "@/constants/skillIcons";
 import { ms, s, vs } from "@/utils/scale";
 import Ionicons from "@expo/vector-icons/Ionicons";

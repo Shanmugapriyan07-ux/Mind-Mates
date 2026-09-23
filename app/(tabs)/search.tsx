@@ -103,9 +103,8 @@ const ConnectButton = React.memo(function ConnectButton({
   skills: string;
   location: string;
 }) {
-  //   const { getStatus, isLoading, sendRequest, cancelRequest } = useConnection();
-  const status = useConnectionStatus(userId); // narrow — only re-renders if THIS user's status changes
-  const loading = useConnectionLoading(userId); // narrow — same benefit
+  const status = useConnectionStatus(userId);
+  const loading = useConnectionLoading(userId);
   const { sendRequest, cancelRequest } = useConnection();
   const cfg = {
     none: { label: "Connect", bg: C.purple, fg: "#fff", border: C.purple },
@@ -346,7 +345,6 @@ const st = StyleSheet.create({
     alignItems: "center",
     alignSelf: "center",
     justifyContent: "center",
-    paddingTop: vs(80),
     paddingHorizontal: s(30),
     gap: vs(5),
   },

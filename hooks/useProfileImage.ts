@@ -1,14 +1,14 @@
-import { useState, useCallback, useRef } from 'react';
-import * as ImagePicker from 'expo-image-picker';
-import { supabase }     from '@/lib/supabase';
-import { useProfile }   from '@/Contexts/profileContext';
-import { useAuthh }      from '@/Contexts/authContext';
+import { useAuthh } from '@/Contexts/authContext';
+import { useProfile } from '@/Contexts/profileContext';
 import { clearAvatarCache } from '@/components/Profileavatar';
 import {
-  uploadProfileToCloudinary,
-  compressForUpload,
   cdnProfileUrl,
+  compressForUpload,
+  uploadProfileToCloudinary,
 } from '@/lib/cloudinaryUpload';
+import { supabase } from '@/lib/supabase';
+import * as ImagePicker from 'expo-image-picker';
+import { useCallback, useEffect, useRef, useState } from 'react';
 const compressOnWeb = (blob: Blob): Promise<Blob> =>
   new Promise((resolve, reject) => {
     const img = new window.Image();
@@ -28,14 +28,25 @@ const compressOnWeb = (blob: Blob): Promise<Blob> =>
     img.src = URL.createObjectURL(blob);
   });
 export const useProfileImage = () => {
-  const { user }                   = useAuthh();
+   const { user } = useAuthh();
   const { profile, updateProfile } = useProfile();
-  const [imageUri,  setImageUri]  = useState<string | null>(profile?.profileImage ?? null);
+  const [imageUri, setImageUri] = useState<string | null>(profile?.profileImage ?? null);
   const [uploading, setUploading] = useState(false);
-  const [progress,  setProgress]  = useState(0);
-  const [error,     setError]     = useState<string | null>(null);
-  const webBlobRef   = useRef<Blob | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const webBlobRef = useRef<Blob | null>(null);
   const prevImageRef = useRef<string | null>(profile?.profileImage ?? null);
+  const mountedRef = useRef(true);
+  const hasHydratedRef = useRef(!!profile?.profileImage);
+    useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
+useEffect(() => {
+  if (hasHydratedRef.current) return;
+  if (!profile) return;
+  hasHydratedRef.current = true;
+  setImageUri((current) => current ?? profile.profileImage ?? null);
+  if (!prevImageRef.current) prevImageRef.current = profile.profileImage ?? null;
+}, [profile]);
+  
   const pickFromGallery = useCallback(async () => {
     setError(null);
     if (typeof document !== 'undefined') {
