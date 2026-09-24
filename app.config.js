@@ -23,12 +23,12 @@ export default {
     "expo-router",
     "expo-secure-store",
     [
-    "@sentry/react-native",
-     {
-        "url": "https://sentry.io/",
-        "project": "react-native-vb",
-        "organization": "mindmates"
-      }
+      "@sentry/react-native",
+      {
+        url: "https://sentry.io/",
+        project: "react-native-vb",
+        organization: "mindmates",
+      },
     ],
     [
       "expo-notifications",
@@ -94,8 +94,10 @@ export default {
     [
       "expo-splash-screen",
       {
-          image: "./assets/images/splash-logo.png",
+        image: "./assets/images/splash-logo.png",
         backgroundColor: "#6D4AFF",
+        resizeMode: "contain",
+        imageWidth: 180,
       },
     ],
     "expo-asset",

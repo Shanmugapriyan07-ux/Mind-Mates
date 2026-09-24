@@ -20,7 +20,6 @@ export function scaleFont(size: number, maxSize?: number): number {
 }
 
 export const TYPOGRAPHY = {
-  // Size
   tiny:    scaleFont(10),
   small:   scaleFont(12),
   caption: scaleFont(13),

@@ -649,7 +649,7 @@ const st = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.white },
   headerWrap: {
     backgroundColor: C.white,
-    paddingTop: vs(9),
+    paddingTop: vs(10),
     paddingBottom: vs(4),
   },
   searchRow: {
@@ -668,12 +668,11 @@ const st = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: s(5),
     backgroundColor: C.bg,
-    borderRadius: s(50),
+    borderRadius: s(52),
     paddingHorizontal: s(14),
-    height: vs(42),
-    marginHorizontal: s(17),
+    height: vs(43),
+    marginHorizontal: s(16),
   },
   searchInput: {
     flex: 1,
@@ -689,7 +688,7 @@ const st = StyleSheet.create({
   tabsScroll: {
     paddingHorizontal: s(16),
     paddingBottom: vs(6),
-    paddingTop: vs(4),
+    paddingTop: vs(7),
     gap: s(8),
     flexDirection: "row",
     alignItems: "center",
@@ -705,7 +704,7 @@ const st = StyleSheet.create({
     backgroundColor: C.white,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: s(5),
+    marginRight: s(7),
   },
   tabActive: { backgroundColor: C.purple, borderColor: C.purple },
   tabText: { fontSize: ms(12), fontWeight: "600", color: C.muted },

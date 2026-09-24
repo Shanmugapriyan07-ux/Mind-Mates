@@ -11,7 +11,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
-const LOGO_SIZE = 140;
+const LOGO_SIZE = 180;
 const SPLASH_BG = "#6D4AFF";
 interface Props {
   onComplete?: () => void;
@@ -59,13 +59,6 @@ const AnimatedSplash: React.FC<Props> = ({ onComplete }) => {
         easing: Easing.inOut(Easing.ease),
       }),
     );
-    // const completionDelay = setTimeout(() => {
-    //   const elapsed = Date.now() - startTime.current;
-    //   const remaining = Math.max(0, MIN_SHOW_MS - elapsed);
-    //   setTimeout(() => {
-    //     onCompleteRef.current?.();
-    //   }, remaining);
-    // }, 600);
     const completionDelay = setTimeout(() => {
       onCompleteRef.current?.();
     }, 600);

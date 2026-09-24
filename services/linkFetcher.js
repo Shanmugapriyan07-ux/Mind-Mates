@@ -12,9 +12,6 @@ async function fetchWithTimeout(queryFn, timeoutMs = FETCH_CONFIG.TIMEOUT_MS) {
   }
 }
 async function fetchFromSupabase() {
-  // if (!isSupabaseAvailable) {
-  //   return null;
-  // }
   const { data, error, status } = await fetchWithTimeout((signal) =>
     supabase
       .from("app_links")
