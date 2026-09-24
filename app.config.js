@@ -5,7 +5,7 @@ export default {
   scheme: "mindmates",
   orientation: "portrait",
   userInterfaceStyle: "light",
-  // icon: "./assets/images/icon.png",
+  icon: "./assets/images/icon.png",
   android: {
     package: "com.mindset.mindmates",
     adaptiveIcon: {
@@ -94,7 +94,7 @@ export default {
     [
       "expo-splash-screen",
       {
-        //  image: "./assets/images/splash-logo.png",
+          image: "./assets/images/splash-logo.png",
         backgroundColor: "#6D4AFF",
       },
     ],

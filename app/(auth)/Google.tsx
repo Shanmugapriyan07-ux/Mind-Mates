@@ -20,7 +20,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-const IMAGE_PANEL_FLEX = 0.42;
+const IMAGE_PANEL_FLEX = 0.41;
 const Welcome = () => {
   const { height } = useWindowDimensions();
   const { openByKey } = useOpenLink();
@@ -143,7 +143,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-
   topHalf: {
     backgroundColor: "#6D4AFF",
     justifyContent: "center",

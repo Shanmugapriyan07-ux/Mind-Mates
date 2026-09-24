@@ -1,4 +1,5 @@
 import { ProfileAvatar } from "@/components/Profileavatar";
+import images from "@/constants/images";
 import { useAuthh } from "@/Contexts/authContext";
 import { useRenderCount } from "@/Count";
 import {
@@ -10,6 +11,7 @@ import { supabase } from "@/lib/supabase";
 import { ms, s, vs } from "@/utils/scale";
 import { Ionicons } from "@expo/vector-icons";
 import { FlashList } from "@shopify/flash-list";
+import { Image } from "expo-image";
 import { router } from "expo-router";
 import React, {
   useCallback,
@@ -536,7 +538,14 @@ export default function SearchScreen() {
             {loading ? (
               <ActivityIndicator size="small" color={C.purple} />
             ) : (
-              <Ionicons name="search" size={s(21)} color={C.muted} />
+              // <Ionicons name="search" size={s(21)} color={C.muted} />
+              <View>
+                <Image
+                  source={images.scan}
+                  style={st.scanIcon}
+                  contentFit="contain"
+                />
+              </View>
             )}
             <TextInput
               ref={inputRef}
@@ -646,11 +655,15 @@ const st = StyleSheet.create({
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: s(12),
+    paddingHorizontal: s(8),
     marginBottom: vs(1),
     gap: s(8),
   },
-
+  scanIcon: {
+    width: s(37),
+    height: s(37),
+    bottom: s(1),
+  },
   searchBar: {
     flex: 1,
     flexDirection: "row",
@@ -658,7 +671,7 @@ const st = StyleSheet.create({
     gap: s(5),
     backgroundColor: C.bg,
     borderRadius: s(50),
-    paddingHorizontal: s(15),
+    paddingHorizontal: s(14),
     height: vs(42),
     marginHorizontal: s(17),
   },

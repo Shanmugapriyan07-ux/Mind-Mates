@@ -629,7 +629,7 @@ export const ChatInput = React.memo(
             : await requestMediaLibraryPermissionCached();
           if (!granted) return;
           const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+            mediaTypes: ['videos'],
             allowsEditing: false,
             videoMaxDuration: 60,
             quality: 0.85,
@@ -658,7 +658,7 @@ export const ChatInput = React.memo(
             return;
           }
           const result = await ImagePicker.launchCameraAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.All,
+            mediaTypes: ['images', 'videos'],
             allowsEditing: false,
             quality: 0.7,
             exif: false,

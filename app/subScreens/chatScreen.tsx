@@ -832,11 +832,9 @@ export default function ChatScreen() {
     senderImage?: string;
   }>();
 
-  console.log(
-    "[ChatScreen] mount — params:",
-    JSON.stringify(params),
-    "segments unknown here, check parent",
-  );
+  useEffect(() => {
+  console.log("[ChatScreen] mount — params:", JSON.stringify(params));
+}, [params]); // now genuinely fires once, on actual mount
 
   const resolvedUserId = params.userId || params.senderId || "";
   const resolvedName = params.name || params.senderName || "";

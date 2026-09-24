@@ -7,13 +7,13 @@ export const SCREEN = {
   height,
 };
 
-// Device tier thresholds (dp)
+
 export const BREAKPOINTS = {
-  smallPhone:  360,   // Older/budget Android, iPhone SE
-  mediumPhone: 390,   // iPhone 14, Pixel 7, most mid-range
-  largePhone:  430,   // iPhone Pro Max, Samsung Ultra
-  foldable:    600,   // Foldable inner screen
-  tablet:      768,   // Tablets
+  smallPhone:  360,   
+  mediumPhone: 390,   
+  largePhone:  430,   
+  foldable:    600,   
+  tablet:      768,   
 } as const;
 
 export type DeviceTier =

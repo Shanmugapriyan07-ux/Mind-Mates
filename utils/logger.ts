@@ -5,13 +5,11 @@ const prefix: Record<Level, string> = {
   nav:   '🧭 [Nav]',
   info:  'ℹ️  [Info]',
 };
-
 function make(level: Level) {
   return (...args: any[]) => {
     if (isDev) console.log(prefix[level], ...args);
   };
 }
-
 export const log = {
   auth:  make('auth'),
   nav:   make('nav'),

@@ -830,13 +830,9 @@ export default function ChatScreen() {
     senderName?: string;
     senderImage?: string;
   }>();
-
-  console.log(
-    "[ChatScreen] mount — params:",
-    JSON.stringify(params),
-    "segments unknown here, check parent",
-  );
-
+useEffect(() => {
+  console.log("[ChatScreen] mount — params:", JSON.stringify(params));
+}, [params]);
   const resolvedUserId = params.userId || params.senderId || "";
   const resolvedName = params.name || params.senderName || "";
   const resolvedImage = params.image || params.senderImage || "";

@@ -13,11 +13,11 @@ const BASE_RADIUS: Record<typeof tier, number> = {
 const base = BASE_RADIUS[tier];
 
 export const RADIUS = {
-  xs:     base * 0.33,   // ~4
-  sm:     base * 0.5,    // ~6
-  md:     base,          // ~12  (default card radius)
-  lg:     base * 1.5,    // ~18
-  xl:     base * 2,      // ~24
-  xxl:    base * 2.5,    // ~30
-  full:   9999,          // pill / circle
+  xs:     base * 0.33,
+  sm:     base * 0.5,
+  md:     base,
+  lg:     base * 1.5,
+  xl:     base * 2,
+  xxl:    base * 2.5,
+  full:   9999,          
 } as const;

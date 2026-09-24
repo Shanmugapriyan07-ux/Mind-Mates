@@ -234,7 +234,7 @@ const VideoPlayerInner = ({
             style={vw.media}
             contentFit="contain"
             nativeControls={false}
-            allowsFullscreen={false}
+            fullscreenOptions={{ enable: false }}
             allowsPictureInPicture={false}
           />
           {!videoReady && videoPoster && !videoError && (
@@ -409,7 +409,6 @@ export const MediaViewer = ({ uri, type, onClose }: Props) => {
   const mediaStyle = useAnimatedStyle(() => ({
     transform: [{ scale: mediaScale.value }],
   }));
-
   if (!cleanUri) return null;
   if (type === "image") {
     return (
@@ -476,7 +475,6 @@ export const MediaViewer = ({ uri, type, onClose }: Props) => {
     </Modal>
   );
 };
-
 MediaViewer.whyDidYouRender = true;
 
 export default MediaViewer;
