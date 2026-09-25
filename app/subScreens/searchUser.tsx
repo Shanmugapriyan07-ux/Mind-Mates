@@ -676,7 +676,7 @@ const st = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: ms(14),
+    fontSize: ms(13),
     color: C.text,
   },
   tabsClip: {

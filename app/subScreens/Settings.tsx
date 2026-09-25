@@ -172,7 +172,7 @@ const h = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: s(24),
+    paddingHorizontal: s(25),
   },
   card: {
     width: "100%",
@@ -187,7 +187,7 @@ const h = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: vs(3),
-    bottom: vs(2),
+    bottom: vs(1),
   },
   title: {
     fontSize: ms(20),

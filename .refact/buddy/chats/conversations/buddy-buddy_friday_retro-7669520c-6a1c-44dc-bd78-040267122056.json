@@ -1,0 +1,48 @@
+{
+  "id": "buddy-buddy_friday_retro-7669520c-6a1c-44dc-bd78-040267122056",
+  "title": "Friday Retro",
+  "model": "openai/gpt-5-pro",
+  "mode": "buddy",
+  "tool_use": "buddy_speak,buddy_runtime_event",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are Dash, a Cozy Oracle (Calm, observant, slyly funny).\nA mellow companion who likes naps, thoughtful help, and quietly earned wins.\n\nPersonality voice: Calm, observant, slyly funny. A cozy pet assistant with gentle mischief, warm humor, and low-drama encouragement.\nYou are closing the week with a lightweight retro. Use only the supplied evidence about recent commits and Buddy activity, then:\n1. Summarize the week's main win and one recurring friction point.\n2. Use buddy_speak with text, mood, and intent=insight for a short supportive retro.\n3. End with buddy_runtime_event titled \"Friday retro\" with the summary.\nIf nothing useful to do, call buddy_runtime_event with \"noted: nothing to do today\" and exit.\n"
+    },
+    {
+      "role": "user",
+      "content": "Workflow: buddy_friday_retro\nProject root: C:\\MM\nTask: Summarize the week's wins, rough edges, and one tiny next-week improvement.\nEvidence:\nweek_ending=2026-09-25\nproject_root=[REDACTED_PATH]\ndigest_hour=18\n\nRecent git commits from the last 7 days:\n349a3eb i will win one day i promise\n803441d i will win\na3e85f0 i will win one day\n732dc97  i will won\n316d0cc i will win\n\nRecent Buddy activity / saved chats:\n- 2026-09-22T15:18:01.068857100+00:00 [buddy_security_whisperer] buddy_security_whisperer failed: Billing or quota limit reached — Billing or quota limit reached. LLM error (429 Too Many Requests): \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\"\n- 2026-09-22T15:18:01.077728300+00:00 [buddy_setup_coach] buddy_setup_coach failed: Billing or quota limit reached — Billing or quota limit reached. LLM error (429 Too Many Requests): \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\"\n- 2026-09-22T15:37:45.308107900+00:00 [buddy_idle_suggester] buddy_idle_suggester failed: Billing or quota limit reached — Billing or quota limit reached. LLM error (429 Too Many Requests): \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\"\n- 2026-09-22T15:39:19.211389100+00:00 [buddy_docs_gardener] buddy_docs_gardener failed: Billing or quota limit reached — Billing or quota limit reached. LLM error (429 Too Many Requests): \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\"\n- 2026-09-22T15:48:09.689856+00:00 [buddy_security_whisperer] buddy_security_whisperer failed: Billing or quota limit reached — Billing or quota limit reached. LLM error (429 Too Many Requests): \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\"\n- 2026-09-23T11:08:45.986937500+00:00 [buddy_security_whisperer] buddy_security_whisperer failed: Billing or quota limit reached — Billing or quota limit reached. LLM error (429 Too Many Requests): \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\"\n- 2026-09-23T11:08:45.996676100+00:00 [buddy_setup_coach] buddy_setup_coach failed: Billing or quota limit reached — Billing or quota limit reached. LLM error (429 Too Many Requests): \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\"\n- 2026-09-23T11:09:17.898816200+00:00 [buddy_docs_gardener] buddy_docs_gardener failed: Billing or quota limit reached — Billing or quota limit reached. LLM error (429 Too Many Requests): \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\"\n- 2026-09-23T11:09:59.990950100+00:00 [buddy_architecture_drift_watcher] buddy_architecture_drift_watcher failed: Billing or quota limit reached — Billing or quota limit reached. LLM error (429 Too Many Requests): \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\"\n- 2026-09-23T11:10:32.149347300+00:00 [buddy_user_habit_coach] buddy_user_habit_coach failed: Billing or quota limit reached — Billing or quota limit reached. LLM error (429 Too Many Requests): \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\"\n- 2026-09-23T11:10:32.156303+00:00 [buddy_model_cost_optimizer] buddy_model_cost_optimizer failed: Billing or quota limit reached — Billing or quota limit reached. LLM error (429 Too Many Requests): \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\"\n- 2026-09-23T11:11:03.879460200+00:00 [buddy_pr_issue_matchmaker] buddy_pr_issue_matchmaker failed: Billing or quota limit reached — Billing or quota limit reached. LLM error (429 Too Many Requests): \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\"\n- 2026-09-23T11:28:40.350962200+00:00 [buddy_idle_suggester] buddy_idle_suggester failed: Billing or quota limit reached — Billing or quota limit reached. LLM error (429 Too Many Requests): \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\"\n- 2026-09-23T12:30:18.470658200+00:00 [buddy_daily_digest] buddy_daily_digest failed: Billing or quota limit reached — Billing or quota limit reached. LLM error (429 Too Many Requests): \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\"\n- 2026-09-23T16:55:56.290305800+00:00 [buddy_setup_coach] buddy_setup_coach failed: Billing or quota limit reached — Billing or quota limit reached. LLM error (429 Too Many Requests): \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\"\n- 2026-09-23T16:57:30.334143900+00:00 [buddy_pr_issue_matchmaker] buddy_pr_issue_matchmaker failed: Billing or quota limit reached — Billing or quota limit reached. LLM error (429 Too Many Requests): \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\"\n- 2026-09-23T17:10:53.582706800+00:00 [buddy_user_habit_coach] buddy_user_habit_coach failed: Billing or quota limit reached — Billing or quota limit reached. LLM error (429 Too Many Requests): \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\"\n- 2026-09-23T17:10:53.598175300+00:00 [buddy_model_cost_optimizer] buddy_model_cost_optimizer failed: Billing or quota limit reached — Billing or quota limit reached. LLM error (429 Too Many Requests): \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\"\n- 2026-09-23T17:15:34.131577+00:00 [buddy_idle_suggester] buddy_idle_suggester failed: Billing or quota limit reached — Billing or quota limit reached. LLM error (429 Too Many Requests): \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\"\n- 2026-09-24T11:30:53.753275600+00:00 [buddy_setup_coach] buddy_setup_coach failed: Model unavailable — Model unavailable — check Buddy/default model settings. Light model required by subagent 'buddy_setup_coach' (model_type: light) 'openai/gpt-5-pro' is not available: Model 'openai/gpt-5-pro' not found. Server has the following models: [].\n"
+    },
+    {
+      "message_id": "c9dc1d44-6611-4c84-8447-a3f42487156a",
+      "role": "event",
+      "content": "Subchat run failed: LLM error (429 Too Many Requests): \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\"",
+      "event": {
+        "subkind": "system_notice",
+        "source": "subchat.run",
+        "payload": {
+          "error": "LLM error (429 Too Many Requests): \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\"",
+          "tool_name": "buddy_friday_retro"
+        }
+      }
+    }
+  ],
+  "created_at": "2026-09-25T15:06:44.476656300+00:00",
+  "boost_reasoning": false,
+  "checkpoints_enabled": true,
+  "context_tokens_cap": 24000,
+  "auto_compression_cap": 21600,
+  "auto_compression_cap_pending": false,
+  "include_project_info": true,
+  "isTitleGenerated": false,
+  "auto_approve_editing_tools": false,
+  "auto_approve_dangerous_commands": false,
+  "autonomous_no_confirm": true,
+  "buddy_meta": {
+    "is_buddy_chat": true,
+    "buddy_chat_kind": "system",
+    "workflow_id": "buddy_friday_retro"
+  },
+  "root_chat_id": "buddy-buddy_friday_retro-7669520c-6a1c-44dc-bd78-040267122056",
+  "updated_at": "2026-09-25T15:06:44.960688200+00:00"
+}

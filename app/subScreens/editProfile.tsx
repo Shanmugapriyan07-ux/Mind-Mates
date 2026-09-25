@@ -301,6 +301,7 @@ const st = StyleSheet.create({
     minHeight: vs(48),
     paddingVertical: vs(10),
     paddingRight: s(8),
+    paddingHorizontal: vs(5)
   },
   inputFocused: {
     borderColor: "#6D4AFF",

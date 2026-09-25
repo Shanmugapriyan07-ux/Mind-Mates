@@ -43,47 +43,46 @@ const GUIDELINES = [
   {
     icon: "heart" as const,
     color: "#6D4AFF",
-    bg: "rgb(255, 255, 255)",
+    bg: "#EDE9FE", // light purple tint, not flat white
     title: "Treat everyone with respect",
     body: "Be kind, welcoming, and respectful. Harassment, bullying, hate speech, or abusive behaviour are not allowed.",
   },
   {
     icon: "people" as const,
     color: "#6D4AFF",
-    bg: "rgb(255, 255, 255)",
+    bg: "#EDE9FE",
     title: "Build genuine connections",
     body: "MindMates helps people with similar interests discover and support one another. Build authentic friendships.",
   },
   {
     icon: "chatbubbles" as const,
     color: "#00B4D8",
-    bg: "rgb(255, 255, 255)",
+    bg: "#E0F7FB", // light cyan tint
     title: "Communicate thoughtfully",
     body: "Respect personal boundaries and differences. Positive conversations create a healthy community.",
   },
   {
     icon: "shield-checkmark" as const,
     color: "#22C55E",
-    bg: "rgb(255, 255, 255)",
+    bg: "#E7F9EE", // light green tint
     title: "Respect privacy",
     body: "Never share personal information, photos, or conversations without permission.",
   },
   {
     icon: "ban" as const,
     color: "#F59E0B",
-    bg: "rgb(255, 255, 255)",
+    bg: "#FEF3E2", // light amber tint
     title: "No scams or fake profiles",
     body: "Impersonation, spam, and inappropriate content are not permitted and may result in restrictions.",
   },
   {
     icon: "star" as const,
     color: "#A855F7",
-    bg: "rgb(255, 255, 255)",
+    bg: "#F5EBFE", // light violet tint
     title: "Help build a positive space",
     body: "Everyone plays a role in making MindMates a place where friendships grow and people feel welcome.",
   },
 ];
-
 const GuidelineRow = ({
   icon,
   color,
@@ -242,7 +241,13 @@ export const CommunityGuidelinesSheet: React.FC = () => {
           ]}
         >
           <View style={sh.logoRow}>
-            <Image source={images.icon} style={sh.logo} contentFit="contain" />
+            <View style={sh.logoShadowWrap}>
+              <Image
+                source={images.icon}
+                style={sh.logo}
+                contentFit="contain"
+              />
+            </View>
           </View>
           <Text style={sh.headline}>
             Welcome to <Text style={sh.headlineBrand}>MindMates</Text>
@@ -335,11 +340,24 @@ const sh = StyleSheet.create({
     marginBottom: vs(10),
   },
   logo: {
-    width: s(45),
-    height: s(45),
-    borderRadius: s(13),
+    width: s(56),
+    height: s(56),
+    borderRadius: s(16),
+    borderWidth: 1,
+    borderColor: "rgba(109,74,255,0.12)",
   },
-
+  logoShadowWrap: {
+    shadowColor: BRAND.purple,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
+    borderRadius: s(16),
+  },
+  logoWrap: {
+    alignItems: "center",
+    marginBottom: vs(12),
+  },
   headline: {
     fontSize: ms(20),
     fontWeight: "800",
