@@ -38,6 +38,7 @@ const C = {
   greenL: "#F0FDF4",
   orange: "#6D4AFF",
   skeleton: "#F0F0F3",
+  textt: '#17191B'
 };
 
 const CARD_H = vs(75);
@@ -181,13 +182,13 @@ const MatchCard = React.memo(({ item }: { item: MatchUser }) => {
             <View style={st.locRow}>
               <Ionicons
                 name="location-sharp"
-                size={s(11)}
-                color={item.sameCity ? C.purple : C.muted}
+                size={s(12)}
+                color={item.sameCity ? C.purpleD : C.textt}
               />
               <Text
                 style={[
                   st.locText,
-                  { color: item.sameCity ? C.purple : C.muted },
+                  { color: item.sameCity ? C.purpleD : C.textt },
                 ]}
                 numberOfLines={1}
               >
@@ -330,7 +331,7 @@ const Header = () => (
       activeOpacity={0.8}
     >
       <Image source={images.scan} style={st.scanIcon} contentFit="contain" />
-      <Text style={st.searchPlaceholder}>Search people, skills...</Text>
+      <Text style={st.searchPlaceholder}>Search people, Interest...</Text>
     </TouchableOpacity>
   </View>
 );
@@ -398,7 +399,9 @@ const st = StyleSheet.create({
     gap: s(3),
     marginBottom: vs(2),
   },
-  locText: { fontSize: ms(TYPOGRAPHY.caption) },
+  locText: { fontSize: ms(TYPOGRAPHY.caption),
+    fontWeight: "500",
+   },
   skillsRow: {
     flexDirection: "row",
     alignItems: "center",

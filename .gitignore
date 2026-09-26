@@ -49,3 +49,4 @@ app-example
 .env.local
 
 .env.local
+app.config.js

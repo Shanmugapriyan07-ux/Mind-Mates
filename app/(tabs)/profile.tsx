@@ -251,11 +251,11 @@ const st = StyleSheet.create({
   headline: {
     fontSize: ms(13),
     fontWeight: "500",
-    color: "#6B7280",
+    color: "#17191B",
     marginBottom: vs(4),
   },
   locationRow: { flexDirection: "row", alignItems: "center", gap: s(4), marginRight: vs(5) },
-  locationText: { fontSize: ms(12), color: "#6B7280", fontWeight: "500" },
+  locationText: { fontSize: ms(12), color: "#17191B", fontWeight: "500" },
   statsRow: {
     alignSelf: "flex-start",
     marginLeft: s(20),
@@ -278,7 +278,6 @@ const st = StyleSheet.create({
     paddingTop: vs(18),
     paddingBottom: vs(6),
   },
-
   pillsScroll: { flex: 1, marginHorizontal: s(6) },
   pillRow: {
     flexDirection: "row",
@@ -286,7 +285,6 @@ const st = StyleSheet.create({
     gap: s(0),
     paddingHorizontal: s(0),
   },
-
   pill: {
     paddingHorizontal: s(14),
     paddingVertical: vs(8),
@@ -339,9 +337,10 @@ const st = StyleSheet.create({
   },
   bioText: {
     fontSize: ms(14),
-    color: "#6B7280",
+    color: "#17191B",
     lineHeight: ms(20),
     marginTop: vs(15),
+    fontWeight: "500",
   },
   errorState: {
     flex: 1,

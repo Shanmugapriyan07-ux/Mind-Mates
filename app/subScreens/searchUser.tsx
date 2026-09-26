@@ -50,7 +50,7 @@ interface SearchUser {
   profile_image: string | null;
   skills: string;
 }
-type FilterTab = "people" | "skills" | "location";
+type FilterTab = "People" | "Interest" | "Location";
 
 const C = {
   bg: "#F7F8FA",
@@ -58,6 +58,7 @@ const C = {
   purple: "#6D4AFF",
   purpleL: "#EDE9FE",
   text: "#303032",
+  textt:'#17191B',
   muted: "#6B7280",
   border: "#EAECF0",
   skeleton: "#F0F0F3",
@@ -75,19 +76,19 @@ const TABS: {
   placeholder: string;
 }[] = [
   {
-    key: "people",
+    key: "People",
     label: "People",
     icon: "person-outline",
     placeholder: "Search by name...",
   },
   {
-    key: "skills",
-    label: "Skills",
-    icon: "code-slash-outline",
-    placeholder: "Search by skill...",
+    key: "Interest",
+    label: "Interest",
+    icon: "body-outline",
+    placeholder: "Search by Interest...",
   },
   {
-    key: "location",
+    key: "Location",
     label: "Location",
     icon: "location-outline",
     placeholder: "Search by city...",
@@ -256,7 +257,7 @@ const UserCard = React.memo(({ item }: { item: SearchUser }) => {
           </Text>
           {!!item.location && (
             <View style={st.locRow}>
-              <Ionicons name="location-sharp" size={s(11)} color={C.muted} />
+              <Ionicons name="location-sharp" size={s(11)} color={C.textt} />
               <Text style={st.locText} numberOfLines={1}>
                 {item.location}
               </Text>
@@ -310,9 +311,9 @@ const EmptyState = React.memo(
           />
           <Text style={st.emptyTitle}>Find your Mindmates</Text>
           <Text style={st.emptySub}>
-            {filter === "people"
+            {filter === "People"
               ? "Type a name to find people"
-              : filter === "skills"
+              : filter === "Interest"
                 ? "Type a skill (e.g. Python)"
                 : "Type a city or location"}
           </Text>
@@ -338,11 +339,11 @@ const EmptyState = React.memo(
           <Text style={st.emptyTitle}>No results for &quot;{query}&quot;</Text>
           <Text style={st.emptySub}>
             Try a different{" "}
-            {filter === "people"
+            {filter === "People"
               ? "name"
-              : filter === "skills"
-                ? "skill"
-                : "location"}
+              : filter === "Interest"
+                ? "Interest"
+                : "Location"}
           </Text>
         </>
       )}
@@ -354,7 +355,7 @@ export default function SearchScreen() {
   const { user } = useAuthh();
   const { loadStatuses } = useConnection();
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<FilterTab>("people");
+  const [filter, setFilter] = useState<FilterTab>("People");
   const [users, setUsers] = useState<SearchUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -434,9 +435,9 @@ export default function SearchScreen() {
           .eq("is_profile_complete", true)
           .neq("user_id", user.id)
           .range(pageOffset, pageOffset + LIMIT - 1);
-        if (tab === "people") qb = qb.ilike("full_name", `%${trimmed}%`);
-        if (tab === "skills") qb = qb.ilike("skills", `%${trimmed}%`);
-        if (tab === "location") qb = qb.ilike("location", `%${trimmed}%`);
+        if (tab === "People") qb = qb.ilike("full_name", `%${trimmed}%`);
+        if (tab === "Interest") qb = qb.ilike("skills", `%${trimmed}%`);
+        if (tab === "Location") qb = qb.ilike("location", `%${trimmed}%`);
         const { data, error: qErr } = await qb;
         if (requestId !== latestRequestId.current) return;
 
@@ -538,7 +539,6 @@ export default function SearchScreen() {
             {loading ? (
               <ActivityIndicator size="small" color={C.purple} />
             ) : (
-              // <Ionicons name="search" size={s(21)} color={C.muted} />
               <View>
                 <Image
                   source={images.scan}
@@ -590,7 +590,7 @@ export default function SearchScreen() {
                   <Ionicons
                     name={item.icon as any}
                     size={s(14)}
-                    color={filter === item.key ? "#fff" : C.muted}
+                    color={filter === item.key ? "#fff" : C.textt}
                   />
                   <Text
                     style={[
@@ -707,7 +707,7 @@ const st = StyleSheet.create({
     marginRight: s(7),
   },
   tabActive: { backgroundColor: C.purple, borderColor: C.purple },
-  tabText: { fontSize: ms(12), fontWeight: "600", color: C.muted },
+  tabText: { fontSize: ms(12), fontWeight: "600", color: C.textt },
   tabTextActive: { color: "#fff" },
   card: {
     backgroundColor: C.white,
@@ -730,7 +730,7 @@ const st = StyleSheet.create({
     gap: s(3),
     marginBottom: vs(2),
   },
-  locText: { fontSize: ms(12), color: C.muted },
+  locText: { fontSize: ms(12), color: C.textt,fontWeight: "500" },
   skills: {
     fontSize: ms(12),
     color: C.purple,

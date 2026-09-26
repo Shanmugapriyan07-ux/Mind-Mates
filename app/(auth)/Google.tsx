@@ -31,7 +31,7 @@ const Welcome = () => {
   const contentOpacity = useRef(new Animated.Value(0)).current;
   const contentTranslate = useRef(new Animated.Value(24)).current;
   const topPanelHeight = height * IMAGE_PANEL_FLEX;
-  const splashImageHeight = Math.min(topPanelHeight * 0.80, 280);
+  const splashImageHeight = Math.min(topPanelHeight * 0.8, 280);
   useEffect(() => {
     const task = InteractionManager.runAfterInteractions(() => {
       useAuthStore.getState().setTransitioning?.(false);
@@ -85,9 +85,7 @@ const Welcome = () => {
         />
       </View>
 
-      
       <View style={styles.bottomHalf}>
-
         <Animated.View
           style={[
             styles.textBlock,

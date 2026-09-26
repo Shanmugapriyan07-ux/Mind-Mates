@@ -182,70 +182,84 @@ const normalizeNotificationImage = (value: unknown): string => {
 };
 
 async function pushOne(
-  sb:     ReturnType<typeof import('https://esm.sh/@supabase/supabase-js@2.43.0').createClient>,
+  sb: ReturnType<typeof import('https://esm.sh/@supabase/supabase-js@2.43.0').createClient>,
   userId: string,
-  title:  string,
-  body:   string,
-  data:   Record<string, unknown>,
+  title: string,
+  body: string,
+  data: Record<string, unknown>,
 ): Promise<void> {
   try {
-    const { data: row } = await sb
-      .from('push_tokens')
-      .select('token')
-      .eq('user_id', userId)
-      .maybeSingle();
-    const token = row?.token as string | undefined;
-    if (!token?.startsWith('ExponentPushToken')) return;
-    const type      = (data.type as string) ?? '';
-    const url       = resolveUrl(type, data);
+    const { data: rows } = await sb.from('push_tokens').select('token').eq('user_id', userId);
+    const tokens = (rows ?? [])
+      .map(r => r.token as string)
+      .filter(t => t?.startsWith('ExponentPushToken'));
+    if (!tokens.length) return;
+
+    const type = (data.type as string) ?? '';
+    const url = resolveUrl(type, data);
     const channelId = resolveChannel(type);
     const { title: fmtTitle, subtitle: fmtSubtitle, body: fmtBody } = formatPush(type, title, body, data);
     const senderImage = normalizeNotificationImage(data.senderImage);
-    const msg: Record<string, unknown> = {
-      to:        token,
-      title:     fmtTitle,
-      body:      fmtBody,
-      sound:     'default',
-      badge:     1,
-      priority:  'high',
+
+    // Compute the real badge total: unread notifications + unread chat messages
+    // across every chat this user is a participant in (mirrors syncService.ts's
+    // fetchUnreadCounts logic client-side).
+    const [{ count: notifCount }, { data: userChats }] = await Promise.all([
+      sb.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('is_read', false),
+      sb.from(T.chats).select('participants, unread_p1, unread_p2').contains('participants', [userId]),
+    ]);
+
+    let chatUnread = 0;
+    for (const chat of userChats ?? []) {
+      const parts = (chat.participants as string[]) ?? [];
+      const idx = parts.indexOf(userId);
+      chatUnread += idx === 0 ? (chat.unread_p1 ?? 0) : idx === 1 ? (chat.unread_p2 ?? 0) : 0;
+    }
+    const badgeTotal = (notifCount ?? 0) + chatUnread;
+
+    const messages = tokens.map(token => ({
+      to: token,
+      title: fmtTitle,
+      body: fmtBody,
+      sound: 'default',
+      badge: badgeTotal,
+      priority: 'high',
       channelId,
       ttlSeconds: 86400,
       ...(fmtSubtitle ? { subtitle: fmtSubtitle } : {}),
+      ...(senderImage.length > 0 ? { image: senderImage } : {}),
       data: {
-        type,
-        url,
-        title:       fmtTitle,
-        body:        fmtBody,
-        chatId:      data.chatId      ?? null,
-        senderId:    data.senderId    ?? null,
-        senderName:  data.senderName  ?? '',
+        type, url, title: fmtTitle, body: fmtBody,
+        chatId: data.chatId ?? null,
+        senderId: data.senderId ?? null,
+        senderName: data.senderName ?? '',
         senderImage,
       },
-    };
-    if (senderImage.length > 0) {
-      // Use the sender avatar for chat notifications so media attachments do not appear as the notification image.
-      msg.image = senderImage;
-    }
+    }));
+
     let res!: Response;
     for (let attempt = 0; attempt < 3; attempt++) {
       res = await fetch(EXPO_PUSH_URL, {
-        method:  'POST',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(msg),
+        body: JSON.stringify(messages),
       });
       if (res.status !== 429 && res.status !== 503) break;
       await sleep(1_000 * 2 ** attempt);
     }
     const result = await res.json().catch(() => ({}));
-    if (result?.data?.status === 'error') {
-      const errCode = result.data.details?.error ?? '';
-      const errMsg  = result.data.message        ?? '';
-      if (errCode === 'DeviceNotRegistered' || errMsg.includes('InvalidCredentials')) {
-        await sb.from('push_tokens').delete().eq('user_id', userId).catch(() => {});
-      } else {
-        console.warn(`[push] delivery error for ${userId}:`, errMsg);
+    const items = Array.isArray(result?.data) ? result.data : [result?.data];
+    items.forEach((item: any, i: number) => {
+      if (item?.status === 'error') {
+        const errCode = item.details?.error ?? '';
+        const errMsg = item.message ?? '';
+        if (errCode === 'DeviceNotRegistered' || errMsg.includes('InvalidCredentials')) {
+          sb.from('push_tokens').delete().eq('token', tokens[i]).catch(() => {});
+        } else {
+          console.warn(`[push] delivery error for ${userId}:`, errMsg);
+        }
       }
-    }
+    });
   } catch (e: unknown) {
     console.warn('[push] error:', (e as Error)?.message ?? e);
   }
@@ -696,19 +710,19 @@ async function doAction(
     const msgAt = saved.created_at ?? nowIso;
 
 await sb.from(T.chats).update({
-  hidden_for:          [],
-  last_message:        preview,
-  last_message_p1:     preview,
-  last_message_p2:     preview,
-  last_message_at:     msgAt,  
-  last_message_at_p1:  msgAt,  
-  last_message_at_p2:  msgAt,  
-  last_sender_id:      senderId,
-  last_sender_id_p1:   senderId, 
-  last_sender_id_p2:   senderId,
+  hidden_for: [],
+  last_message: preview,
+  last_message_p1: preview,
+  last_message_p2: preview,
+  last_message_at: msgAt,
+  last_message_at_p1: msgAt,
+  last_message_at_p2: msgAt,
+  last_sender_id: senderId,
+  last_sender_id_p1: senderId,
+  last_sender_id_p2: senderId,
   last_message_status: 'sent',
-  [unreadField]:       currentUnread + 1,
 }).eq('id', chatId);
+await sb.rpc('increment_chat_unread', { p_chat_id: chatId, p_field: unreadField });
 
     Promise.resolve().then(async () => {
       const [{ data: rcvr }, { data: snd }] = await Promise.all([

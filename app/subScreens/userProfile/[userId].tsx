@@ -373,7 +373,6 @@ const st = StyleSheet.create({
     fontWeight: "700",
     color: "#6D4AFF",
   },
-
   name: {
     fontSize: ms(15),
     fontWeight: "500",
@@ -383,7 +382,7 @@ const st = StyleSheet.create({
   headline: {
     fontSize: ms(13),
     fontWeight: "500",
-    color: "#6B7280",
+    color: "#17191B",
     marginBottom: vs(4),
   },
   locationRow: {
@@ -392,7 +391,7 @@ const st = StyleSheet.create({
     alignSelf: "center",
     gap: s(4),
   },
-  locationText: { fontSize: ms(12), color: "#6B7280", fontWeight: "500" },
+  locationText: { fontSize: ms(12), color: "#17191B", fontWeight: "500" },
   statsRow: {
     flexDirection: "row",
     backgroundColor: "#fff",
