@@ -21,7 +21,6 @@ export function isNotificationSuppressed(data: NotificationPayload | undefined):
   const activeChatId = useChatStore.getState().activeChatId;
   return data.type === 'new_message' && data.chatId != null && activeChatId === data.chatId;
 }
-
 Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
     const data = notification.request.content.data as NotificationPayload;
@@ -31,7 +30,6 @@ Notifications.setNotificationHandler({
     return { shouldPlaySound: true, shouldSetBadge: true, shouldShowBanner: true, shouldShowList: true };
   },
 });
-
 class NotificationService {
   private _tapListener:        Notifications.Subscription | null = null;
   private _foregroundListener: Notifications.Subscription | null = null;
@@ -43,7 +41,6 @@ class NotificationService {
     if (!token || typeof token !== 'string') return false;
     return /^ExponentPushToken\[[A-Za-z0-9_-]+\]$/.test(token.trim());
   }
-
   async registerForPushNotifications(userId: string): Promise<string | null> {
     try {
       if (!Device.isDevice) {
@@ -99,10 +96,6 @@ class NotificationService {
     this._retryCount++;
     const delay = this._retryBaseMs * Math.pow(2, this._retryCount - 1);
    this._retryTimeoutId = setTimeout(() => {
-          // Guard: only proceed if this is still the currently authenticated
-          // user. Prevents a stale retry (scheduled before a logout/account
-          // switch) from attributing this device's push token to a user
-          // who is no longer signed in.
           if (useAuthStore.getState().user?.id !== userId) return;
           this.registerForPushNotifications(userId).catch(() => {});
         }, delay);
@@ -116,43 +109,6 @@ class NotificationService {
       this._retryTimeoutId = null;
     }
     this._retryCount = 0;
-  }
-
-  private async _createAndroidChannels(): Promise<void> {
-    await Promise.all([
-      Notifications.setNotificationChannelAsync('messages', {
-        name:             'Messages',
-        importance:       Notifications.AndroidImportance.HIGH,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor:       '#6D4AFF',
-        sound:            'default',
-        showBadge:        true,
-        enableLights:     true,
-      }),
-      Notifications.setNotificationChannelAsync('social', {
-        name:             'Social Activity',
-        importance:       Notifications.AndroidImportance.HIGH,
-        vibrationPattern: [0, 150, 100, 150],
-        lightColor:       '#6D4AFF',
-        sound:            'default',
-        showBadge:        true,
-        enableLights:     true,
-      }),
-      Notifications.setNotificationChannelAsync('daily', {
-        name:             'Daily Motivation',
-        importance:       Notifications.AndroidImportance.DEFAULT,
-        sound:            'default',
-        enableVibrate:    false,
-        showBadge:        false,
-      }),
-      Notifications.setNotificationChannelAsync('badge_sync_silent', {
-        name:          'Badge Sync',
-        importance:    Notifications.AndroidImportance.MIN,
-        enableVibrate: false,
-        showBadge:     true,
-        sound:         null,
-      }),
-    ]);
   }
   private async _saveTokenToSupabase(userId: string, token: string): Promise<void> {
     const { data: userRow } = await supabase
@@ -172,7 +128,6 @@ class NotificationService {
       },
       { onConflict: 'user_id,platform' },
     );
-
     if (error) {
       console.warn('[Notif] Token save error:', error.message);
       throw error;
@@ -227,5 +182,4 @@ class NotificationService {
     this._foregroundListener = null;
   }
 }
-
 export const notificationService = new NotificationService();

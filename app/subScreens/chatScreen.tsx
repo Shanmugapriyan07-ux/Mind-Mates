@@ -834,7 +834,7 @@ export default function ChatScreen() {
 
   useEffect(() => {
   console.log("[ChatScreen] mount — params:", JSON.stringify(params));
-}, [params]); // now genuinely fires once, on actual mount
+}, [params]); 
 
   const resolvedUserId = params.userId || params.senderId || "";
   const resolvedName = params.name || params.senderName || "";

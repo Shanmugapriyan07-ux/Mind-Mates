@@ -890,7 +890,6 @@ export default function NotificationsScreen() {
       );
     }
   }, [swipedIds, notifs, user?.id]);
-
   const handleAccept = useCallback(
     async (item: NotifItem) => {
       setActionLoading(item.id);
@@ -899,7 +898,22 @@ export default function NotificationsScreen() {
       );
       setStatus(item.sender_id, "accepted");
       try {
-        await acceptRequest(item.connection_id, item.id, item.sender_id);
+        const chatId = await acceptRequest(
+          item.connection_id,
+          item.id,
+          item.sender_id,
+        );
+        if (chatId) {
+          router.push({
+            pathname: "/subScreens/chatScreen",
+            params: {
+              chatId,
+              userId: item.sender_id,
+              name: item.sender_name,
+              image: item.sender_image ?? "",
+            },
+          });
+        }
       } catch {
         setNotifs((p: any) =>
           p.map((n: any) =>
@@ -913,7 +927,6 @@ export default function NotificationsScreen() {
     },
     [acceptRequest, setStatus],
   );
-
   const handleReject = useCallback(
     async (item: NotifItem) => {
       setNotifs((p) => p.filter((n: any) => n.id !== item.id));

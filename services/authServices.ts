@@ -17,15 +17,18 @@ export function mapUser(raw: any, isProfileComplete: boolean): AuthUser {
     is_profileComplete: isProfileComplete,
   };
 }
-export async function checkProfileComplete(userId: string): Promise<boolean> {
+export async function checkProfileComplete(userId: string): Promise<boolean | null> {
   try {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('users')
       .select('is_profile_complete')
       .eq('user_id', userId)
       .maybeSingle();
+    if (error) throw error;
     return data?.is_profile_complete === true;
-  } catch { return false; }
+  } catch {
+    return null; // unknown — network/server issue, not a real "incomplete" answer
+  }
 }
 export async function restoreSession(): Promise<void> {
   const store = useAuthStore.getState();
@@ -33,7 +36,15 @@ export async function restoreSession(): Promise<void> {
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user) {
-      const isComplete = await checkProfileComplete(session.user.id);
+     const isComplete = await checkProfileComplete(session.user.id);
+     if (isComplete === null) {
+  // Couldn't verify — don't force onboarding on a network hiccup.
+  // Retry once, then fall back to treating them as complete rather than
+  // wrongly resetting a real user's progress.
+  store.setError('Could not verify your profile. Please check your connection.');
+  store.setPhase('unauthenticated');
+  return;
+}
       const user = mapUser(session.user, isComplete);
       store.setSession(user, session.access_token);
       return;
@@ -50,6 +61,14 @@ export async function restoreSession(): Promise<void> {
             });
             if (!error && data?.session) {
               const isComplete = await checkProfileComplete(data.user.id);
+              if (isComplete === null) {
+  // Couldn't verify — don't force onboarding on a network hiccup.
+  // Retry once, then fall back to treating them as complete rather than
+  // wrongly resetting a real user's progress.
+  store.setError('Could not verify your profile. Please check your connection.');
+  store.setPhase('unauthenticated');
+  return;
+}
               const user = mapUser(data.user, isComplete);
               store.setSession(user, data.session.access_token);
               return;
@@ -98,6 +117,14 @@ export async function signInWithGoogle(): Promise<void> {
       return;
     }
     const isComplete = await checkProfileComplete(data.user.id);
+    if (isComplete === null) {
+  // Couldn't verify — don't force onboarding on a network hiccup.
+  // Retry once, then fall back to treating them as complete rather than
+  // wrongly resetting a real user's progress.
+  store.setError('Could not verify your profile. Please check your connection.');
+  store.setPhase('unauthenticated');
+  return;
+}
     const user = mapUser(data.user, isComplete);
     store.setSession(user, data.session.access_token);
   } catch (err: any) {

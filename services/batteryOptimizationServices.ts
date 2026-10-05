@@ -44,10 +44,8 @@ const OEM_SETTINGS: Record<string, { action: string; label: string }> = {
     label:  'Phone Manager → App Launch → MindMates → Manage Manually → All Enabled',
   },
 };
-
 class BatteryOptimizationService {
   private _manufacturer = '';
-
   async init(): Promise<void> {
     if (Platform.OS !== 'android') return;
     try {
@@ -62,18 +60,13 @@ class BatteryOptimizationService {
   get oemInstructions(): string | null {
     return OEM_SETTINGS[this._manufacturer]?.label ?? null;
   }
-
   async showGuideIfNeeded(): Promise<void> {
     if (!this.hasOEMRestrictions) return;
-
     const alreadyPrompted = await AsyncStorage.getItem(KEY_BATTERY_PROMPTED);
     if (alreadyPrompted) return;
-
     await AsyncStorage.setItem(KEY_BATTERY_PROMPTED, '1');
-
     const instructions = this.oemInstructions!;
     const brand        = this._manufacturer.charAt(0).toUpperCase() + this._manufacturer.slice(1);
-
     Alert.alert(
       ' Enable Notifications',
       `To receive notifications on ${brand} devices, you need to enable background activity:\n\n${instructions}\n\nThis ensures you never miss a message.`,
@@ -87,20 +80,17 @@ class BatteryOptimizationService {
       { cancelable: true },
     );
   }
-
   private async _openOEMSettings(): Promise<void> {
     const pkg = OEM_SETTINGS[this._manufacturer]?.action;
     if (!pkg) return;
     const oemUrl = `intent://#Intent;package=${pkg};end`;
     const canOpen = await Linking.canOpenURL(oemUrl).catch(() => false);
-
     if (canOpen) {
       await Linking.openURL(oemUrl).catch(() => this._openAndroidSettings());
     } else {
       await this._openAndroidSettings();
     }
   }
-
   private async _openAndroidSettings(): Promise<void> {
     await Linking.openSettings().catch(() => {});
   }
@@ -117,5 +107,4 @@ class BatteryOptimizationService {
     await this.showGuideIfNeeded();
   }
 }
-
 export const batteryOptimizationService = new BatteryOptimizationService();

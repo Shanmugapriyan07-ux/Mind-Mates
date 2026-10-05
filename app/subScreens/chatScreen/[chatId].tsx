@@ -148,6 +148,7 @@ const formatLastSeen = (seen: string | null) => {
     return `last seen yesterday at ${tt}`;
   return `last seen ${d.toLocaleDateString([], { day: "numeric", month: "short" })} at ${tt}`;
 };
+
 const useRemoteImageSize = (uri: string | null) => {
   const [size, setSize] = useState<{
     width: number;
@@ -830,9 +831,11 @@ export default function ChatScreen() {
     senderName?: string;
     senderImage?: string;
   }>();
-useEffect(() => {
-  console.log("[ChatScreen] mount — params:", JSON.stringify(params));
-}, [params]);
+
+  useEffect(() => {
+    console.log("[ChatScreen] mount — params:", JSON.stringify(params));
+  }, [params]);
+
   const resolvedUserId = params.userId || params.senderId || "";
   const resolvedName = params.name || params.senderName || "";
   const resolvedImage = params.image || params.senderImage || "";

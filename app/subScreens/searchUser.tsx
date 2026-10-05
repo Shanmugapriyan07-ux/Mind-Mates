@@ -58,7 +58,7 @@ const C = {
   purple: "#6D4AFF",
   purpleL: "#EDE9FE",
   text: "#303032",
-  textt:'#17191B',
+  textt:'#111827',
   muted: "#6B7280",
   border: "#EAECF0",
   skeleton: "#F0F0F3",
@@ -655,9 +655,9 @@ const st = StyleSheet.create({
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: s(8),
+    paddingHorizontal: s(11),
     marginBottom: vs(1),
-    gap: s(8),
+    gap: s(4),
   },
   scanIcon: {
     width: s(37),
@@ -670,9 +670,9 @@ const st = StyleSheet.create({
     alignItems: "center",
     backgroundColor: C.bg,
     borderRadius: s(52),
-    paddingHorizontal: s(14),
+    paddingHorizontal: s(12),
     height: vs(43),
-    marginHorizontal: s(16),
+    marginHorizontal: s(15),
   },
   searchInput: {
     flex: 1,

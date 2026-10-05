@@ -255,7 +255,7 @@ const st = StyleSheet.create({
     marginBottom: vs(4),
   },
   locationRow: { flexDirection: "row", alignItems: "center", gap: s(4), marginRight: vs(5) },
-  locationText: { fontSize: ms(12), color: "#17191B", fontWeight: "500" },
+  locationText: { fontSize: ms(12), color: "#111827", fontWeight: "500" },
   statsRow: {
     alignSelf: "flex-start",
     marginLeft: s(20),
@@ -298,7 +298,7 @@ const st = StyleSheet.create({
     marginRight: s(4),
   },
   pillActive: { backgroundColor: "#6D4AFF", borderColor: "#6D4AFF" },
-  pillText: { fontSize: ms(12), fontWeight: "600", color: "#374151" },
+  pillText: { fontSize: ms(12), fontWeight: "400", color: "#111827" },
   pillTextActive: { color: "#fff" },
 
   skillsCard: {
@@ -330,14 +330,14 @@ const st = StyleSheet.create({
   },
   skillName: {
     fontSize: ms(11),
-    fontWeight: "600",
-    color: "#1F2937",
+    fontWeight: "400",
+    color: "#111827",
     textAlign: "center",
     lineHeight: ms(15),
   },
   bioText: {
     fontSize: ms(14),
-    color: "#17191B",
+    color: "#111827",
     lineHeight: ms(20),
     marginTop: vs(15),
     fontWeight: "500",

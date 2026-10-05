@@ -38,7 +38,7 @@ const C = {
   greenL: "#F0FDF4",
   orange: "#6D4AFF",
   skeleton: "#F0F0F3",
-  textt: '#17191B'
+  textt: '#111827'
 };
 
 const CARD_H = vs(75);
@@ -442,8 +442,8 @@ const st = StyleSheet.create({
   emptyIcon: { marginTop: vs(7) },
   emptyTitle: {
     fontSize: ms(13),
-    fontWeight: "500",
-    color: C.text,
+    fontWeight: "400",
+    color: C.textt,
     textAlign: "center",
     marginBottom: vs(3),
     marginLeft: vs(2),

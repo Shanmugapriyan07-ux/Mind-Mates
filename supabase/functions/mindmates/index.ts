@@ -42,7 +42,6 @@ const _mc  = new Map<string, { data: unknown; at: number; skillsKey: string; con
 const MC_TTL = 5 * 60_000;
 const parseSkills = (s: unknown): string[] =>
   !s ? [] : String(s).split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
-
 const normCity = (s: unknown): string =>
   (s ?? '').toString().toLowerCase().trim().split(',')[0].trim();
 
@@ -52,14 +51,12 @@ const safeJson = async (req: Request): Promise<Record<string, unknown>> => {
     return (typeof raw === 'string' ? JSON.parse(raw) : raw) ?? {};
   } catch { return {}; }
 };
-
 const ensureHttps = (url: string | null | undefined): string => {
   if (!url || url.trim() === '') return '';
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
   if (url.startsWith('//')) return `https:${url}`;
   return '';
 };
-
 const IMG_PREFIX = '__IMG__';
 const VID_PREFIX = '__VID__';
 const isImageMsg = (m: string) => m.startsWith(IMG_PREFIX);
@@ -67,7 +64,6 @@ const isVideoMsg = (m: string) => m.startsWith(VID_PREFIX);
 const isMediaMsg = (m: string) => isImageMsg(m) || isVideoMsg(m);
 const extractMediaUrl = (m: string): string =>
   m.replace(IMG_PREFIX, '').replace(VID_PREFIX, '').split('\n')[0].trim();
-
 const deleteCloudinaryUrl = async (
   url:       string,
   apiKey:    string,
@@ -77,7 +73,6 @@ const deleteCloudinaryUrl = async (
   const typeMatch = url.match(/cloudinary\.com\/[^/]+\/(image|video|raw)\/upload\//i);
   if (!typeMatch) { console.warn('[cloudinary] not a Cloudinary URL:', url); return; }
   const resourceType = typeMatch[1];
-
   const afterUpload = url.slice(url.indexOf('/upload/') + 8);
   const segments    = afterUpload.split('/');
   const cleaned: string[] = [];
@@ -90,19 +85,16 @@ const deleteCloudinaryUrl = async (
   }
   if (!cleaned.length) { console.warn('[cloudinary] could not parse publicId from:', url); return; }
   const publicId = cleaned.join('/').replace(/\.[a-zA-Z0-9]{2,5}$/, '');
-
   const ts  = Math.floor(Date.now() / 1000).toString();
   const raw = `public_id=${publicId}&timestamp=${ts}${apiSecret}`;
   const sig = Array.from(
     new Uint8Array(await crypto.subtle.digest('SHA-1', new TextEncoder().encode(raw)))
   ).map(b => b.toString(16).padStart(2, '0')).join('');
-
   const form = new FormData();
   form.append('public_id', publicId);
   form.append('timestamp',  ts);
   form.append('api_key',    apiKey);
   form.append('signature',  sig);
-
   try {
     const res    = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/destroy`, { method: 'POST', body: form });
     const result = await res.json().catch(() => ({}));
@@ -194,21 +186,15 @@ async function pushOne(
       .map(r => r.token as string)
       .filter(t => t?.startsWith('ExponentPushToken'));
     if (!tokens.length) return;
-
     const type = (data.type as string) ?? '';
     const url = resolveUrl(type, data);
     const channelId = resolveChannel(type);
     const { title: fmtTitle, subtitle: fmtSubtitle, body: fmtBody } = formatPush(type, title, body, data);
     const senderImage = normalizeNotificationImage(data.senderImage);
-
-    // Compute the real badge total: unread notifications + unread chat messages
-    // across every chat this user is a participant in (mirrors syncService.ts's
-    // fetchUnreadCounts logic client-side).
     const [{ count: notifCount }, { data: userChats }] = await Promise.all([
       sb.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('is_read', false),
       sb.from(T.chats).select('participants, unread_p1, unread_p2').contains('participants', [userId]),
     ]);
-
     let chatUnread = 0;
     for (const chat of userChats ?? []) {
       const parts = (chat.participants as string[]) ?? [];
@@ -216,7 +202,6 @@ async function pushOne(
       chatUnread += idx === 0 ? (chat.unread_p1 ?? 0) : idx === 1 ? (chat.unread_p2 ?? 0) : 0;
     }
     const badgeTotal = (notifCount ?? 0) + chatUnread;
-
     const messages = tokens.map(token => ({
       to: token,
       title: fmtTitle,
@@ -767,13 +752,11 @@ await sb.rpc('increment_chat_unread', { p_chat_id: chatId, p_field: unreadField 
     const current    = safeArr(msg.deleted_for);
     const allMembers = chat!.participants as string[];
     if (current.includes(senderId)) return json({ success: true });
-
     const updatedDeleted = [...current, senderId];
     await sb.from(T.messages).update({ deleted_for: updatedDeleted }).eq('id', messageId);
     const myIdx    = allMembers.indexOf(senderId);
     const other    = allMembers.find(p => p !== senderId) ?? '';
     const otherIdx = allMembers.indexOf(other);
-
     const [{ data: myLast }, { data: otherLast }] = await Promise.all([
       sb.from(T.messages).select('message, type, sender_id, created_at')
         .eq('chat_id', msg.chat_id).not('deleted_for', 'cs', `{${senderId}}`)
@@ -782,7 +765,6 @@ await sb.rpc('increment_chat_unread', { p_chat_id: chatId, p_field: unreadField 
         .eq('chat_id', msg.chat_id).not('deleted_for', 'cs', `{${other}}`)
         .order('created_at', { ascending: false }).limit(1).maybeSingle(),
     ]);
-
     const fmtPreview = (row: any) => {
       if (!row) return '';
       if (row.type === 'voice') return '🎤 Voice message';
@@ -793,7 +775,6 @@ await sb.rpc('increment_chat_unread', { p_chat_id: chatId, p_field: unreadField 
     const trueLastRow = !myLast && !otherLast ? null
       : !myLast ? otherLast : !otherLast ? myLast
       : new Date(myLast.created_at) >= new Date(otherLast.created_at) ? myLast : otherLast;
-
     await sb.from(T.chats).update({
       [`last_message_p${myIdx + 1}`]:    fmtPreview(myLast),
       [`last_message_p${otherIdx + 1}`]: fmtPreview(otherLast),
@@ -819,7 +800,6 @@ await sb.rpc('increment_chat_unread', { p_chat_id: chatId, p_field: unreadField 
     }
     return json({ success: true });
   }
-
   if (action === 'delete_for_everyone') {
     const { messageId } = body as { messageId?: string };
     if (!messageId) return json({ error: 'Missing messageId' }, 400);
@@ -875,7 +855,6 @@ await sb.rpc('increment_chat_unread', { p_chat_id: chatId, p_field: unreadField 
     }
     return json({ success: true });
   }
-
   if (action === 'clear_chat') {
     const { chatId } = body as { chatId?: string };
     if (!chatId) return json({ error: 'Missing chatId' }, 400);
@@ -885,7 +864,6 @@ await sb.rpc('increment_chat_unread', { p_chat_id: chatId, p_field: unreadField 
     const { data: msgsForCleanup } = await sb.from(T.messages)
       .select('id, deleted_for, type, audio_url, message')
       .eq('chat_id', chatId);
-
     const { error: rpcErr } = await sb.rpc('append_deleted_for', { p_chat_id: chatId, p_user_id: senderId });
     if (rpcErr) {
       const { data: msgs } = await sb.from(T.messages).select('id, deleted_for').eq('chat_id', chatId);
@@ -894,7 +872,6 @@ await sb.rpc('increment_chat_unread', { p_chat_id: chatId, p_field: unreadField 
           .map((m: { id: string; deleted_for: string[] }) => sb.from(T.messages).update({ deleted_for: [...(m.deleted_for ?? []), senderId] }).eq('id', m.id))
       ).catch(() => {});
     }
-
     const parts    = chat.participants as string[];
     const myIdx    = parts.indexOf(senderId);
     const other    = parts.find(p => p !== senderId) ?? '';
@@ -1122,7 +1099,6 @@ await sb.rpc('increment_chat_unread', { p_chat_id: chatId, p_field: unreadField 
           }
         }
       }
-
       await Promise.all([
         chatIds.length ? sb.from(T.messages).delete().in('chat_id', chatIds) : Promise.resolve(),
         chatIds.length ? sb.from(T.chats).delete().in('id', chatIds)         : Promise.resolve(),
@@ -1268,4 +1244,4 @@ async function doGetMatches(
   const result = { matches: ranked, total: ranked.length, hasMore: false };
   _mc.set(cacheKey, { data: result, at: Date.now(), skillsKey, connKey });
   return json({ ...result, ms: Date.now() - t0 });
-}
+  }

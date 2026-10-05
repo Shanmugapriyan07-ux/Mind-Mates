@@ -4,13 +4,13 @@ import { ms, s, vs } from "@/utils/scale";
 import { Image } from "expo-image";
 import React, { memo, useCallback, useEffect, useRef } from "react";
 import {
-    ActivityIndicator,
-    Animated,
-    Platform,
-    StyleSheet,
-    Text,
-    TouchableWithoutFeedback,
-    View,
+  ActivityIndicator,
+  Animated,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native";
 
 interface GoogleSignInButtonProps {
@@ -45,7 +45,6 @@ function GoogleSignInButton({
       }).start();
     }
   }, [fadeAnim, isTransitioning]);
-
   const handlePressIn = useCallback(() => {
     if (isDisabled) return;
     Animated.parallel([
@@ -102,7 +101,7 @@ function GoogleSignInButton({
         <View style={styles.leftSection}>
           {showSpinner ? (
             <ActivityIndicator
-              size="small" 
+              size="small"
               color="#6D4AFF"
               style={styles.spinner}
             />
@@ -116,7 +115,7 @@ function GoogleSignInButton({
         </View>
 
         <Text
-          style={[styles.label, showSpinner && styles.labelLoading]} 
+          style={[styles.label, showSpinner && styles.labelLoading]}
           numberOfLines={1}
         >
           {showSpinner ? "Signing in…" : "Continue with Google"}
@@ -154,7 +153,7 @@ const styles = StyleSheet.create({
     }),
   },
   buttonDisabled: {
-    backgroundColor: "#FFFFFF", 
+    backgroundColor: "#FFFFFF",
     borderColor: "#DADCE0",
   },
   leftSection: {

@@ -92,8 +92,8 @@
   },
   "expo": {
     "doctor": {
-      "reactNativeDirectoryCheck": {
-        "exclude": [
+      "reactNativeDirectoryCheck":{
+        "exclude":[
           "expo-av",
           "react-native-vector-icons"
         ],
