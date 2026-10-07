@@ -1,4 +1,9 @@
-import { Audio, AVPlaybackStatus } from "expo-av";
+import {
+  AudioPlayer,
+  AudioStatus,
+  createAudioPlayer,
+  setAudioModeAsync,
+} from "expo-audio";
 import { Directory, File, Paths } from "expo-file-system/next";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState, AppStateStatus } from "react-native";
@@ -62,12 +67,13 @@ const downloadToCache = async (url: string): Promise<string> => {
 type Listener = () => void;
 
 interface PlayerSingleton {
-  sound: Audio.Sound | null;
+  player: AudioPlayer | null;
+  playerToken: number;  // ← new: identifies which play() call "owns" the current player
   playingId: string | null;
   isPlaying: boolean;
-  isLoading: boolean; 
-  isLoaded: boolean;   
-  error: string | null; 
+  isLoading: boolean;
+  isLoaded: boolean;
+  error: string | null;
   positionMs: number;
   durationMs: number;
   speed: number;
@@ -75,7 +81,8 @@ interface PlayerSingleton {
 }
 
 const ps: PlayerSingleton = {
-  sound: null,
+  player: null,
+  playerToken: 0,
   playingId: null,
   isPlaying: false,
   isLoading: false,
@@ -87,8 +94,9 @@ const ps: PlayerSingleton = {
   listeners: new Set(),
 };
 
-let operationId = 0;
 
+let operationId = 0;
+let playerSubscription: { remove: () => void } | null = null;
 let loadingGuard = false;
 
 const notifyListeners = () => ps.listeners.forEach((fn) => fn());
@@ -98,12 +106,14 @@ const updateState = (patch: Partial<Omit<PlayerSingleton, "sound" | "listeners">
   notifyListeners();
 };
 const unloadSound = async () => {
-  if (ps.sound) {
-    try {
-      await ps.sound.stopAsync();
-      await ps.sound.unloadAsync();
-    } catch {  }
-    ps.sound = null;
+  if (playerSubscription) {
+    playerSubscription.remove();
+    playerSubscription = null;
+  }
+  if (ps.player) {
+    ps.player.pause();
+    ps.player.remove();
+    ps.player = null;
   }
   updateState({
     playingId: null,
@@ -115,43 +125,48 @@ const unloadSound = async () => {
     durationMs: 0,
   });
 };
-const onPlaybackStatus = (status: AVPlaybackStatus) => {
-  if (!status.isLoaded) {
-    if ((status as any).error) {
-      console.warn("[useAudioPlayer] playback error:", (status as any).error);
-      updateState({ error: (status as any).error, isLoading: false, isLoaded: false }); 
-    }
-    return;
-  }
+
+const makeOnPlaybackStatus = (token: number) => (status: AudioStatus) => {
+  if (token !== ps.playerToken) return; // this event belongs to a player we've already replaced
+  if (!status.isLoaded) return;
   updateState({
-    isPlaying: status.isPlaying,
-    isLoaded: true,   
-    isLoading: false,    
+    isPlaying: status.playing,
+    isLoaded: true,
+    isLoading: false,
     error: null,
-    positionMs: status.positionMillis,
-    durationMs: status.durationMillis ?? 0,
+    positionMs: status.currentTime * 1000,
+    durationMs: status.duration * 1000,
   });
   if (status.didJustFinish) {
     unloadSound();
   }
 };
+
+// const onPlaybackStatus = (status: AudioStatus) => {
+//   if (!status.isLoaded) return;
+//   updateState({
+//     isPlaying: status.playing,
+//     isLoaded: true,
+//     isLoading: false,
+//     error: null,
+//     positionMs: status.currentTime * 1000,
+//     durationMs: status.duration * 1000,
+//   });
+//   if (status.didJustFinish) {
+//     unloadSound();
+//   }
+// };
+
 let lastAppState: AppStateStatus = "active";
 AppState.addEventListener("change", async (nextState: AppStateStatus) => {
   if (nextState === "background" || nextState === "inactive") {
-    if (ps.sound && ps.isPlaying) {
-      try { await ps.sound.pauseAsync(); } catch { }
+    if (ps.player && ps.isPlaying) {
+      ps.player.pause();
     }
   }
   if (nextState === "active" && lastAppState !== "active") {
-    if (ps.sound) {
-      try {
-        const status = await ps.sound.getStatusAsync();
-        if (!status.isLoaded) {
-          await unloadSound(); 
-        }
-      } catch {
-        await unloadSound();
-      }
+    if (ps.player && !ps.player.isLoaded) {
+      await unloadSound();
     }
   }
   lastAppState = nextState;
@@ -194,11 +209,11 @@ export const useAudioPlayer = (messageId?: string) => {
     };
   }, [messageId]);
   const play = useCallback(async (messageId: string, url: string) => {
-    if (ps.playingId === messageId && ps.sound) {
+    if (ps.playingId === messageId && ps.player) {
       if (ps.isPlaying) {
-        await ps.sound.pauseAsync();
+        ps.player.pause();
       } else {
-        await ps.sound.playAsync();
+        ps.player.play();
       }
       return;
     }
@@ -216,10 +231,10 @@ export const useAudioPlayer = (messageId?: string) => {
       durationMs: 0,
     });
     try {
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: false, 
+      await setAudioModeAsync({
+        allowsRecording: false,
+        playsInSilentMode: true,
+        shouldPlayInBackground: false,
       });
 
       let resolvedUri = url;
@@ -228,51 +243,54 @@ export const useAudioPlayer = (messageId?: string) => {
       }
       if (myOp !== operationId) return;
 
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: resolvedUri },
-        { shouldPlay: true, rate: ps.speed, volume: 1.0 },
-        onPlaybackStatus
-      );
+      const player = createAudioPlayer({ uri: resolvedUri }, { updateInterval: PROGRESS_INTERVAL_MS });
 
-      if (myOp !== operationId) {
-        try { await sound.unloadAsync(); } catch { }
-        return;
-      }
-      await sound.setProgressUpdateIntervalAsync(PROGRESS_INTERVAL_MS);
+if (myOp !== operationId) {
+  player.remove();
+  return;
+}
 
-      ps.sound = sound;
-      updateState({ isPlaying: true, isLoading: false, isLoaded: true });
-    } catch (e: any) {
+ps.player = player;
+ps.playerToken = myOp;
+playerSubscription = player.addListener("playbackStatusUpdate", makeOnPlaybackStatus(myOp));
+player.volume = 1;
+player.setPlaybackRate(ps.speed, "high");
+player.play();
+updateState({ isPlaying: true, isLoading: false, isLoaded: true });
+    } catch (e) {
       console.warn("[useAudioPlayer] play failed:", e);
-      updateState({ error: e?.message ?? "Playback failed", isLoading: false });
+      updateState({
+        error: e instanceof Error ? e.message : "Playback failed",
+        isLoading: false,
+      });
       await unloadSound();
     } finally {
       loadingGuard = false;
     }
   }, []);
   const pause = useCallback(async () => {
-    if (ps.sound && ps.isPlaying) {
-      await ps.sound.pauseAsync();
+    if (ps.player && ps.isPlaying) {
+      ps.player.pause();
     }
   }, []);
   const resume = useCallback(async () => {
-    if (ps.sound && !ps.isPlaying) {
-      await ps.sound.playAsync();
+    if (ps.player && !ps.isPlaying) {
+      ps.player.play();
     }
   }, []);
   const stop = useCallback(async () => {
     await unloadSound();
   }, []);
   const seek = useCallback(async (positionMs: number) => {
-    if (ps.sound) {
-      await ps.sound.setPositionAsync(positionMs);
+    if (ps.player) {
+      await ps.player.seekTo(positionMs / 1000);
       updateState({ positionMs });
     }
   }, []);
   const setSpeed = useCallback(async (rate: number) => {
     updateState({ speed: rate });
-    if (ps.sound) {
-      await ps.sound.setRateAsync(rate, true);
+    if (ps.player) {
+      ps.player.setPlaybackRate(rate, "high");
     }
   }, []);
     const progress = ps.durationMs > 0 ? ps.positionMs / ps.durationMs : 0;

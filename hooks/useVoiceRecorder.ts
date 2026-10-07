@@ -1,54 +1,64 @@
-import { Audio } from "expo-av";
+import {
+  AudioQuality,
+  AudioRecorder,
+  IOSOutputFormat,
+  RecordingOptions,
+  requestRecordingPermissionsAsync,
+  setAudioModeAsync,
+  useAudioRecorder,
+} from "expo-audio";
 import { useCallback, useEffect, useRef, useState } from "react";
+
 export interface RecordingResult {
   uri: string;
   durationMs: number;
-  waveform: number[]; 
+  waveform: number[];
 }
+
 export type RecordingState =
   | "idle"
   | "requesting"
   | "recording"
   | "stopping"
   | "error";
+
 const SAMPLE_INTERVAL_MS = 80;
-const MAX_WAVEFORM_BARS = 50; 
+const MAX_WAVEFORM_BARS = 50;
 const MAX_DURATION_MS = 120_000;
-const RECORDING_OPTIONS: Audio.RecordingOptions = {
+const RECORDING_OPTIONS: RecordingOptions = {
+  extension: ".m4a",
+  sampleRate: 16000,
+  numberOfChannels: 1,
+  bitRate: 32000,
+  isMeteringEnabled: true,
   android: {
-    extension: ".m4a",
-    outputFormat: Audio.AndroidOutputFormat.MPEG_4,
-    audioEncoder: Audio.AndroidAudioEncoder.AAC,
-    sampleRate: 16000,
-    numberOfChannels: 1,
-    bitRate: 32000,
+    outputFormat: "mpeg4",
+    audioEncoder: "aac",
   },
   ios: {
-    extension: ".m4a",
-    outputFormat: Audio.IOSOutputFormat.MPEG4AAC,
-    audioQuality: Audio.IOSAudioQuality.LOW,
-    sampleRate: 16000,
-    numberOfChannels: 1,
-    bitRate: 32000,
+    outputFormat: IOSOutputFormat.MPEG4AAC,
+    audioQuality: AudioQuality.LOW,
     linearPCMBitDepth: 16,
     linearPCMIsBigEndian: false,
     linearPCMIsFloat: false,
   },
-  web: {
-    mimeType: undefined,
-    bitsPerSecond: undefined
-  }
+  web: {},
 };
+
 export const useVoiceRecorder = () => {
+  const recorder = useAudioRecorder(RECORDING_OPTIONS);
   const [state, setState] = useState<RecordingState>("idle");
   const [elapsedMs, setElapsedMs] = useState(0);
   const [liveBars, setLiveBars] = useState<number[]>([]);
-  const recordingRef = useRef<Audio.Recording | null>(null);
+  const recordingRef = useRef<AudioRecorder | null>(null);
   const meterTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(0);
-  const rawMeterRef = useRef<number[]>([]); 
-  const stopAndSaveRef = useRef<(() => Promise<RecordingResult | null>) | null>(null);
+  const rawMeterRef = useRef<number[]>([]);
+  const stopAndSaveRef = useRef<
+    (() => Promise<RecordingResult | null>) | null
+  >(null);
+
   const clearTimers = useCallback(() => {
     if (meterTimerRef.current) {
       clearInterval(meterTimerRef.current);
@@ -59,19 +69,23 @@ export const useVoiceRecorder = () => {
       durationTimerRef.current = null;
     }
   }, []);
+
   const releaseRecording = useCallback(async () => {
     if (recordingRef.current) {
       try {
-        await recordingRef.current.stopAndUnloadAsync();
+        await recordingRef.current.stop();
       } catch {
+        // The recorder may already have stopped after an interrupted session.
       }
       recordingRef.current = null;
     }
   }, []);
+
   const dbToBar = (db: number): number => {
     const clamped = Math.max(-60, Math.min(0, db));
     return Math.round(((clamped + 60) / 60) * 95) + 5;
   };
+
   const buildWaveform = (samples: number[]): number[] => {
     if (!samples.length) return [];
     const count = Math.min(samples.length, MAX_WAVEFORM_BARS);
@@ -82,25 +96,23 @@ export const useVoiceRecorder = () => {
       return samples[idx];
     });
   };
+
   const startRecording = useCallback(async (): Promise<boolean> => {
     if (state !== "idle") return false;
     setState("requesting");
     try {
-      const { status } = await Audio.requestPermissionsAsync();
+      const { status } = await requestRecordingPermissionsAsync();
       if (status !== "granted") {
         setState("error");
         return false;
       }
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
+      await setAudioModeAsync({
+        allowsRecording: true,
+        playsInSilentMode: true,
       });
-      const { recording } = await Audio.Recording.createAsync(
-        RECORDING_OPTIONS,
-        undefined,
-        SAMPLE_INTERVAL_MS
-      );
-      recordingRef.current = recording;
+      await recorder.prepareToRecordAsync();
+      recorder.record();
+      recordingRef.current = recorder;
       rawMeterRef.current = [];
       startTimeRef.current = Date.now();
       setElapsedMs(0);
@@ -113,23 +125,17 @@ export const useVoiceRecorder = () => {
           stopAndSaveRef.current?.().catch(console.error);
         }
       }, 250);
-      meterTimerRef.current = setInterval(async () => {
-        if (!recordingRef.current) return;
-        try {
-          const status = await recordingRef.current.getStatusAsync();
-          if (!status.isRecording) return;
-          const db =
-            (status as any).metering !== undefined
-              ? (status as any).metering
-              : -30;
-          const bar = dbToBar(db);
-          rawMeterRef.current.push(bar);
-          setLiveBars((prev) => {
-            const next = [...prev, bar];
-            return next.length > 30 ? next.slice(next.length - 30) : next;
-          });
-        } catch {
-        }
+      meterTimerRef.current = setInterval(() => {
+        const activeRecorder = recordingRef.current;
+        if (!activeRecorder) return;
+        const status = activeRecorder.getStatus();
+        if (!status.isRecording) return;
+        const bar = dbToBar(status.metering ?? -30);
+        rawMeterRef.current.push(bar);
+        setLiveBars((prev) => {
+          const next = [...prev, bar];
+          return next.length > 30 ? next.slice(next.length - 30) : next;
+        });
       }, SAMPLE_INTERVAL_MS);
       return true;
     } catch (e) {
@@ -140,20 +146,21 @@ export const useVoiceRecorder = () => {
       setTimeout(() => setState("idle"), 1500);
       return false;
     }
-  }, [state, clearTimers, releaseRecording]);
+  }, [state, clearTimers, recorder, releaseRecording]);
+
   const stopAndSave = useCallback(async (): Promise<RecordingResult | null> => {
     if (!recordingRef.current) return null;
     setState("stopping");
     clearTimers();
     const durationMs = Date.now() - startTimeRef.current;
     try {
-      await recordingRef.current.stopAndUnloadAsync();
-      const uri = recordingRef.current.getURI();
+      await recordingRef.current.stop();
+      const uri = recordingRef.current.uri;
       recordingRef.current = null;
       if (!uri) throw new Error("No URI from recording");
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        playsInSilentModeIOS: true,
+      await setAudioModeAsync({
+        allowsRecording: false,
+        playsInSilentMode: true,
       });
       const waveform = buildWaveform(rawMeterRef.current);
       rawMeterRef.current = [];
@@ -169,20 +176,27 @@ export const useVoiceRecorder = () => {
       return null;
     }
   }, [clearTimers]);
+
   stopAndSaveRef.current = stopAndSave;
+
   const stopAndDiscard = useCallback(async () => {
     clearTimers();
     await releaseRecording();
+    await setAudioModeAsync({
+      allowsRecording: false,
+      playsInSilentMode: true,
+    });
     rawMeterRef.current = [];
     setLiveBars([]);
     setElapsedMs(0);
     setState("idle");
   }, [clearTimers, releaseRecording]);
+
   useEffect(() => {
     return () => {
       clearTimers();
       if (recordingRef.current) {
-        recordingRef.current.stopAndUnloadAsync().catch(() => {});
+        recordingRef.current.stop().catch(() => {});
         recordingRef.current = null;
       }
     };

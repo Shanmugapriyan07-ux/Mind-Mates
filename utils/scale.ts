@@ -1,8 +1,6 @@
 import { Dimensions, PixelRatio, StyleSheet } from 'react-native';
 import { DeviceTier, getDeviceTier } from '../theme/breakPoints';
-
 const { width: W, height: H } = Dimensions.get('window');
-
 export const DEVICE_TIER: DeviceTier = getDeviceTier(W);
 const BASE_W: Record<DeviceTier, number> = {
   smallPhone:  360,

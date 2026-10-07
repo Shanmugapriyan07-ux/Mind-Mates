@@ -417,9 +417,16 @@ export const ChatInput = React.memo(
       useRenderCount("ChatInput");
       const actionInFlightRef = useRef(false);
       const inputRef = useRef<TextInput>(null);
-      const recorder = useVoiceRecorder();
-      const { stopAndDiscard } = recorder;
       const { enqueueUpload } = useVoiceUpload();
+      const recorder = useVoiceRecorder();
+      const {
+        stopAndDiscard,
+        startRecording,
+        stopAndSave,
+        elapsedMs,
+        liveBars,
+      } = recorder;
+
       const hasText = useSharedValue(0);
       const focused = useSharedValue(0);
       useImperativeHandle(
@@ -506,38 +513,32 @@ export const ChatInput = React.memo(
           focused.value = 0;
           Keyboard.dismiss();
           await new Promise<void>((resolve) => setTimeout(resolve, 80));
-
-          const ok = await recorder.startRecording();
-          if (ok) {
-            setIsRecording(true);
-          }
+          const ok = await startRecording();
+          if (ok) setIsRecording(true);
         } finally {
           actionInFlightRef.current = false;
         }
-      }, [focused, recorder]);
+      }, [focused, startRecording]);
 
       const handleVoiceSend = useCallback(async () => {
         if (actionInFlightRef.current || !isRecording) return;
         actionInFlightRef.current = true;
         setVoiceSending(true);
         try {
-          if (recorder.elapsedMs < 1000) {
-            await recorder.stopAndDiscard();
+          if (elapsedMs < 1000) {
+            await stopAndDiscard();
             setIsRecording(false);
             setVoiceSending(false);
             actionInFlightRef.current = false;
             return;
           }
-
-          const result = await recorder.stopAndSave();
+          const result = await stopAndSave();
           setIsRecording(false);
           setVoiceSending(false);
-
           if (!result || !chatId) {
             actionInFlightRef.current = false;
             return;
           }
-
           const callbacks: VoiceUploadCallbacks = {
             onOptimistic: (tempId) =>
               onVoiceOptimistic?.(tempId, result.durationMs, result.waveform),
@@ -545,7 +546,6 @@ export const ChatInput = React.memo(
               onVoiceSuccess?.(tempId, audioUrl, messageId),
             onFailed: (tempId) => onVoiceFailed?.(tempId),
           };
-
           enqueueUpload(
             {
               localUri: result.uri,
@@ -561,7 +561,7 @@ export const ChatInput = React.memo(
           );
         } catch (e) {
           console.warn("[ChatInput] handleVoiceSend error:", e);
-          await recorder.stopAndDiscard().catch(() => {});
+          await stopAndDiscard().catch(() => {});
           setIsRecording(false);
           setVoiceSending(false);
         } finally {
@@ -569,7 +569,9 @@ export const ChatInput = React.memo(
         }
       }, [
         isRecording,
-        recorder,
+        elapsedMs,
+        stopAndDiscard,
+        stopAndSave,
         chatId,
         myId,
         replyTo,
@@ -578,17 +580,19 @@ export const ChatInput = React.memo(
         onVoiceSuccess,
         onVoiceFailed,
       ]);
+
       const handleVoiceCancel = useCallback(async () => {
         if (actionInFlightRef.current) return;
         actionInFlightRef.current = true;
         try {
-          await recorder.stopAndDiscard();
+          await stopAndDiscard();
           setIsRecording(false);
           setVoiceSending(false);
         } finally {
           actionInFlightRef.current = false;
         }
-      }, [recorder]);
+      }, [stopAndDiscard]);
+
       useEffect(() => {
         return () => {
           stopAndDiscard().catch(() => {});
@@ -629,7 +633,7 @@ export const ChatInput = React.memo(
             : await requestMediaLibraryPermissionCached();
           if (!granted) return;
           const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ['videos'],
+            mediaTypes: ["videos"],
             allowsEditing: false,
             videoMaxDuration: 60,
             quality: 0.85,
@@ -658,7 +662,7 @@ export const ChatInput = React.memo(
             return;
           }
           const result = await ImagePicker.launchCameraAsync({
-            mediaTypes: ['images', 'videos'],
+            mediaTypes: ["images", "videos"],
             allowsEditing: false,
             quality: 0.7,
             exif: false,
@@ -753,8 +757,8 @@ export const ChatInput = React.memo(
             })()}
           {isRecording ? (
             <RecordingRow
-              elapsedMs={recorder.elapsedMs}
-              liveBars={recorder.liveBars}
+              elapsedMs={elapsedMs}
+              liveBars={liveBars}
               onCancel={handleVoiceCancel}
               onSend={handleVoiceSend}
               sending={voiceSending}

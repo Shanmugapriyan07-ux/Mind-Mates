@@ -799,7 +799,6 @@ const ChatHeader = React.memo(
             <Text style={ch.headerStatus}>{statusText}</Text>
           ) : null}
         </View>
-
         <TouchableOpacity
           onPress={onMenuPress}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -815,12 +814,10 @@ const ChatHeader = React.memo(
     );
   },
 );
-
 export default function ChatScreen() {
   useRenderCount("ChatScreen");
   const { user } = useAuthh();
   const myId = user?.id ?? "";
-
   const params = useLocalSearchParams<{
     chatId?: string;
     userId?: string;
@@ -833,8 +830,8 @@ export default function ChatScreen() {
   }>();
 
   useEffect(() => {
-  console.log("[ChatScreen] mount — params:", JSON.stringify(params));
-}, [params]); 
+    console.log("[ChatScreen] mount — params:", JSON.stringify(params));
+  }, []);
 
   const resolvedUserId = params.userId || params.senderId || "";
   const resolvedName = params.name || params.senderName || "";

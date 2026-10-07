@@ -23,6 +23,13 @@ export default {
     "expo-router",
     "expo-secure-store",
     [
+      "expo-audio",
+      {
+        microphonePermission:
+          "Allow MindMates to access your microphone to record voice messages.",
+      },
+    ],
+    [
       "@sentry/react-native",
       {
         url: "https://sentry.io/",

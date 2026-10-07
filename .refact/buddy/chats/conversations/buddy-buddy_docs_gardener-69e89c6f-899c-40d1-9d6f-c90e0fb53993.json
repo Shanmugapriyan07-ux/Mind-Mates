@@ -1,9 +1,9 @@
 {
-  "id": "buddy-buddy_docs_gardener-72355603-9fa2-439b-8702-c4d934e8d6e2",
+  "id": "buddy-buddy_docs_gardener-69e89c6f-899c-40d1-9d6f-c90e0fb53993",
   "title": "Docs Gardener",
   "model": "openai/gpt-5-pro",
   "mode": "buddy",
-  "tool_use": "tree,cat,search_pattern,buddy_runtime_event",
+  "tool_use": "tree,cat,glob,search_pattern,buddy_runtime_event",
   "messages": [
     {
       "role": "system",
@@ -12,12 +12,27 @@
     {
       "role": "user",
       "content": "Workflow: buddy_docs_gardener\nTitle: Docs Gardener\nSignal hash: c1546beb5ecc4774699cd5d65e6c9a526ebcdee59db03973e875c6d5a0ad7566\nPriority: normal\n\nTask:\nReview the documentation signal. Suggest whether README, AGENTS, or docs should be updated based only on changed path categories and docs presence.\n\nEvidence:\nDocs signal:\n- has_readme: true\n- has_agents: false\n- docs_file_count: 3\n- changed_code_path_count: 0\n- changed_doc_path_count: 0\n- changed_code_paths:\n- changed_doc_paths:\n"
+    },
+    {
+      "message_id": "f9e5b1db-a8d6-40aa-86e9-91d97c9e188d",
+      "role": "event",
+      "content": "Subchat run failed: LLM request failed: error sending request for url (https://api.openai.com/v1/chat/completions)",
+      "event": {
+        "subkind": "system_notice",
+        "source": "subchat.run",
+        "payload": {
+          "error": "LLM request failed: error sending request for url (https://api.openai.com/v1/chat/completions)",
+          "tool_name": "buddy_docs_gardener"
+        }
+      }
     }
   ],
-  "created_at": "2026-08-02T07:58:06.104676300+00:00",
+  "created_at": "2026-10-06T10:40:26.847501+00:00",
   "boost_reasoning": false,
   "checkpoints_enabled": true,
-  "context_tokens_cap": null,
+  "context_tokens_cap": 32000,
+  "auto_compression_cap": 28800,
+  "auto_compression_cap_pending": false,
   "include_project_info": true,
   "isTitleGenerated": false,
   "auto_approve_editing_tools": false,
@@ -28,6 +43,6 @@
     "buddy_chat_kind": "system",
     "workflow_id": "buddy_docs_gardener"
   },
-  "root_chat_id": "buddy-buddy_docs_gardener-72355603-9fa2-439b-8702-c4d934e8d6e2",
-  "updated_at": "2026-08-02T07:58:06.110669800+00:00"
+  "root_chat_id": "buddy-buddy_docs_gardener-69e89c6f-899c-40d1-9d6f-c90e0fb53993",
+  "updated_at": "2026-10-06T10:40:26.895113+00:00"
 }

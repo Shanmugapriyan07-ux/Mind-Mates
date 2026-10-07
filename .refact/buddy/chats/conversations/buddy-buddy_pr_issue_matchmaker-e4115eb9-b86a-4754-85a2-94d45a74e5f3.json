@@ -1,0 +1,48 @@
+{
+  "id": "buddy-buddy_pr_issue_matchmaker-e4115eb9-b86a-4754-85a2-94d45a74e5f3",
+  "title": "PR/Issue Matchmaker",
+  "model": "openai/gpt-5-pro",
+  "mode": "buddy",
+  "tool_use": "cat,web_search,buddy_speak,buddy_runtime_event",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are Dash, a Cozy Oracle (Calm, observant, slyly funny).\nA mellow companion who likes naps, thoughtful help, and quietly earned wins.\n\nPersonality voice: Calm, observant, slyly funny. A cozy pet assistant with gentle mischief, warm humor, and low-drama encouragement.\nThe local diff is large enough that a related PR or issue may help. Keep the pass lightweight:\n1. Use the supplied changed-file and diff-stat evidence, and inspect only the smallest useful local context.\n2. Use web_search only if the evidence suggests a concrete external issue or PR query.\n3. Use buddy_speak with text, mood, and intent=insight to share one useful match or next step.\n4. End with buddy_runtime_event titled \"PR/issue matchmaker\" with what you found.\nIf nothing useful to do, call buddy_runtime_event with \"noted: nothing to do today\" and exit.\n"
+    },
+    {
+      "role": "user",
+      "content": "Workflow: buddy_pr_issue_matchmaker\nProject root: C:\\MM\nTask: Look for likely issue or PR context for the current local diff and suggest one useful connection.\nEvidence:\nproject_root=[REDACTED_PATH]\nchanged_lines=523\nthreshold=10\n\nChanged files:\n.refact/buddy/briefings/2026-09-19.json\n.refact/buddy/chats/conversations/buddy-buddy_architecture_drift_watcher-b9dfceca-d2f1-4603-bd65-206f351bcf94.json\n.refact/buddy/chats/conversations/buddy-buddy_daily_digest-2c30247b-0d46-4926-9d78-d6567daeb0f9.json\n.refact/buddy/chats/conversations/buddy-buddy_daily_digest-42c7c1b7-f259-431e-9a26-8ba3d3906f57.json\n.refact/buddy/chats/conversations/buddy-buddy_docs_gardener-72355603-9fa2-439b-8702-c4d934e8d6e2.json\n.refact/buddy/chats/conversations/buddy-buddy_model_cost_optimizer-6360161a-04e5-4531-b489-473b46fa0a3e.json\n.refact/buddy/chats/conversations/buddy-buddy_pr_issue_matchmaker-7a5d6b9e-e0de-4880-bc60-f8690313d5ea.json\n.refact/buddy/chats/conversations/buddy-buddy_pr_issue_matchmaker-928289f6-aa86-4820-9669-f4c3628a48ec.json\n.refact/buddy/chats/conversations/buddy-buddy_pr_issue_matchmaker-b31105ab-4014-444c-b4a1-06139ca41009.json\n.refact/buddy/chats/conversations/buddy-buddy_security_whisperer-db8b99d7-a752-46cf-b641-7e0d3bb3be85.json\n.refact/buddy/chats/conversations/buddy-buddy_security_whisperer-f16d9975-36e2-45bd-996b-e1d0e456c12d.json\n.refact/buddy/chats/conversations/buddy-buddy_setup_coach-862ac99b-09aa-4071-b411-6c49c9f94601.json\n.refact/buddy/chats/conversations/buddy-buddy_setup_coach-c74df9fc-46e5-488c-b9db-b9b9c7a8e7e2.json\n.refact/buddy/chats/conversations/buddy-buddy_user_habit_coach-1b8a1352-bb1c-4b25-be52-34d2507240b4.json\n.refact/buddy/chats/conversations/buddy-buddy_user_habit_coach-a5348ec1-3c32-402b-8054-2b9ed694f1cb.json\n.refact/buddy/chats/conversations/buddy-refact_error_detective-07a35165-729e-44f4-876a-617c71f135d9.json\n.refact/buddy/chats/conversations/index.json\n.refact/buddy/chats/workflows/buddy_docs_gardener.json\n.refact/buddy/chats/workflows/buddy_model_cost_optimizer.json\n.refact/buddy/chats/workflows/buddy_setup_coach.json\n.refact/buddy/chats/workflows/buddy_user_habit_coach.json\n.refact/buddy/runtime_queue.jsonl\n.refact/buddy/state.json\n.refact/stats/00000002.jsonl\napp/subScreens/chatScreen.tsx\n\nDiff stat:\n.refact/buddy/briefings/2026-09-19.json            |  1 -\n ...tcher-b9dfceca-d2f1-4603-bd65-206f351bcf94.json | 33 ----------------------\n ...igest-2c30247b-0d46-4926-9d78-d6567daeb0f9.json | 33 ----------------------\n ...igest-42c7c1b7-f259-431e-9a26-8ba3d3906f57.json | 33 ----------------------\n ...dener-72355603-9fa2-439b-8702-c4d934e8d6e2.json | 33 ----------------------\n ...mizer-6360161a-04e5-4531-b489-473b46fa0a3e.json | 33 ----------------------\n ...maker-7a5d6b9e-e0de-4880-bc60-f8690313d5ea.json | 33 ----------------------\n ...maker-928289f6-aa86-4820-9669-f4c3628a48ec.json | 33 ----------------------\n ...maker-b31105ab-4014-444c-b4a1-06139ca41009.json | 33 ----------------------\n ...perer-db8b99d7-a752-46cf-b641-7e0d3bb3be85.json | 33 ----------------------\n ...perer-f16d9975-36e2-45bd-996b-e1d0e456c12d.json | 33 ----------------------\n ...coach-862ac99b-09aa-4071-b411-6c49c9f94601.json | 33 ----------------------\n ...coach-c74df9fc-46e5-488c-b9db-b9b9c7a8e7e2.json | 33 ----------------------\n ...coach-1b8a1352-bb1c-4b25-be52-34d2507240b4.json | 33 ----------------------\n ...coach-a5348ec1-3c32-402b-8054-2b9ed694f1cb.json | 33 ----------------------\n ...ctive-07a35165-729e-44f4-876a-617c71f135d9.json | 33 ----------------------\n .refact/buddy/chats/conversations/index.json       |  2 +-\n .../buddy/chats/workflows/buddy_docs_gardener.json |  2 +-\n .../workflows/buddy_model_cost_optimizer.json      |  2 +-\n .../buddy/chats/workflows/buddy_setup_coach.json   |  2 +-\n .../chats/workflows/buddy_user_habit_coach.json    |  2 +-\n .refact/buddy/runtime_queue.jsonl                  |  7 ++++-\n .refact/buddy/state.json                           |  2 +-\n .refact/stats/00000002.jsonl                       |  4 +++\n app/subScreens/chatScreen.tsx                      |  4 +--\n 25 files changed, 18 insertions(+), 505 deletions(-)\n"
+    },
+    {
+      "message_id": "a617e496-fd84-41f8-9690-38e1b3993fab",
+      "role": "event",
+      "content": "Subchat run failed: LLM request failed: error sending request for url (https://api.openai.com/v1/chat/completions)",
+      "event": {
+        "subkind": "system_notice",
+        "source": "subchat.run",
+        "payload": {
+          "error": "LLM request failed: error sending request for url (https://api.openai.com/v1/chat/completions)",
+          "tool_name": "buddy_pr_issue_matchmaker"
+        }
+      }
+    }
+  ],
+  "created_at": "2026-10-06T10:42:00.253186800+00:00",
+  "boost_reasoning": false,
+  "checkpoints_enabled": true,
+  "context_tokens_cap": 24000,
+  "auto_compression_cap": 21600,
+  "auto_compression_cap_pending": false,
+  "include_project_info": true,
+  "isTitleGenerated": false,
+  "auto_approve_editing_tools": false,
+  "auto_approve_dangerous_commands": false,
+  "autonomous_no_confirm": true,
+  "buddy_meta": {
+    "is_buddy_chat": true,
+    "buddy_chat_kind": "system",
+    "workflow_id": "buddy_pr_issue_matchmaker"
+  },
+  "root_chat_id": "buddy-buddy_pr_issue_matchmaker-e4115eb9-b86a-4754-85a2-94d45a74e5f3",
+  "updated_at": "2026-10-06T10:42:00.298809500+00:00"
+}
